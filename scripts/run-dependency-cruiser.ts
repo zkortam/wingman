@@ -9,7 +9,7 @@ if (!available) {
   process.stdout.write('dependency-cruiser is unavailable in the offline tool cache; structural boundary check completed.\n')
 } else {
   const exitCode = await new Promise<number>((resolveCode, reject) => {
-    const child = spawn(binary, ['--config', '.dependency-cruiser.cjs', 'packages', 'services', 'apps', 'fixtures'], {
+    const child = spawn(binary, ['--config', '.dependency-cruiser.cjs', 'packages', 'services', 'apps', 'fixtures', 'demo'], {
       cwd: resolve(import.meta.dirname, '..'),
       stdio: 'inherit',
     })

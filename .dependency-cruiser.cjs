@@ -34,6 +34,23 @@ module.exports = {
       to: { path: '^(services|apps)' },
     },
     {
+      name: 'demo-sdk-only',
+      severity: 'error',
+      comment:
+        'demo/ is a mock customer, so it may only reach Wingman through the SDK and the ' +
+        'published schema types. This is what makes the folder deletable and what stops ' +
+        'the product from quietly growing a special case for it.',
+      from: { path: '^demo' },
+      to: { path: '^(services|apps|packages)', pathNot: '^packages/(sdk|schema)' },
+    },
+    {
+      name: 'nothing-depends-on-demo',
+      severity: 'error',
+      comment: 'Deleting demo/ must never break the product.',
+      from: { pathNot: '^demo' },
+      to: { path: '^demo' },
+    },
+    {
       name: 'no-cycles',
       severity: 'error',
       from: {},
