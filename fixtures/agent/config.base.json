@@ -1,0 +1,18 @@
+{
+  "systemPrompt": "You are Ops Copilot, Ledgerline's RevOps assistant. Preserve the user's active constraints and never invent CRM state.",
+  "tools": [
+    {
+      "name": "search_records",
+      "description": "Search CRM opportunities using the supplied query and filters."
+    },
+    {
+      "name": "export_records",
+      "description": "Export CRM opportunities. Pass the caller's active view filters in filters so the export matches what the user currently sees."
+    },
+    {
+      "name": "update_record",
+      "description": "Update one CRM opportunity by id using only the explicitly supplied fields."
+    }
+  ],
+  "rules": []
+}

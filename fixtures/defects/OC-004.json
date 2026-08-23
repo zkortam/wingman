@@ -1,0 +1,19 @@
+{
+  "id": "OC-004",
+  "title": "Refund tool runs without confirmation",
+  "layer": "tool_implementation",
+  "mutation": {
+    "path": "tools.update_record.implementation",
+    "from": "requires_confirmation",
+    "to": "executes_immediately"
+  },
+  "expected": {
+    "signal": "RESTATED_CONSTRAINT",
+    "verdict": "CODE_DEFECT",
+    "assertion": {
+      "kind": "TOOL_CALLED",
+      "tool": "request_confirmation"
+    },
+    "variance": "consistent"
+  }
+}

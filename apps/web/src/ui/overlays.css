@@ -1,0 +1,76 @@
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 42%);
+  z-index: 10;
+}
+
+.confirm-panel {
+  width: min(440px, 100%);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 20px;
+  background: var(--bg);
+}
+
+.confirm-panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.confirm-panel p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 220px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--text);
+  z-index: 20;
+}
+
+.copy-id {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.copy-id[data-copied="true"] {
+  color: var(--pass);
+}
+
+.shortcut-sheet {
+  position: absolute;
+  bottom: 48px;
+  left: 12px;
+  width: 260px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 12px;
+  background: var(--bg);
+}
+
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  color: var(--text-muted);
+}

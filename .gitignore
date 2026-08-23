@@ -1,1 +1,56 @@
+# --- planning docs (local only) ---
+MASTERPLAN*.md
 /docs/
+
+# --- local integration worktree ---
+.pathb/
+
+# --- dependencies ---
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# --- build output ---
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# --- env / secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- service local state ---
+.vercel/
+.inngest/
+supabase/.branches/
+supabase/.temp/
+
+# --- test / coverage ---
+coverage/
+.nyc_output/
+*.lcov
+
+# --- logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+logs/
+
+# --- editor / agent local state ---
+.vscode/
+.idea/
+.claude/settings.local.json
+.codex/
+*.swp
+
+# --- os ---
+.DS_Store
+Thumbs.db
