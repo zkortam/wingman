@@ -130,6 +130,10 @@ const codexExpectationModel: ModelClient = {
   },
 };
 
+/** Mirrors the agent's own small-talk test, so both sides skip the model together. */
+const SMALL_TALK =
+  /^\s*(hi|hey|hello|yo|sup|thanks|thank you|ty|ok|okay|cool|good (morning|afternoon|evening))[\s!.,?]*$/i;
+
 const useCodex = process.env.WINGMAN_MODEL !== "keyword" && codexAvailable();
 const expectationModel = useCodex ? codexExpectationModel : keywordModel;
 
@@ -144,6 +148,7 @@ export class DemoSession {
   #expectation: Expectation | null = null;
   #lastToolCalls: ToolCall[] = [];
   #lastText: string | null = null;
+  #queue: Promise<void> = Promise.resolve();
 
   constructor(readonly customerId = "stevette") {
     this.#orders = new OrderBook(AMAZOFF_ORDERS);
@@ -174,7 +179,18 @@ export class DemoSession {
     this.#lastText = null;
   }
 
+  /**
+   * Turns are processed one at a time. A model call takes seconds, so a second message
+   * arriving mid-flight would otherwise interleave its writes with the first and leave
+   * Wingman judging the wrong turn.
+   */
   async send(utterance: string): Promise<void> {
+    const queued = this.#queue.then(() => this.#send(utterance));
+    this.#queue = queued.catch(() => undefined);
+    await queued;
+  }
+
+  async #send(utterance: string): Promise<void> {
     const turnIdx = this.#messages.length;
     this.#messages.push({ role: "customer", text: utterance, tool: null });
 
@@ -210,12 +226,16 @@ export class DemoSession {
       });
     }
 
-    const formed = await formExpectation(expectationModel, {
-      sessionId: this.id,
-      turnIdx,
-      utterance,
-      config: this.#config,
-    });
+    // Greetings carry no request, so there is nothing to form an expectation about and
+    // no reason to make the customer wait on a model call.
+    const formed = SMALL_TALK.test(utterance)
+      ? null
+      : await formExpectation(expectationModel, {
+          sessionId: this.id,
+          turnIdx,
+          utterance,
+          config: this.#config,
+        });
     if (formed !== null) this.#expectation = formed;
 
     await this.#respond(utterance);
@@ -262,6 +282,8 @@ export class DemoSession {
 
   /** The agent's own decision, made by the real model reading its real config. */
   async #modelSelection(utterance: string): Promise<ToolSelection | null> {
+    // No point spending seconds on a model call for "hi" or "thanks".
+    if (SMALL_TALK.test(utterance)) return null;
     if (!useCodex) return selectTool(utterance, this.#config);
     const answer = await codexJson<{ tool: string | null; reason: string }>(
       renderPrompt(utterance, this.#config),
@@ -279,8 +301,12 @@ export class DemoSession {
       config: this.#config,
       selection: await this.#modelSelection(utterance),
     });
-    this.#lastToolCalls = reply.toolCalls;
-    this.#lastText = reply.text;
+    // Small talk and refusals leave the previous decision in place. Otherwise saying
+    // "hi" between the misstep and the complaint would erase the evidence.
+    if (reply.toolCalls.length > 0) {
+      this.#lastToolCalls = reply.toolCalls;
+      this.#lastText = reply.text;
+    }
     this.#messages.push({
       role: "agent",
       text: reply.text,

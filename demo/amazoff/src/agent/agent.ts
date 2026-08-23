@@ -38,10 +38,21 @@ export class AmazoffAgent {
   }
 
   respond({ utterance, customerId, config, selection: given }: RespondInput): AgentReply {
+    // Greetings and thanks need no tool, and treating them as unmet requests would both
+    // read as broken to the customer and raise a capability alert out of nothing.
+    if (isSmallTalk(utterance)) {
+      return {
+        text: "Hi! I can help with your Amazoff orders — deliveries, returns, refunds or cancellations. What do you need?",
+        toolCalls: [],
+        selection: null,
+        unsupported: false,
+      };
+    }
+
     const selection = given ?? selectTool(utterance, config);
     if (selection === null) {
       return {
-        text: "I'm sorry, I can't help with that from here. Is there anything else I can do?",
+        text: "I'm sorry, I can't do that from here. I can change a delivery date, cancel an order, start a return or issue a refund.",
         toolCalls: [],
         selection: null,
         unsupported: true,
@@ -123,4 +134,11 @@ export class AmazoffAgent {
     const orders = this.#orders.forCustomer(customerId);
     return orders.find(({ status }) => status !== "DELIVERED") ?? orders[0] ?? null;
   }
+}
+
+const SMALL_TALK =
+  /^\s*(hi|hey|hello|yo|sup|thanks|thank you|ty|ok|okay|cool|good (morning|afternoon|evening))[\s!.,?]*$/i;
+
+function isSmallTalk(utterance: string): boolean {
+  return SMALL_TALK.test(utterance);
 }
