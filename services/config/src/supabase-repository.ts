@@ -37,7 +37,7 @@ export class SupabaseConfigRepository implements ConfigRepository {
 
   async versions(agentId: string): Promise<StoredVersion[]> {
     const data = result(await this.#db.from('config_versions').select('id,agent_id,version,config,incident_id,signature,created_at').eq('agent_id', agentId).order('version', { ascending: false }))
-    return data.map((row) => this.#mapVersion(row))
+    return (data ?? []).map((row) => this.#mapVersion(row))
   }
 
   async liveOverride(agentId: string, userHash: string): Promise<StoredOverride | null> {

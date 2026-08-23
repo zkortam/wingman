@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     name: 'fixtures',
-    exclude: ['src/pipeline.test.ts'],
+    // Naming `exclude` replaces Vitest's defaults rather than adding to them, so the
+    // node_modules entry has to be restated or dependencies' own test suites get
+    // collected as if they were ours.
+    exclude: ['**/node_modules/**', 'src/pipeline.test.ts'],
   },
 })
