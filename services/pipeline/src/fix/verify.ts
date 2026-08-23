@@ -212,7 +212,10 @@ async function runPositiveSuite(
     input.incident.agentId,
   );
   for (const assertion of assertions) {
-    if (assertion.sourceSessionId === null) return false;
+    // A mined positive legitimately has no source session (DATA-MODEL.md §4). It is
+    // un-runnable, not a regression: failing the suite here would park every fix for
+    // the agent and report SUITE_REGRESSED for a regression that never happened.
+    if (assertion.sourceSessionId === null) continue;
     const session = await input.repository.getSession(
       assertion.sourceSessionId,
     );

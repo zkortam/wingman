@@ -32,6 +32,7 @@ export async function runAssertion(input: {
       input.runner.runTurn({
         config: input.config,
         messages: input.messages,
+        context: input.context.session,
         intercept: () => "INTERCEPT",
         sample,
       }),

@@ -55,7 +55,7 @@ export async function generateAssertion(input: {
     const parsed = AssertionResponseSchema.safeParse(response);
     if (parsed.success) return parsed.data.assertion;
   }
-  throw new StageError("assertion", "NOT_ISOLATABLE", false);
+  throw new StageError("assertion", "SCHEMA_INVALID", false);
 }
 
 function allowedContext(session: ObservedSession): Record<string, boolean> {

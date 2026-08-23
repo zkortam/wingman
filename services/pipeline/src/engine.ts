@@ -81,9 +81,11 @@ export function createPipelineEngine(input: {
       if (signals.length === 0) return { incidentId: null, state: "NO_SIGNAL" };
 
       const clusterStarted = performance.now();
-      const primary = [...signals].sort(
+      const [primary] = [...signals].sort(
         (left, right) => right.confidence - left.confidence,
-      )[0]!;
+      );
+      if (primary === undefined)
+        return { incidentId: null, state: "NO_SIGNAL" };
       const cluster = clusterIdentity(session, primary);
       let incident = await input.repository.createOrJoinIncident({
         session,
@@ -111,7 +113,7 @@ export function createPipelineEngine(input: {
       });
       if (incident.state === "OPEN") {
         if (
-          (await input.repository.countInFlight(session.agentId)) >
+          (await input.repository.countInFlight(session.agentId)) >=
           PIPELINE_POLICY.maxInFlightIncidents
         ) {
           incident = await input.repository.updateIncident(

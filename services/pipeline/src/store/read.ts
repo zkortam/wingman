@@ -94,22 +94,18 @@ export function createReadStore(
         .eq("incident_id", incidentId)
         .order("created_at"),
     );
+    const lastCandidate = candidateRows.at(-1);
+    const lastOutcome = outcomeRows.at(-1);
     return {
       incident,
       assertion,
       before: runs.find(({ phase }) => phase === "VERIFY_FAIL") ?? null,
-      candidate:
-        candidateRows.at(-1) === undefined
-          ? null
-          : mapCandidate(candidateRows.at(-1)!),
+      candidate: lastCandidate === undefined ? null : mapCandidate(lastCandidate),
       after:
         [...runs].reverse().find(({ phase }) => phase === "VERIFY_PASS") ??
         null,
       positiveSuite: runs.filter(({ phase }) => phase === "POSITIVE_SUITE"),
-      outcome:
-        outcomeRows.at(-1) === undefined
-          ? null
-          : mapOutcome(outcomeRows.at(-1)!),
+      outcome: lastOutcome === undefined ? null : mapOutcome(lastOutcome),
       handoff: handoffs.get(incidentId) ?? null,
     };
   }

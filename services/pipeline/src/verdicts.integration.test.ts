@@ -17,6 +17,11 @@ import { ReplayModelClient } from "./stubs/model.js";
 import { ReplayPipelineRepository } from "./stubs/repository.js";
 import { StubRunner } from "./stubs/runner.js";
 
+function incidentId(id: string | null): string {
+  if (id === null) throw new Error("Expected the stage to open an incident");
+  return id;
+}
+
 describe("verdict routing", () => {
   it.each([
     ["CONFIG_DEFECT", "CANDIDATE"],
@@ -115,7 +120,9 @@ async function execute(verdict: Verdict) {
   await ingest.ingestEvents(second);
   await engine.observeSession(first.id);
   const observed = await engine.observeSession(second.id);
-  const snapshot = await repository.getSnapshot(observed.incidentId!);
+  const snapshot = await repository.getSnapshot(
+    incidentId(observed.incidentId),
+  );
   return {
     state: observed.state,
     candidateState: snapshot.candidate?.state,

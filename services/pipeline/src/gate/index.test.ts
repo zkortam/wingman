@@ -6,6 +6,8 @@ import type { IncidentRecord, ObservedSession } from "../domain.js";
 import { ReplayModelClient } from "../stubs/model.js";
 import { runGate } from "./index.js";
 
+const userHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
 const incident: IncidentRecord = {
   id: randomUUID(),
   orgId: randomUUID(),
@@ -21,7 +23,7 @@ const incident: IncidentRecord = {
   verdictConfidence: null,
   verdictEvidence: null,
   assertionId: null,
-  userHashes: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+  userHashes: [userHash],
   sessionIds: [],
   evidenceExcerpts: [],
   firstSeen: "2026-08-23T00:00:00.000Z",
@@ -32,7 +34,7 @@ const session: ObservedSession = {
   id: randomUUID(),
   orgId: incident.orgId,
   agentId: incident.agentId,
-  userHash: incident.userHashes[0]!,
+  userHash,
   taskFingerprint: incident.fingerprint,
   startedAt: "2026-08-23T00:00:00.000Z",
   turns: [],

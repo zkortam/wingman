@@ -3,9 +3,10 @@ import { z } from "zod";
 import { SignalKindSchema } from "./enums.js";
 import { JsonObjectSchema, JsonValueSchema } from "./json.js";
 
+/** `id` is absent on a decision the runner has only proposed; ingest supplies it. */
 export const ToolCallSchema = z
   .object({
-    id: z.string().min(1),
+    id: z.string().min(1).optional(),
     name: z.string().min(1),
     args: JsonObjectSchema,
   })
@@ -22,6 +23,17 @@ export const TurnSchema = z
   })
   .strict();
 export type Turn = z.infer<typeof TurnSchema>;
+
+/** The host's presentation state. Mirrors the `session.*` ContextRef paths in §8. */
+export const SessionContextSchema = z
+  .object({
+    viewFilters: JsonValueSchema.optional(),
+    selectedIds: z.array(z.string()).optional(),
+    dateRange: JsonValueSchema.optional(),
+    lastQuery: z.string().optional(),
+  })
+  .strict();
+export type SessionContext = z.infer<typeof SessionContextSchema>;
 
 export const RedactionProofSchema = z
   .object({

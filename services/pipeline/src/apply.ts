@@ -46,7 +46,12 @@ export async function applyVerifiedCandidate(input: {
     config,
     snapshot.incident.id,
   );
-  for (const userHash of appliedTo) {
+  // DATA-MODEL.md §5: a GLOBAL apply moves the single agent pointer. Writing one
+  // override row per affected user is the design that section exists to reject —
+  // it makes revert an N-row operation and leaves unaffected users behind.
+  // `appliedTo` still records the cohort, because the ledger needs it.
+  const targets = input.scope === "GLOBAL" ? [""] : appliedTo;
+  for (const userHash of targets) {
     await input.configStore.setOverride(
       snapshot.incident.agentId,
       userHash,

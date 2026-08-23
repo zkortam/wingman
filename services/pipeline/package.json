@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
   "dependencies": {
     "@openai/codex-sdk": "^0.149.0",
     "@outcome/db": "workspace:*",
@@ -17,6 +21,6 @@
   },
   "devDependencies": {
     "@types/ws": "^8.18.0",
-    "vitest": "^3.2.0"
+    "vitest": "4.1.9"
   }
 }
