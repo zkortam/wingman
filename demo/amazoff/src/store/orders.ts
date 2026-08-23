@@ -1,0 +1,114 @@
+/**
+ * Amazoff's order book.
+ *
+ * Cancellation is reversible here, and that is a deliberate product statement rather
+ * than a convenience. Wingman observes by default and does not block the agent's first
+ * action, so by the time a mistake is recognised the wrong tool has already run. A
+ * recovery story that cannot undo the damage is only a recovery story on paper.
+ */
+export type OrderStatus = "PLACED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+
+export interface Order {
+  id: string;
+  customerId: string;
+  summary: string;
+  deliveryDate: string;
+  status: OrderStatus;
+  /** What the order was before it was cancelled, so a cancel can be undone. */
+  statusBeforeCancel: OrderStatus | null;
+}
+
+export interface OrderEvent {
+  at: string;
+  orderId: string;
+  action: string;
+  detail: string;
+}
+
+export class OrderBook {
+  readonly #orders = new Map<string, Order>();
+  readonly #events: OrderEvent[] = [];
+  #clock: () => string;
+
+  constructor(seed: readonly Order[] = [], clock: () => string = () => new Date().toISOString()) {
+    for (const order of seed) this.#orders.set(order.id, { ...order });
+    this.#clock = clock;
+  }
+
+  get(orderId: string): Order | null {
+    const order = this.#orders.get(orderId);
+    return order ? { ...order } : null;
+  }
+
+  forCustomer(customerId: string): Order[] {
+    return [...this.#orders.values()]
+      .filter((order) => order.customerId === customerId)
+      .map((order) => ({ ...order }));
+  }
+
+  events(): OrderEvent[] {
+    return this.#events.map((event) => ({ ...event }));
+  }
+
+  cancel(orderId: string): Order {
+    const order = this.#require(orderId);
+    if (order.status === "CANCELLED") return { ...order };
+    if (order.status === "DELIVERED")
+      throw new OrderError("A delivered order cannot be cancelled.");
+    order.statusBeforeCancel = order.status;
+    order.status = "CANCELLED";
+    this.#log(orderId, "cancel_order", `Order cancelled, was ${order.statusBeforeCancel}.`);
+    return { ...order };
+  }
+
+  /**
+   * Reinstates a cancelled order before moving the date. This is what lets Wingman
+   * repair a wrong cancel inside the same conversation instead of apologising for it.
+   */
+  reschedule(orderId: string, deliveryDate: string): Order {
+    const order = this.#require(orderId);
+    if (order.status === "DELIVERED")
+      throw new OrderError("A delivered order cannot be rescheduled.");
+    const reinstated = order.status === "CANCELLED";
+    if (reinstated) {
+      order.status = order.statusBeforeCancel ?? "PLACED";
+      order.statusBeforeCancel = null;
+    }
+    const previous = order.deliveryDate;
+    order.deliveryDate = deliveryDate;
+    this.#log(
+      orderId,
+      "reschedule_delivery",
+      reinstated
+        ? `Order reinstated and delivery moved from ${previous} to ${deliveryDate}.`
+        : `Delivery moved from ${previous} to ${deliveryDate}.`,
+    );
+    return { ...order };
+  }
+
+  startReturn(orderId: string): Order {
+    const order = this.#require(orderId);
+    if (order.status !== "DELIVERED")
+      throw new OrderError("Only delivered orders can be returned.");
+    this.#log(orderId, "start_return", "Return started.");
+    return { ...order };
+  }
+
+  refund(orderId: string): Order {
+    const order = this.#require(orderId);
+    this.#log(orderId, "issue_refund", "Refund issued.");
+    return { ...order };
+  }
+
+  #require(orderId: string): Order {
+    const order = this.#orders.get(orderId);
+    if (!order) throw new OrderError(`Unknown order: ${orderId}`);
+    return order;
+  }
+
+  #log(orderId: string, action: string, detail: string): void {
+    this.#events.push({ at: this.#clock(), orderId, action, detail });
+  }
+}
+
+export class OrderError extends Error {}
