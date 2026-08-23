@@ -1,4 +1,4 @@
-import type { EventName, EventPublisher, Events } from "@outcome/schema";
+import type { EventName, EventPublisher, Events } from "@wingman/schema";
 
 export class ReplayEventPublisher implements EventPublisher {
   readonly events: Array<{

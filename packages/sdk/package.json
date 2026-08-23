@@ -1,5 +1,5 @@
 {
-  "name": "@outcome/sdk",
+  "name": "@wingman/sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@outcome/schema": "workspace:*",
+    "@wingman/schema": "workspace:*",
     "openredaction": "1.1.5"
   },
   "devDependencies": {

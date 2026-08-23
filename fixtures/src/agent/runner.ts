@@ -1,4 +1,4 @@
-import type { AgentConfig, AgentRunner, ToolCall, Turn } from '@outcome/schema'
+import type { AgentConfig, AgentRunner, ToolCall, Turn } from '@wingman/schema'
 
 import { cassetteKey } from '../cassette'
 import { runtimeConfig } from './config'

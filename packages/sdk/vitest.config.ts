@@ -5,7 +5,7 @@ export default defineConfig({
   root: import.meta.dirname,
   resolve: {
     alias: {
-      '@outcome/schema': resolve(import.meta.dirname, 'src/test/schema-stub.ts'),
+      '@wingman/schema': resolve(import.meta.dirname, 'src/test/schema-stub.ts'),
       openredaction: resolve(import.meta.dirname, 'src/test/openredaction-stub.ts'),
     },
   },

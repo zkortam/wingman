@@ -3,7 +3,7 @@ import type {
   Candidate,
   IncidentState,
   Outcome,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type { PipelineSnapshot } from "../domain.js";
 import { sessionFingerprint } from "../cluster/index.js";

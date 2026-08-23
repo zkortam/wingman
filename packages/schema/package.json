@@ -1,5 +1,5 @@
 {
-  "name": "@outcome/schema",
+  "name": "@wingman/schema",
   "version": "0.0.0",
   "private": true,
   "type": "module",

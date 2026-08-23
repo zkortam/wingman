@@ -1,4 +1,4 @@
-import type { AgentConfig, Rule, SessionInput } from '@outcome/schema'
+import type { AgentConfig, Rule, SessionInput } from '@wingman/schema'
 
 import { CONFIG_MAX_DIFF_BYTES, OBSERVATION_QUEUE_CAPACITY } from './constants'
 import { hashUserId } from './hash'

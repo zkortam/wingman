@@ -1,4 +1,4 @@
-import type { IncidentState } from "@outcome/schema";
+import type { IncidentState } from "@wingman/schema";
 
 const ALLOWED_TRANSITIONS: Readonly<
   Record<IncidentState, readonly IncidentState[]>

@@ -3,7 +3,7 @@ import {
   type AgentRunner,
   type JsonValue,
   type ToolCall,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 export interface ReplayDecision {
   toolCalls: ToolCall[];

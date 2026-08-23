@@ -1,4 +1,4 @@
-import type { Database, Json, ServiceClient } from "@outcome/db";
+import type { Database, Json, ServiceClient } from "@wingman/db";
 
 import type { IncidentRecord } from "../domain.js";
 import type {

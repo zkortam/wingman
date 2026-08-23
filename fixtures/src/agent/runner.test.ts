@@ -1,4 +1,4 @@
-import type { AgentConfig, Turn } from '@outcome/schema'
+import type { AgentConfig, Turn } from '@wingman/schema'
 import { describe, expect, it } from 'vitest'
 
 import { InMemoryCrm } from './crm'

@@ -5,8 +5,8 @@ import {
   type EventPublisher,
   type Ledger,
   type ModelClient,
-} from "@outcome/schema";
-import type { IngestService } from "@outcome/ingest";
+} from "@wingman/schema";
+import type { IngestService } from "@wingman/ingest";
 
 import {
   clusterIdentity,

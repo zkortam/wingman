@@ -1,5 +1,5 @@
 {
-  "name": "@outcome/pipeline",
+  "name": "@wingman/pipeline",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@openai/codex-sdk": "^0.149.0",
-    "@outcome/db": "workspace:*",
-    "@outcome/ingest": "workspace:*",
-    "@outcome/schema": "workspace:*",
+    "@wingman/db": "workspace:*",
+    "@wingman/ingest": "workspace:*",
+    "@wingman/schema": "workspace:*",
     "inngest": "^4.18.1",
     "ws": "^8.18.0",
     "zod": "^3.24.0"

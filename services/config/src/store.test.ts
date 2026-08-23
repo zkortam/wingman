@@ -1,4 +1,4 @@
-import type { AgentConfig } from '@outcome/schema'
+import type { AgentConfig } from '@wingman/schema'
 import { describe, expect, it } from 'vitest'
 
 import { InMemoryConfigRepository } from './repository'

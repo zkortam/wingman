@@ -1,4 +1,4 @@
-import type { AgentConfig } from "@outcome/schema";
+import type { AgentConfig } from "@wingman/schema";
 
 /**
  * Picks a tool for an utterance the way a configured agent would.

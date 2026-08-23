@@ -10,7 +10,7 @@ import {
   type ConfigStore,
   type EventPublisher,
   type Ledger,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { applyVerifiedCandidate } from "../apply.js";
 import type { IncidentRecord, ObservedSession } from "../domain.js";

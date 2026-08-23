@@ -17,8 +17,8 @@ export const PIPELINE_POLICY = {
 } as const;
 
 export const PIPELINE_MODELS = {
-  assertion: process.env.OUTCOME_ASSERTION_MODEL ?? "gpt-5.4-mini",
-  embedding: process.env.OUTCOME_EMBEDDING_MODEL ?? "text-embedding-3-small",
-  fix: process.env.OUTCOME_FIX_MODEL,
-  gate: process.env.OUTCOME_GATE_MODEL ?? "gpt-5.4-mini",
+  assertion: process.env.WINGMAN_ASSERTION_MODEL ?? "gpt-5.4-mini",
+  embedding: process.env.WINGMAN_EMBEDDING_MODEL ?? "text-embedding-3-small",
+  fix: process.env.WINGMAN_FIX_MODEL,
+  gate: process.env.WINGMAN_GATE_MODEL ?? "gpt-5.4-mini",
 } as const;

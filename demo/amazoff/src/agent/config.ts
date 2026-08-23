@@ -1,4 +1,4 @@
-import type { AgentConfig } from "@outcome/schema";
+import type { AgentConfig } from "@wingman/schema";
 
 /**
  * Amazoff's support agent, as its own engineers configured it.

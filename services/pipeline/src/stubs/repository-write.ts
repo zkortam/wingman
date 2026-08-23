@@ -5,7 +5,7 @@ import {
   CandidateSchema,
   OutcomeSchema,
   RunSchema,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type { IncidentRecord } from "../domain.js";
 import { PIPELINE_POLICY } from "../policy.js";

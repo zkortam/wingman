@@ -3,7 +3,7 @@ import {
   type AgentConfig,
   type ModelClient,
   VerdictSchema,
-} from "@outcome/schema";
+} from "@wingman/schema";
 import { z } from "zod";
 
 import type {

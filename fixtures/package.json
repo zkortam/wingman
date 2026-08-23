@@ -1,5 +1,5 @@
 {
-  "name": "@outcome/fixtures",
+  "name": "@wingman/fixtures",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@outcome/schema": "workspace:*"
+    "@wingman/schema": "workspace:*"
   },
   "devDependencies": {
     "vitest": "4.1.9"

@@ -1,5 +1,5 @@
-import type { ServiceClient } from "@outcome/db";
-import type { Json } from "@outcome/db";
+import type { ServiceClient } from "@wingman/db";
+import type { Json } from "@wingman/db";
 
 import type { HandoffRecord } from "../domain.js";
 import { PIPELINE_POLICY } from "../policy.js";

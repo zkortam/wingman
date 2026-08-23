@@ -1,5 +1,5 @@
 {
-  "name": "@outcome/web",
+  "name": "@wingman/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@outcome/config": "workspace:*",
-    "@outcome/schema": "workspace:*",
+    "@wingman/config": "workspace:*",
+    "@wingman/schema": "workspace:*",
     "next": "16.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"

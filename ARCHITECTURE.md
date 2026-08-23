@@ -20,7 +20,7 @@ Every A↔B connection is an interface in `packages/schema/src/ports.ts`. A writ
 Two people writing the same row is the failure mode that eats a hackathon. `DATA-MODEL.md` §2.
 
 **Rule 3 — Import only from a package root.**
-`import { applyDiff } from '@outcome/schema'`, never `'@outcome/schema/src/config'`. Enforced by `.dependency-cruiser.cjs` in `pnpm check`.
+`import { applyDiff } from '@wingman/schema'`, never `'@wingman/schema/src/config'`. Enforced by `.dependency-cruiser.cjs` in `pnpm check`.
 
 **And the mechanical guarantee behind all three:** every port has a **contract test suite** that both the real implementation and the stub must pass (§12.2). If B's `DemoAgentRunner` and A's `StubRunner` both pass `describeAgentRunner`, the swap at checkpoint 1 cannot break A's caller. That is what "plugs in without issues" means in practice — not a promise, a test.
 
@@ -46,7 +46,7 @@ wingman/
 ├── .env.example                                                                   B
 │
 ├── packages/
-│   ├── schema/                        @outcome/schema   deps: zod                 A
+│   ├── schema/                        @wingman/schema   deps: zod                 A
 │   │   └── src/
 │   │       ├── index.ts               # THE barrel. the only public entrypoint.
 │   │       ├── enums.ts               # SignalKind · AssertionKind · Verdict · Scope · IncidentState
@@ -62,12 +62,12 @@ wingman/
 │   │       ├── ports.contract.ts      # ◀── the suites every implementation must pass, §12.2
 │   │       └── *.test.ts
 │   │
-│   ├── db/                            @outcome/db       deps: supabase-js, schema  A
+│   ├── db/                            @wingman/db       deps: supabase-js, schema  A
 │   │   └── src/
 │   │       ├── index.ts               # createServiceClient()
 │   │       └── types.gen.ts           # `pnpm db:types` output — NEVER hand-edit
 │   │
-│   └── sdk/                           @outcome/sdk      deps: schema, zod ONLY     B
+│   └── sdk/                           @wingman/sdk      deps: schema, zod ONLY     B
 │       └── src/
 │           ├── index.ts               # Outcome.init() → { config, observe, rules, flush }
 │           ├── resolve.ts             # the four-level chain, §10
@@ -129,7 +129,7 @@ wingman/
 │       ├── server/container.ts        # ◀── COMPOSITION ROOT for the web app
 │       └── ui/                        # tokens.css + the 15 components, UI-SPEC.md §3
 │
-├── fixtures/                          @outcome/fixtures  deps: schema             B
+├── fixtures/                          @wingman/fixtures  deps: schema             B
 │   ├── src/
 │   │   ├── index.ts                   # DemoAgentRunner implements AgentRunner
 │   │   ├── agent/{index,tools,crm}.ts
@@ -159,14 +159,14 @@ Dependencies are part of the architecture — this is what keeps the SDK small a
 
 | Package | `dependencies` | Notes |
 |---|---|---|
-| `@outcome/schema` | `zod` | Nothing else, ever. It is the root of the graph. |
-| `@outcome/db` | `@supabase/supabase-js`, `@outcome/schema` | |
-| `@outcome/sdk` | `@outcome/schema` | **Not** supabase-js. Customers install this; every transitive dep is a reason not to. Redaction via `openredaction`, `fetch` via the platform. |
-| `@outcome/fixtures` | `@outcome/schema`, `ai` (Vercel AI SDK) | Leaf. Implements ports, consumes none. |
-| `services/config` | `@outcome/schema`, `@outcome/db` | |
-| `services/ingest` | `@outcome/schema`, `@outcome/db` | |
-| `services/pipeline` | `@outcome/schema`, `@outcome/db`, `services/config`, `@outcome/fixtures`, `inngest`, `ai`, `@openai/codex`, `claude-mem` | The only package allowed to be heavy. |
-| `apps/web` | `@outcome/schema`, `services/config`, `services/pipeline`, `next`, `react`, `tailwindcss`, `@radix-ui/*` | |
+| `@wingman/schema` | `zod` | Nothing else, ever. It is the root of the graph. |
+| `@wingman/db` | `@supabase/supabase-js`, `@wingman/schema` | |
+| `@wingman/sdk` | `@wingman/schema` | **Not** supabase-js. Customers install this; every transitive dep is a reason not to. Redaction via `openredaction`, `fetch` via the platform. |
+| `@wingman/fixtures` | `@wingman/schema`, `ai` (Vercel AI SDK) | Leaf. Implements ports, consumes none. |
+| `services/config` | `@wingman/schema`, `@wingman/db` | |
+| `services/ingest` | `@wingman/schema`, `@wingman/db` | |
+| `services/pipeline` | `@wingman/schema`, `@wingman/db`, `services/config`, `@wingman/fixtures`, `inngest`, `ai`, `@openai/codex`, `claude-mem` | The only package allowed to be heavy. |
+| `apps/web` | `@wingman/schema`, `services/config`, `services/pipeline`, `next`, `react`, `tailwindcss`, `@radix-ui/*` | |
 
 ---
 
@@ -242,7 +242,7 @@ export interface Ledger {
 }
 ```
 
-**Why this shape.** A never imports `@outcome/fixtures` types — it depends on `AgentRunner`, so B can rewrite the demo agent entirely without A recompiling a line of logic. B never imports pipeline internals — it depends on `PipelineReader`/`PipelineCommands`, so A can restructure every stage without touching the UI. Stubs are just other implementations.
+**Why this shape.** A never imports `@wingman/fixtures` types — it depends on `AgentRunner`, so B can rewrite the demo agent entirely without A recompiling a line of logic. B never imports pipeline internals — it depends on `PipelineReader`/`PipelineCommands`, so A can restructure every stage without touching the UI. Stubs are just other implementations.
 
 ---
 
@@ -641,7 +641,7 @@ Ten endpoints. An eleventh means something is wrong with the model.
 |---|---|---|
 | **Field allowlist** | customer declares writable config paths | the **SDK, client-side** — rejected before it leaves their process — *and* the fix agent's prompt *and* `writeVersion` |
 | **Diff cap** | hard byte limit; exceeding it forces human approval regardless of scope | `services/config/src/allowlist.ts` |
-| **Customer validator** | optional `validate(config)` hook running in **their** process | `@outcome/sdk` |
+| **Customer validator** | optional `validate(config)` hook running in **their** process | `@wingman/sdk` |
 | **Signed versions** | HMAC over canonical JSON; SDK rejects mismatches and falls back to base | `signature.ts` + SDK |
 | **External audit trail** | `AGENTS.md` writeback puts every confirmed change in **their** git history | `pipeline/ledger/writeback.ts` |
 | **No identities stored** | per-org salted HMAC user hash, computed client-side | `derive.ts` + SDK |
@@ -706,7 +706,7 @@ pnpm fixtures:generate --defect OC-001 --sessions 50 --hit-rate 0.24
 ## 20. Conventions
 
 - One language: TypeScript. **No Python in this repo.**
-- Types come from `@outcome/schema` (zod) and `@outcome/db` codegen. **Never hand-write a type that exists there.**
+- Types come from `@wingman/schema` (zod) and `@wingman/db` codegen. **Never hand-write a type that exists there.**
 - Every module has a colocated `*.test.ts`.
 - **Files stay under 300 lines.** Split rather than grow.
 - No metaprogramming, no decorators, no dynamic imports, no clever abstractions.

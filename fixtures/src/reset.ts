@@ -64,7 +64,7 @@ export const resetDemo = async (options: ResetOptions = {}): Promise<ResetReport
 
 const run = async (): Promise<void> => {
   const started = performance.now()
-  const report = await resetDemo(process.env.OUTCOME_API_URL ? { baseUrl: process.env.OUTCOME_API_URL } : {})
+  const report = await resetDemo(process.env.WINGMAN_API_URL ? { baseUrl: process.env.WINGMAN_API_URL } : {})
   process.stdout.write(`Demo reset: ${String(report.sessions)} sessions, ${String(report.affected)} affected, ${report.pipelineVerified ? 'pipeline verified' : 'offline fixtures verified'}, ${String(Math.round(performance.now() - started))}ms\n`)
 }
 

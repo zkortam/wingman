@@ -1,9 +1,9 @@
-import type { AgentConfig } from '@outcome/schema'
+import type { AgentConfig } from '@wingman/schema'
 import { createHmac } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ConfigResolver } from './resolve'
-import { canonicalJSON } from '@outcome/schema'
+import { canonicalJSON } from '@wingman/schema'
 
 const base = { systemPrompt: 'base', tools: [], rules: [] } as unknown as AgentConfig
 const remote = { systemPrompt: 'base', tools: [], rules: ['reporter'] } as unknown as AgentConfig

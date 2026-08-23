@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
-  transpilePackages: ['@outcome/config', '@outcome/schema'],
+  transpilePackages: ['@wingman/config', '@wingman/schema'],
 }
 
 export default config

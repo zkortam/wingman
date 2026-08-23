@@ -1,4 +1,4 @@
-import type { Signal, SignalKind } from "@outcome/schema";
+import type { Signal, SignalKind } from "@wingman/schema";
 
 import type { ObservedSession } from "../domain.js";
 import { PIPELINE_POLICY } from "../policy.js";

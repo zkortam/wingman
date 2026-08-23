@@ -1,4 +1,4 @@
-import type { IncidentDetail, PipelineReader } from "@outcome/schema";
+import type { IncidentDetail, PipelineReader } from "@wingman/schema";
 
 import type { PipelineRepository } from "./repository.js";
 

@@ -13,7 +13,7 @@ import type {
   Signal,
   SignalKind,
   Verdict,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 export type ObservedTurn = SessionInput["turns"][number] & {
   embedding: number[] | null;

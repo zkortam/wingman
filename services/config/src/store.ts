@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { AgentConfig, ConfigDiff, ConfigStore, ConfigVersion, Scope } from '@outcome/schema'
+import type { AgentConfig, ConfigDiff, ConfigStore, ConfigVersion, Scope } from '@wingman/schema'
 
 import { assertWritable } from './allowlist'
 import { ResolutionCache } from './cache'

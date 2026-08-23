@@ -51,7 +51,7 @@ const initialState = (): RuntimeState => ({
   }])),
 })
 
-const stateNamespace = process.env.OUTCOME_DEMO_RUN_ID ?? (process.env.VITEST ? String(process.pid) : 'local')
+const stateNamespace = process.env.WINGMAN_DEMO_RUN_ID ?? (process.env.VITEST ? String(process.pid) : 'local')
 const stateKey = createHash('sha256').update(`${process.cwd()}:${stateNamespace}`).digest('hex').slice(0, 16)
 const statePath = join(tmpdir(), `outcome-demo-${stateKey}.json`)
 const lockPath = `${statePath}.lock`

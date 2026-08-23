@@ -6,7 +6,7 @@ import type {
   Expectation,
   Signal,
   SignalKind,
-} from "@outcome/schema";
+} from "@wingman/schema";
 import { describe, expect, it } from "vitest";
 
 import { classifyTurn, type ClassifyInput } from "./classify.js";

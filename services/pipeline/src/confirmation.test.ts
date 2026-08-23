@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { OutcomeSchema } from "@outcome/schema";
+import { OutcomeSchema } from "@wingman/schema";
 import { describe, expect, it } from "vitest";
 
 import {

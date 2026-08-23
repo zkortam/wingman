@@ -9,7 +9,7 @@ import {
   type ConfigStore,
   type ConfigVersion,
   type Scope,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { enforceDiffBounds } from "../fix/bounds.js";
 import { ReplayDatabase } from "./database.js";

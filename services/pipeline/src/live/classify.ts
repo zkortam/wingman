@@ -9,7 +9,7 @@ import {
   type Expectation,
   type LiveClassification,
   type Signal,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { isDurablePreference } from "../detect/preference.js";
 import { PIPELINE_POLICY } from "../policy.js";

@@ -26,7 +26,7 @@ Cold clone to a populated inbox in under two minutes with no API keys. After dep
 ```bash
 pnpm check          # typecheck + lint + import boundaries + contrast + tests + pipeline fixtures
 pnpm dev            # Next.js product and API surface
-pnpm demo:reset     # validates 50 sessions / 12 affected; replays when OUTCOME_API_URL is set
+pnpm demo:reset     # validates 50 sessions / 12 affected; replays when WINGMAN_API_URL is set
 pnpm demo:up        # starts the web product and opens /demo
 pnpm test:pipeline  # replays every fixture defect end to end
 ```
@@ -50,7 +50,7 @@ Execution plans (`MASTERPLAN-A.md`, `MASTERPLAN-B.md`) are held locally and are 
 ```
 packages/schema     zod types, enums, ports; the single source of truth
 packages/db         typed Supabase client (generated, never hand-edited)
-packages/sdk        @outcome/sdk; the only thing customers install
+packages/sdk        @wingman/sdk; the only thing customers install
 services/ingest     OTLP + native receiver, redaction verification
 services/config     the read path. own SLO. imports nothing from pipeline. ever.
 services/pipeline   the ten Inngest stages

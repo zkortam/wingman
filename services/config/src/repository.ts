@@ -1,4 +1,4 @@
-import type { AgentConfig, Scope } from '@outcome/schema'
+import type { AgentConfig, Scope } from '@wingman/schema'
 
 export interface StoredAgent {
   id: string

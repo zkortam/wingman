@@ -1,5 +1,5 @@
-import { createServiceClient } from '@outcome/db'
-import type { AgentConfig } from '@outcome/schema'
+import { createServiceClient } from '@wingman/db'
+import type { AgentConfig } from '@wingman/schema'
 
 import type { ConfigRepository, StoredAgent, StoredOverride, StoredVersion } from './repository'
 

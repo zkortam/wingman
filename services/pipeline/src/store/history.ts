@@ -1,5 +1,5 @@
-import type { ServiceClient } from "@outcome/db";
-import { type SignalKind, SignalKindSchema } from "@outcome/schema";
+import type { ServiceClient } from "@wingman/db";
+import { type SignalKind, SignalKindSchema } from "@wingman/schema";
 
 import type { Baselines } from "../detect/index.js";
 import type { PipelineRepository } from "../repository.js";

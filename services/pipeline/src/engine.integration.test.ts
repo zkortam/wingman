@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { canonicalJSON, type SessionInput } from "@outcome/schema";
-import { createIngestService } from "@outcome/ingest";
+import { canonicalJSON, type SessionInput } from "@wingman/schema";
+import { createIngestService } from "@wingman/ingest";
 import { describe, expect, it } from "vitest";
 
 import { createPipelineEngine } from "./engine.js";

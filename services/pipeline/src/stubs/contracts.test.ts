@@ -7,7 +7,7 @@ import {
   describeLedger,
   describePipelineCommands,
   describePipelineReader,
-} from "@outcome/schema/contracts";
+} from "@wingman/schema/contracts";
 
 import { createPipelineCommands } from "../commands.js";
 import { ReplayAppServerClient } from "../fix/app-server.js";

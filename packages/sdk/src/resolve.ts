@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { canonicalJSON, type AgentConfig } from '@outcome/schema'
+import { canonicalJSON, type AgentConfig } from '@wingman/schema'
 
 import { CONFIG_CACHE_TTL_MS, CONFIG_TIMEOUT_MS, STORAGE_PREFIX } from './constants'
 import { configChangeBytes, hasOnlyWritableChanges } from './permissions'

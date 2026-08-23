@@ -1,4 +1,4 @@
-import type { AgentConfig } from '@outcome/schema'
+import type { AgentConfig } from '@wingman/schema'
 
 import { SupabaseConfigRepository } from './supabase-repository'
 import { OutcomeConfigStore } from './store'

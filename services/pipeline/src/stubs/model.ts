@@ -1,4 +1,4 @@
-import type { ModelClient } from "@outcome/schema";
+import type { ModelClient } from "@wingman/schema";
 
 export class ReplayModelClient implements ModelClient {
   private index = 0;

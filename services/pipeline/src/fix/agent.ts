@@ -1,5 +1,5 @@
 import { Codex } from "@openai/codex-sdk";
-import { ConfigDiffSchema, StageError, type ConfigDiff } from "@outcome/schema";
+import { ConfigDiffSchema, StageError, type ConfigDiff } from "@wingman/schema";
 
 import { PIPELINE_MODELS, PIPELINE_POLICY } from "../policy.js";
 

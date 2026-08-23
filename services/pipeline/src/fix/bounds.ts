@@ -4,7 +4,7 @@ import {
   PathNotWritableError,
   configDiffBytes,
   type ConfigDiff,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 export function enforceDiffBounds(input: {
   diff: ConfigDiff;

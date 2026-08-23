@@ -6,7 +6,7 @@ import {
   type EventPublisher,
   type Ledger,
   type ModelClient,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { generateAssertion } from "./assertion/generate.js";
 import type { IncidentRecord, ObservedSession } from "./domain.js";

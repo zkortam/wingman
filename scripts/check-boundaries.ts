@@ -39,14 +39,14 @@ for (const file of files) {
   const targets = imports(await readFile(file, 'utf8'))
   graph.set(file, targets.flatMap((target) => resolveLocal(file, target) ?? []))
   for (const target of targets) {
-    if (from.startsWith('services/config/') && (target.includes('services/pipeline') || target === '@outcome/pipeline')) {
+    if (from.startsWith('services/config/') && (target.includes('services/pipeline') || target === '@wingman/pipeline')) {
       failures.push(`${from}: services/config cannot import services/pipeline`)
     }
-    if (from.startsWith('apps/web/') && target.includes('@outcome/db')) {
-      failures.push(`${from}: apps/web cannot import @outcome/db`)
+    if (from.startsWith('apps/web/') && target.includes('@wingman/db')) {
+      failures.push(`${from}: apps/web cannot import @wingman/db`)
     }
-    if (from.startsWith('packages/sdk/') && target.startsWith('@outcome/') && target !== '@outcome/schema') {
-      failures.push(`${from}: packages/sdk may only import @outcome/schema`)
+    if (from.startsWith('packages/sdk/') && target.startsWith('@wingman/') && target !== '@wingman/schema') {
+      failures.push(`${from}: packages/sdk may only import @wingman/schema`)
     }
     if (from.startsWith('fixtures/') && (/^@outcome\/(?:web|pipeline|config|ingest)$/.test(target) || target.includes('/apps/') || target.includes('/services/'))) {
       failures.push(`${from}: fixtures cannot import an app or service`)

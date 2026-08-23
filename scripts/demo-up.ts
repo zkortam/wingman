@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 
-const address = process.env.OUTCOME_DEMO_URL ?? 'http://127.0.0.1:3000/demo'
-const server = spawn('pnpm', ['--filter', '@outcome/web', 'dev', '--hostname', '127.0.0.1'], {
-  env: { ...process.env, OUTCOME_DEMO_RUN_ID: randomUUID() },
+const address = process.env.WINGMAN_DEMO_URL ?? 'http://127.0.0.1:3000/demo'
+const server = spawn('pnpm', ['--filter', '@wingman/web', 'dev', '--hostname', '127.0.0.1'], {
+  env: { ...process.env, WINGMAN_DEMO_RUN_ID: randomUUID() },
   stdio: ['inherit', 'pipe', 'inherit'],
 })
 

@@ -1,4 +1,4 @@
-import type { SignalKind } from "@outcome/schema";
+import type { SignalKind } from "@wingman/schema";
 
 export interface SignalCandidate {
   kind: SignalKind;

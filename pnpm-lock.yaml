@@ -32,10 +32,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@outcome/config':
+      '@wingman/config':
         specifier: workspace:*
         version: link:../../services/config
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
       next:
@@ -72,7 +72,7 @@ importers:
 
   demo/amazoff:
     dependencies:
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
     devDependencies:
@@ -85,7 +85,7 @@ importers:
 
   fixtures:
     dependencies:
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../packages/schema
     devDependencies:
@@ -95,12 +95,12 @@ importers:
 
   packages/db:
     dependencies:
-      '@outcome/schema':
-        specifier: workspace:*
-        version: link:../schema
       '@supabase/supabase-js':
         specifier: ^2.57.0
         version: 2.112.3(@opentelemetry/api@1.9.1)
+      '@wingman/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       vitest:
         specifier: 4.1.9
@@ -118,7 +118,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../schema
       openredaction:
@@ -131,10 +131,10 @@ importers:
 
   services/config:
     dependencies:
-      '@outcome/db':
+      '@wingman/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
     devDependencies:
@@ -144,10 +144,10 @@ importers:
 
   services/ingest:
     dependencies:
-      '@outcome/db':
+      '@wingman/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
     devDependencies:
@@ -160,13 +160,13 @@ importers:
       '@openai/codex-sdk':
         specifier: ^0.149.0
         version: 0.149.0
-      '@outcome/db':
+      '@wingman/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@outcome/ingest':
+      '@wingman/ingest':
         specifier: workspace:*
         version: link:../ingest
-      '@outcome/schema':
+      '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
       inngest:

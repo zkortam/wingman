@@ -11,7 +11,7 @@ import type {
   Scope,
   SignalKind,
   Verdict,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type {
   CandidateInput,

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { SessionInput, Verdict } from "@outcome/schema";
-import { createIngestService } from "@outcome/ingest";
+import type { SessionInput, Verdict } from "@wingman/schema";
+import { createIngestService } from "@wingman/ingest";
 import { describe, expect, it } from "vitest";
 
 import { createPipelineEngine } from "./engine.js";

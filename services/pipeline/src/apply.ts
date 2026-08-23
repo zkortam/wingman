@@ -5,7 +5,7 @@ import {
   type EventPublisher,
   type Ledger,
   type Scope,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type { PipelineRepository } from "./repository.js";
 import { PIPELINE_POLICY } from "./policy.js";

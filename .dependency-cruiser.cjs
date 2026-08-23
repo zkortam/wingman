@@ -12,7 +12,7 @@ module.exports = {
       severity: 'error',
       comment: 'Customers install the SDK. Every transitive dep is a reason not to.',
       from: { path: '^packages/sdk/src' },
-      to: { pathNot: '^(packages/sdk|packages/schema|node_modules|@outcome/schema$|openredaction$|crypto$|fs$|os$|path$)' },
+      to: { pathNot: '^(packages/sdk|packages/schema|node_modules|@wingman/schema$|openredaction$|crypto$|fs$|os$|path$)' },
     },
     {
       name: 'schema-is-leaf',

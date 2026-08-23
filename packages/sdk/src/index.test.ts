@@ -1,4 +1,4 @@
-import type { AgentConfig, SessionInput } from '@outcome/schema'
+import type { AgentConfig, SessionInput } from '@wingman/schema'
 import { describe, expect, it, vi } from 'vitest'
 
 import { Outcome } from './index'

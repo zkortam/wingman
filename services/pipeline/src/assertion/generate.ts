@@ -5,7 +5,7 @@ import {
   type AgentConfig,
   type AssertionDefinition,
   type ModelClient,
-} from "@outcome/schema";
+} from "@wingman/schema";
 import { z } from "zod";
 
 import type { IncidentRecord, ObservedSession } from "../domain.js";

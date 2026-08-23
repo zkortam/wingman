@@ -34,7 +34,7 @@ The ledger outlives the events it was derived from. An incident from March still
 
 ## 3. Conventions
 
-- **No native Postgres enums.** `text` + `CHECK`. Altering a pg enum inside a transaction is painful and we will change these lists during the build. zod in `@outcome/schema` is the source of truth; the CHECK is the backstop.
+- **No native Postgres enums.** `text` + `CHECK`. Altering a pg enum inside a transaction is painful and we will change these lists during the build. zod in `@wingman/schema` is the source of truth; the CHECK is the backstop.
 - **`timestamptz` always.** Never bare `timestamp`.
 - **UUID v4 via `gen_random_uuid()`**, except `sessions.id`, which the client supplies so ingest is idempotent on replay.
 - **`jsonb`, never `json`.**
@@ -362,7 +362,7 @@ Confirmation window: **24 hours** from apply, or the user's next session with a 
 
 ## 7. The four derivations
 
-Both engineers implement these. They must agree byte for byte, so all four live in `@outcome/schema` as pure functions with tests.
+Both engineers implement these. They must agree byte for byte, so all four live in `@wingman/schema` as pure functions with tests.
 
 ### `userHash(orgSalt, userId)`
 ```ts
@@ -396,7 +396,7 @@ sha256(canonicalJSON({ kind, ...params }))
 Signatures are verified by the SDK, in the customer's process. Producer and verifier must serialise identically or every version is rejected and every agent silently falls back to base — a failure that looks like "the product does nothing."
 
 ```ts
-// @outcome/schema — one implementation, used by both sides
+// @wingman/schema — one implementation, used by both sides
 export function canonicalJSON(v: unknown): string
 // object keys sorted lexicographically · no whitespace · arrays keep order
 // numbers via JSON.stringify · undefined dropped · no Date/Map/Set (throws)

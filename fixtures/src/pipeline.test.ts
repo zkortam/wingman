@@ -1,4 +1,4 @@
-import type { AgentConfig, Turn } from '@outcome/schema'
+import type { AgentConfig, Turn } from '@wingman/schema'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
