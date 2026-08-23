@@ -19,7 +19,8 @@
     "dev": "pnpm --filter @wingman/web dev",
     "demo:reset": "node fixtures/src/reset.ts",
     "demo:up": "node scripts/demo-up.ts",
-    "fixtures:generate": "node fixtures/src/generate.ts"
+    "fixtures:generate": "node fixtures/src/generate.ts",
+    "demo": "pnpm --filter @demo/host start"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",

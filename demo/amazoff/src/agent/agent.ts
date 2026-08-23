@@ -16,6 +16,12 @@ interface RespondInput {
   utterance: string;
   customerId: string;
   config: AgentConfig;
+  /**
+   * A tool choice already made elsewhere, normally by a language model. When absent the
+   * agent falls back to its own config-driven selection, so the demo still runs if the
+   * model is slow or unreachable.
+   */
+  selection?: ToolSelection | null;
 }
 
 /**
@@ -31,8 +37,8 @@ export class AmazoffAgent {
     this.#today = today;
   }
 
-  respond({ utterance, customerId, config }: RespondInput): AgentReply {
-    const selection = selectTool(utterance, config);
+  respond({ utterance, customerId, config, selection: given }: RespondInput): AgentReply {
+    const selection = given ?? selectTool(utterance, config);
     if (selection === null) {
       return {
         text: "I'm sorry, I can't help with that from here. Is there anything else I can do?",

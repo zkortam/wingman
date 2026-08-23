@@ -40,7 +40,7 @@ module.exports = {
         'demo/ is a mock customer, so it may only reach Wingman through the SDK and the ' +
         'published schema types. This is what makes the folder deletable and what stops ' +
         'the product from quietly growing a special case for it.',
-      from: { path: '^demo' },
+      from: { path: '^demo/amazoff' },
       to: { path: '^(services|apps|packages)', pathNot: '^packages/(sdk|schema)' },
     },
     {

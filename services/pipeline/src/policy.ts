@@ -8,6 +8,16 @@ export const PIPELINE_POLICY = {
   maxFixIterations: 3,
   maxFixTimeMs: 60_000,
   maxInFlightIncidents: 3,
+  /**
+   * Budget for one live model call. Wingman sits beside a conversation a person is
+   * waiting on, so a slow answer is worse than no answer and both paths fail open.
+   *
+   * Configurable because the right number depends on the transport. A hosted endpoint
+   * answers well inside a second, while a local CLI spawning a process takes several,
+   * and a budget tuned for one silently disables the feature on the other.
+   */
+  maxExpectationMs: Number(process.env.WINGMAN_MAX_EXPECTATION_MS ?? 1_500),
+  maxLiveTurnMs: Number(process.env.WINGMAN_MAX_LIVE_TURN_MS ?? 2_500),
   restartWindowMinutes: 5,
   retentionDays: 30,
   signalMinimumConfidence: 0.5,
@@ -19,6 +29,7 @@ export const PIPELINE_POLICY = {
 export const PIPELINE_MODELS = {
   assertion: process.env.WINGMAN_ASSERTION_MODEL ?? "gpt-5.4-mini",
   embedding: process.env.WINGMAN_EMBEDDING_MODEL ?? "text-embedding-3-small",
+  expectation: process.env.WINGMAN_EXPECTATION_MODEL ?? "gpt-5.4-mini",
   fix: process.env.WINGMAN_FIX_MODEL,
   gate: process.env.WINGMAN_GATE_MODEL ?? "gpt-5.4-mini",
 } as const;

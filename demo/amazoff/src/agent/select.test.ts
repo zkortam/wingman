@@ -73,6 +73,24 @@ describe("rule handling", () => {
     );
   });
 
+  it("lets a corrective rule override the bad one, which is how a live fix lands", () => {
+    // Wingman cannot know which of Amazoff's rules is at fault without analysis it does
+    // not have time for mid-conversation, so its live repair prepends a rule that wins
+    // by precedence. The offending rule is still present and untouched.
+    const repaired = {
+      ...AMAZOFF_BASE_CONFIG,
+      rules: [
+        "When a customer asks to change or move a delivery, use reschedule_delivery.",
+        ...AMAZOFF_BASE_CONFIG.rules,
+      ],
+    };
+    expect(selectTool(RESCHEDULE, repaired)).toMatchObject({
+      tool: "reschedule_delivery",
+      reason: "RULE",
+    });
+    expect(repaired.rules).toContain(CANCEL_AND_REBOOK_RULE);
+  });
+
   it("reads whatever rules the config carries rather than one known sentence", () => {
     const config = {
       ...AMAZOFF_FIXED_CONFIG,

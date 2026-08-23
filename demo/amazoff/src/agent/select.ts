@@ -16,7 +16,7 @@ import type { AgentConfig } from "@wingman/schema";
  */
 export interface ToolSelection {
   tool: string;
-  reason: "RULE" | "DESCRIPTION" | "FALLBACK";
+  reason: "RULE" | "DESCRIPTION" | "FALLBACK" | "MODEL";
   /** The rule that decided it, so the UI can show the user the actual cause. */
   rule: string | null;
 }
@@ -89,9 +89,17 @@ export function selectTool(
 }
 
 /**
- * A rule applies when it talks about what the customer just asked for and names a tool.
- * Matching by the tool's own name words keeps this generic: it reads whatever rules the
- * config happens to carry rather than recognising one hardcoded sentence.
+ * A rule applies when its trigger describes what the customer just asked for.
+ *
+ * Rules read as "when <situation>, <do this>", so relevance is measured against the
+ * part before the action and not the whole sentence. That distinction carries real
+ * weight in both directions: it stops "cancel my order" being blamed on a rule that is
+ * actually about delivery changes, and it still lets a corrective rule apply when the
+ * situation and the tool share vocabulary, as they do whenever someone asks to
+ * reschedule a delivery and the right tool is reschedule_delivery.
+ *
+ * Tools are found by their own name words, so this reads whatever rules the config
+ * carries rather than recognising any particular sentence.
  */
 function ruleDirectedTool(
   said: ReadonlySet<string>,
@@ -99,25 +107,48 @@ function ruleDirectedTool(
   tools: readonly string[],
 ): ToolSelection | null {
   for (const rule of config.rules) {
-    const ruleTerms = terms(rule);
-    const named = tools.filter((tool) =>
-      terms(tool.replace(/_/g, " ")).size > 0 &&
-      [...terms(tool.replace(/_/g, " "))].every((word) => ruleTerms.has(word)),
-    );
+    const named = tools.filter((tool) => mentionIndex(rule, tool) !== null);
     if (named.length !== 1) continue;
-    const trigger = named[0];
-    if (trigger === undefined) continue;
-    // The rule has to be about this request, not merely mention a tool. Its overlap
-    // with the utterance is measured on the words that are not the tool name, so
-    // "cancel the order" does not count as a reason to cancel the order.
-    const toolWords = terms(trigger.replace(/_/g, " "));
-    const context = new Set(
-      [...ruleTerms].filter((word) => !toolWords.has(word)),
-    );
-    if (overlap(said, context) === 0) continue;
-    return { tool: trigger, reason: "RULE", rule };
+    const tool = named[0];
+    if (tool === undefined) continue;
+    const at = mentionIndex(rule, tool);
+    if (at === null) continue;
+    const before = terms(rule.slice(0, at));
+    // A rule that leads with its action has no trigger clause to test, so fall back to
+    // the whole sentence minus the tool's own name.
+    const toolWords = terms(tool.replace(/_/g, " "));
+    const trigger =
+      before.size > 0
+        ? before
+        : new Set([...terms(rule)].filter((word) => !toolWords.has(word)));
+    if (overlap(said, trigger) === 0) continue;
+    return { tool, reason: "RULE", rule };
   }
   return null;
+}
+
+/**
+ * Where a rule starts naming a tool, or null if it never fully names it.
+ *
+ * The literal tool name wins when it appears, because a rule's trigger often reuses the
+ * tool's vocabulary — "when a customer asks to move a delivery, use reschedule_delivery"
+ * mentions delivery twice, and cutting at the first mention would strip the trigger of
+ * the word that makes it relevant.
+ */
+function mentionIndex(rule: string, tool: string): number | null {
+  const haystack = rule.toLowerCase();
+  const literal = haystack.indexOf(tool.toLowerCase());
+  if (literal !== -1) return literal;
+
+  const words = [...terms(tool.replace(/_/g, " "))];
+  if (words.length === 0) return null;
+  let earliest = Number.POSITIVE_INFINITY;
+  for (const word of words) {
+    const at = haystack.indexOf(word);
+    if (at === -1) return null;
+    earliest = Math.min(earliest, at);
+  }
+  return Number.isFinite(earliest) ? earliest : null;
 }
 
 function describeTool(tool: string, config: AgentConfig): ReadonlySet<string> {

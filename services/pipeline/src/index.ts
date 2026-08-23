@@ -10,8 +10,20 @@ export {
   evaluateObservedConfirmation,
   markUnobserved,
 } from "./confirmation.js";
-export { detectSignals, type Baselines } from "./detect/index.js";
+export {
+  detectLiveSignals,
+  detectSignals,
+  type Baselines,
+} from "./detect/index.js";
 export { createPipelineEngine, type PipelineEngine } from "./engine.js";
+export { classifyTurn, type ClassifyInput } from "./live/classify.js";
+export { formExpectation, type FormExpectationInput } from "./live/expect.js";
+export {
+  correctiveRule,
+  isCorrective,
+  repairForExpectation,
+  MAX_CORRECTIVE_RULES,
+} from "./live/repair.js";
 export { CodexFixAgent, ReplayFixAgent, type FixAgent } from "./fix/agent.js";
 export {
   ReplayAppServerClient,
