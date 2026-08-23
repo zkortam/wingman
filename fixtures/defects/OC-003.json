@@ -1,0 +1,21 @@
+{
+  "id": "OC-003",
+  "title": "Search returns closed opportunities",
+  "layer": "model_variance",
+  "mutation": {
+    "path": "tools.search_records.description",
+    "from": "Search CRM opportunities using the supplied query and filters.",
+    "to": "Search CRM opportunities."
+  },
+  "expected": {
+    "signal": "RETRY_REQUEST",
+    "verdict": "VARIANCE",
+    "assertion": {
+      "kind": "TOOL_ARG_EQUALS",
+      "tool": "search_records",
+      "arg": "filters.status",
+      "expected": "Active"
+    },
+    "variance": "intermittent"
+  }
+}

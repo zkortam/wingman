@@ -1,0 +1,19 @@
+{
+  "id": "OC-002",
+  "title": "Summary drops the date range",
+  "layer": "missing_rule",
+  "mutation": {
+    "path": "rules",
+    "from": ["Preserve explicit date ranges in summaries."],
+    "to": []
+  },
+  "expected": {
+    "signal": "RESTATED_CONSTRAINT",
+    "verdict": "PREFERENCE",
+    "assertion": {
+      "kind": "OUTPUT_MATCHES_RULE",
+      "rule": "Preserve explicit date ranges in summaries."
+    },
+    "variance": "consistent"
+  }
+}

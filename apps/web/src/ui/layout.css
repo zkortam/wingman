@@ -1,0 +1,156 @@
+.rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  border-right: 1px solid var(--border);
+  padding: 24px 12px 16px;
+  background: var(--bg-subtle);
+}
+
+.rail-brand {
+  margin: 0 8px 28px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.rail-nav {
+  display: grid;
+  gap: 4px;
+}
+
+.rail-link {
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  padding: 7px 10px;
+  color: var(--text-muted);
+}
+
+.rail-link:hover {
+  background: var(--bg-inset);
+  color: var(--text);
+}
+
+.rail-link[data-active="true"] {
+  border-left-color: var(--accent);
+  background: var(--bg-inset);
+  color: var(--text);
+}
+
+.rail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 0 8px;
+  color: var(--text-muted);
+}
+
+.theme-button {
+  border: 0;
+  padding: 4px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.page-header-meta {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.page-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.stat {
+  margin-bottom: 32px;
+}
+
+.stat-label {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.stat-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.stat-value {
+  font-size: 32px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.stat-delta[data-direction="down"] {
+  color: var(--pass);
+}
+
+.stat-delta[data-direction="up"] {
+  color: var(--fail);
+}
+
+.print-outcomes {
+  display: none;
+}
+
+@media print {
+  .rail,
+  .print-button,
+  .desktop-guard {
+    display: none !important;
+  }
+
+  .app-shell,
+  .main-content {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .outcomes-table tr {
+    break-inside: avoid;
+  }
+
+  .outcomes-table {
+    display: none;
+  }
+
+  .print-outcomes {
+    display: block;
+  }
+
+  .outcome-receipt {
+    min-height: 90vh;
+    break-after: page;
+    padding: 24px 0;
+  }
+
+  .receipt-result {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    margin: 18px 0;
+  }
+}
