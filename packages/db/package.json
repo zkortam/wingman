@@ -1,0 +1,13 @@
+{
+  "name": "@outcome/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@outcome/schema": "workspace:*",
+    "@supabase/supabase-js": "^2.57.0"
+  }
+}
