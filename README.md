@@ -22,13 +22,10 @@ Built by **Zakaria Kortam** and **Ali Alani**.
 </div>
 
 > [!IMPORTANT]
-> Wingman is pre-1.0. Install the public packages from npm:
->
-> ```bash
-> npm install @wingman/sdk
-> ```
->
-> The control plane (operator UI, ingest, pipeline) still runs from this repository.
+> Wingman is pre-1.0. Release [`v0.1.0`](https://github.com/zkortam/wingman/releases/tag/v0.1.0)
+> is tagged. `@wingman/sdk` will install from npm once the `@wingman` scope is
+> published (add an `NPM_TOKEN` repository secret and re-run **Publish npm**).
+> Until then, use this repository as the workspace install.
 
 ## Who this is for
 
@@ -106,8 +103,14 @@ guard.
 npm install @wingman/sdk
 ```
 
-That pulls `@wingman/schema` with it. From a clone of this monorepo, `pnpm install`
-links the workspace packages instead.
+That pulls `@wingman/schema` with it. If the scope is not on the registry yet,
+clone this repository and use the workspace packages:
+
+```bash
+git clone https://github.com/zkortam/wingman.git
+cd wingman
+pnpm install --frozen-lockfile
+```
 
 ## Repository quick start
 
