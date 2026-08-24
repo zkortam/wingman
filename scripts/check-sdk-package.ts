@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -132,6 +132,16 @@ await execute(
   { cwd: consumer },
 );
 await execute(process.execPath, ["smoke.mjs"], { cwd: consumer });
+
+const compiledSdk = await readFile(join("packages/sdk/dist/index.js"), "utf8");
+if (!compiledSdk.includes("@wingman/schema")) {
+  throw new Error("SDK dist no longer imports the workspace schema package");
+}
+const publicSdk = compiledSdk.replaceAll("@wingman/schema", "@zkortam/wingman-schema");
+if (publicSdk.includes("@wingman/schema") || !publicSdk.includes("@zkortam/wingman-schema")) {
+  throw new Error("SDK dist cannot be rewritten to the public schema package name");
+}
+
 process.stdout.write("SDK package contents and clean-consumer import verified.\n");
 
 async function inspectArchive(archive: string): Promise<void> {

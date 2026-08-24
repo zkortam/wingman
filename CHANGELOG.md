@@ -8,6 +8,13 @@ and the public packages follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## 0.1.2 — 2026-08-24
+
+### Fixed
+
+- Published SDK JavaScript imports `@zkortam/wingman-schema` instead of the
+  workspace name `@wingman/schema`, so a clean `npm install` can resolve.
+
 ## 0.1.1 — 2026-08-24
 
 ### Fixed

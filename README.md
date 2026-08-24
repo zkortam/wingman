@@ -24,8 +24,7 @@ Built by **Zakaria Kortam** and **Ali Alani**.
 
 > [!IMPORTANT]
 > Wingman is pre-1.0. Install [`@zkortam/wingman-sdk`](https://www.npmjs.com/package/@zkortam/wingman-sdk)
-> (`@wingman` is already an npm organization). Use **0.1.1 or newer** — 0.1.0
-> exported source files that are not in the tarball. In this repository the
+> (`@wingman` is already an npm organization). Use **0.1.2 or newer**. In this repository the
 > workspace packages remain `@wingman/sdk` and `@wingman/schema`.
 
 ## Who this is for
