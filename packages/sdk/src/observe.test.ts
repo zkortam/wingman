@@ -49,4 +49,28 @@ describe('ObservationQueue', () => {
     await flushing
     expect(sent).toEqual([{ id: 1 }, { id: 2 }])
   })
+
+  it('limits transport concurrency and reports drops and failures', async () => {
+    let active = 0
+    let maximum = 0
+    const queue = new ObservationQueue({
+      capacity: 3,
+      concurrency: 2,
+      send: async (item) => {
+        active += 1
+        maximum = Math.max(maximum, active)
+        await Promise.resolve()
+        active -= 1
+        if ((item as { id: number }).id === 3) throw new Error('rejected')
+      },
+    })
+    queue.push({ id: 1 })
+    queue.push({ id: 2 })
+    queue.push({ id: 3 })
+    queue.push({ id: 4 })
+    await queue.flush()
+
+    expect(maximum).toBe(2)
+    expect(queue.stats()).toEqual({ queued: 0, dropped: 1, sent: 2, failed: 1 })
+  })
 })

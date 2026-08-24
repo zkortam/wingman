@@ -11,7 +11,7 @@ import '../src/ui/overlays.css'
 import '../src/ui/demo.css'
 
 export const metadata: Metadata = {
-  title: 'Outcome',
+  title: 'Wingman',
   description: 'Proof your agent actually worked for the user.',
 }
 

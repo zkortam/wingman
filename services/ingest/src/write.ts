@@ -30,6 +30,7 @@ export function createSupabaseIngestStore(client: ServiceClient): IngestStore {
         lastQuery: session.lastQuery,
         userRules: session.userRules,
         generationCancelled: session.generationCancelled,
+        telemetry: session.telemetry,
       };
       const { error: sessionError } = await client.from("sessions").upsert(
         {

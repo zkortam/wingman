@@ -48,13 +48,13 @@ for (const file of files) {
     if (from.startsWith('packages/sdk/') && target.startsWith('@wingman/') && target !== '@wingman/schema') {
       failures.push(`${from}: packages/sdk may only import @wingman/schema`)
     }
-    if (from.startsWith('fixtures/') && (/^@outcome\/(?:web|pipeline|config|ingest)$/.test(target) || target.includes('/apps/') || target.includes('/services/'))) {
+    if (from.startsWith('fixtures/') && (/^@wingman\/(?:web|pipeline|config|ingest)$/.test(target) || target.includes('/apps/') || target.includes('/services/'))) {
       failures.push(`${from}: fixtures cannot import an app or service`)
     }
-    if (from.startsWith('packages/schema/') && (/^@outcome\//.test(target) || target.includes('/packages/') || target.includes('/services/') || target.includes('/apps/') || target.includes('/fixtures/'))) {
+    if (from.startsWith('packages/schema/') && (/^@wingman\//.test(target) || target.includes('/packages/') || target.includes('/services/') || target.includes('/apps/') || target.includes('/fixtures/'))) {
       failures.push(`${from}: schema must remain a leaf package`)
     }
-    if (/^@outcome\/[^/]+\//.test(target) || /^services\/[^/]+\//.test(target)) {
+    if (/^@wingman\/[^/]+\//.test(target) || /^services\/[^/]+\//.test(target)) {
       failures.push(`${from}: deep package import ${target}`)
     }
   }

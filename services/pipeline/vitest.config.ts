@@ -4,6 +4,6 @@ export default defineConfig({
   root: import.meta.dirname,
   test: {
     environment: "node",
-    name: "pipeline-unit",
+    name: "pipeline",
   },
 });

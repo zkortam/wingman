@@ -1,20 +1,50 @@
 {
   "name": "@wingman/sdk",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Tool-boundary review, safe configuration, and privacy-first telemetry for AI agents.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zkortam/wingman.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/zkortam/wingman#readme",
+  "bugs": "https://github.com/zkortam/wingman/issues",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
-    "@wingman/schema": "workspace:*",
+    "@wingman/schema": "workspace:^",
     "openredaction": "1.1.5"
   },
   "devDependencies": {
     "vitest": "4.1.9"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts"
   }
 }

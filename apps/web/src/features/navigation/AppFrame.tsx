@@ -10,7 +10,7 @@ export const AppFrame = ({ children }: { children: ReactNode }) => {
   if (pathname === '/demo') return children
   return (
     <>
-      <div className="desktop-guard">Outcome is built for a desktop window.</div>
+      <div className="desktop-guard">Wingman is built for a desktop window.</div>
       <div className="app-shell">
         <Rail />
         <main className="main-content">{children}</main>

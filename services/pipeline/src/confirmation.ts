@@ -4,6 +4,51 @@ import type { AppServerClient } from "./fix/app-server.js";
 import type { ObservedSession } from "./domain.js";
 import type { PipelineRepository } from "./repository.js";
 
+export async function revertAppliedOutcome(input: {
+  repository: PipelineRepository;
+  configStore: ConfigStore;
+  ledger: Ledger;
+  incidentId: string;
+}): Promise<Outcome> {
+  const snapshot = await input.repository.getSnapshot(input.incidentId);
+  if (snapshot.outcome === null) throw new Error("Incident has no applied outcome");
+  if (!["APPLIED", "CONFIRMED", "REVERTED"].includes(snapshot.incident.state)) {
+    throw new Error(`Cannot revert incident in ${snapshot.incident.state}`);
+  }
+  const targets = snapshot.outcome.scope === "GLOBAL"
+    ? [""]
+    : snapshot.outcome.appliedTo;
+  for (const userHash of targets) {
+    await input.configStore.revertOverride(snapshot.incident.agentId, userHash);
+  }
+  const alreadyReverted =
+    snapshot.outcome.status === "REVERTED" &&
+    snapshot.incident.state === "REVERTED";
+  const outcome = snapshot.outcome.status === "REVERTED"
+    ? snapshot.outcome
+    : await input.repository.updateOutcome(snapshot.outcome.id, {
+        status: "REVERTED",
+        revertedAt: new Date().toISOString(),
+      });
+  if (snapshot.incident.state !== "REVERTED") {
+    await input.repository.updateIncident(
+      snapshot.incident.id,
+      snapshot.incident.state,
+      { state: "REVERTED", stateReason: "OPERATOR_REVERTED" },
+    );
+  }
+  if (!alreadyReverted) {
+    await recordConfirmation(
+      input.ledger,
+      snapshot.incident.id,
+      snapshot.incident.fingerprint,
+      snapshot.candidate?.diff,
+      "REVERTED",
+    );
+  }
+  return outcome;
+}
+
 export async function evaluateObservedConfirmation(input: {
   repository: PipelineRepository;
   configStore: ConfigStore;
@@ -16,7 +61,8 @@ export async function evaluateObservedConfirmation(input: {
   if (outcome === null || outcome.status !== "PENDING") return outcome;
   const snapshot = await input.repository.getSnapshot(outcome.incidentId);
   if (input.signalCount > 0) {
-    for (const userHash of outcome.appliedTo) {
+    const targets = outcome.scope === "GLOBAL" ? [""] : outcome.appliedTo;
+    for (const userHash of targets) {
       await input.configStore.revertOverride(
         snapshot.incident.agentId,
         userHash,

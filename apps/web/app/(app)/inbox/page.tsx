@@ -4,9 +4,19 @@ import { LiveIncidentTable } from '../../../src/features/incidents/LiveIncidentT
 import { reader } from '../../../src/server/container'
 import { PageHeader } from '../../../src/ui/PageHeader'
 import { Stat } from '../../../src/ui/Stat'
+import { ServiceUnavailable } from '../../../src/features/status/ServiceUnavailable'
+
+export const dynamic = 'force-dynamic'
 
 export default async function InboxPage() {
-  const [incidents, rate] = await Promise.all([reader.listIncidents(), reader.silentFailureRate()])
+  let incidents: Awaited<ReturnType<typeof reader.listIncidents>>
+  let rate: Awaited<ReturnType<typeof reader.silentFailureRate>>
+  try {
+    incidents = await reader.listIncidents()
+    rate = await reader.silentFailureRate()
+  } catch {
+    return <ServiceUnavailable resource="Incidents" />
+  }
   const delta = Math.abs(rate.thisWeek - rate.lastWeek).toFixed(1)
   return (
     <>

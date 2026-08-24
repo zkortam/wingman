@@ -1,6 +1,11 @@
 # Demo and Mock Data
 
-**Owner: Engineer B**, with Engineer A on beats 5 and 7. This is the thing judges actually score, and it is 25% Execution + 10% Presentation + most of how Technical Difficulty gets read.
+This document defines the isolated end-to-end integration environment. It is a
+repeatable product verification path, not a production data source or a special-case
+dependency of Wingman.
+
+`pnpm demo:up` sets `WINGMAN_RUNTIME=demo` explicitly. Production mode never falls
+back to seeded incidents when platform wiring or credentials are missing.
 
 > **The problem this solves:** the claim is "we found failures across N users nobody reported." One person clicking a button demonstrates n=1, the weakest possible version of the argument.
 
@@ -20,10 +25,11 @@ The seeded cohort is **real data through the real pipeline**, replayed rather th
 
 ## 2. The mock world
 
-Fictional but coherent. **Never lorem, never `foo`/`bar`, never a placeholder on screen.** A judge who sees `test_user_1` stops believing the rest.
+Fictional but coherent. **Never lorem, never `foo`/`bar`, never a placeholder on screen.** Realistic fixtures make integration failures diagnosable.
 
 **The customer:** Ledgerline, a B2B SaaS company.
-**Their agent:** *Ops Copilot* — an internal RevOps assistant over their CRM. This is the profile from `MASTERPLANHACKATHON.md` §4: the agent is the product, outcomes are checkable, 20–100 named accounts so every complaint is felt.
+**Their agent:** *Ops Copilot* — an internal RevOps assistant over their CRM. Outcomes
+are checkable across a bounded collection of named accounts.
 
 **The CRM** — `fixtures/agent/seed.sql`, 50 opportunities:
 
@@ -89,7 +95,8 @@ Beyond realism, this is a real feature: **per-user baselining.** A rephrase from
 }
 ```
 
-**`OC-003` is the one that impresses technical judges.** Showing the system correctly **refusing to act** is more convincing than showing it act. Do not cut it to save time.
+**`OC-003` verifies refusal behavior.** Correctly refusing to act is as important as a
+successful repair and remains part of the required integration suite.
 
 ---
 
@@ -143,7 +150,7 @@ Beats 0, 2, 10, 11. Inbox → "nobody reported this" → two windows, one fixed 
 
 ### The optional beat: OC-003
 
-If you have 20 seconds and a technical judge, open **Search returns closed opportunities · DISCARDED**:
+To inspect refusal behavior, open **Search returns closed opportunities · DISCARDED**:
 
 ```
 BEFORE   ●●○●○   2/5 passed
@@ -209,7 +216,8 @@ That final assertion is what makes reset safe to run 30 seconds before you prese
 pnpm fixtures:generate --defect OC-001 --sessions 50 --hit-rate 0.24
 ```
 
-**Run once. Commit the output. Never run the generator on demo day.**
+**Generate deliberately, review the diff, and commit the output. CI and release runs
+must consume the committed cassettes without rewriting them.**
 
 ---
 
@@ -265,4 +273,4 @@ Screenshots 3 and 5 are the two nobody else in the category can produce.
 - [ ] Both window headers show the resolved config version, live
 - [ ] Failure drills rehearsed, not just the happy path
 - [ ] Three consecutive clean runs
-- [ ] "What was hardest" answer memorised (`MASTERPLAN-A.md` §6)
+- [ ] Failure, recovery, and isolation behavior verified from a clean reset

@@ -3,6 +3,7 @@ import {
   DiffTooLargeError,
   PathNotWritableError,
   configDiffBytes,
+  isConfigPathWritable,
   type ConfigDiff,
 } from "@wingman/schema";
 
@@ -16,7 +17,7 @@ export function enforceDiffBounds(input: {
   if (
     diff.changes.some(
       ({ path }) =>
-        !input.writablePaths.some((allowed) => pathMatches(path, allowed)),
+        !input.writablePaths.some((allowed) => isConfigPathWritable(path, allowed)),
     )
   ) {
     throw new PathNotWritableError();
@@ -25,9 +26,5 @@ export function enforceDiffBounds(input: {
 }
 
 export function pathMatches(path: string, allowed: string): boolean {
-  if (allowed.endsWith(".*")) {
-    const prefix = allowed.slice(0, -2);
-    return path === prefix || path.startsWith(`${prefix}.`);
-  }
-  return path === allowed || path.startsWith(`${allowed}.`);
+  return isConfigPathWritable(path, allowed);
 }

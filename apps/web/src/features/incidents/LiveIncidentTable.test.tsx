@@ -22,7 +22,7 @@ describe('LiveIncidentTable', () => {
 
   it('renders a factual new-organization empty state', () => {
     render(<LiveIncidentTable client={{ listIncidents }} initialIncidents={[]} />)
-    expect(screen.getByText(/Outcome needs about 500 sessions/)).toBeTruthy()
+    expect(screen.getByText(/Wingman needs enough recurring sessions/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'View integration guide' })).toBeTruthy()
   })
 })

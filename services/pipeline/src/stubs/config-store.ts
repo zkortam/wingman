@@ -18,6 +18,7 @@ export class StubConfigStore implements ConfigStore {
   private readonly bases = new Map<string, AgentConfig>();
   private readonly versions = new Map<string, ConfigVersion[]>();
   private readonly overrides = new Map<string, string>();
+  private readonly globalVersions = new Map<string, string>();
 
   constructor(
     private readonly database: ReplayDatabase,
@@ -45,7 +46,9 @@ export class StubConfigStore implements ConfigStore {
   }
 
   async resolve(agentId: string, userHash: string): Promise<AgentConfig> {
-    const versionId = this.overrides.get(`${agentId}:${userHash}`);
+    const versionId =
+      this.overrides.get(`${agentId}:${userHash}`) ??
+      this.globalVersions.get(agentId);
     if (versionId === undefined) return this.base(agentId);
     const version = (this.versions.get(agentId) ?? []).find(
       ({ id }) => id === versionId,
@@ -85,14 +88,16 @@ export class StubConfigStore implements ConfigStore {
     agentId: string,
     userHash: string,
     versionId: string,
-    _scope: Scope,
+    scope: Scope,
   ): Promise<void> {
-    this.overrides.set(`${agentId}:${userHash}`, versionId);
+    if (scope === "GLOBAL") this.globalVersions.set(agentId, versionId);
+    else this.overrides.set(`${agentId}:${userHash}`, versionId);
     return Promise.resolve();
   }
 
   revertOverride(agentId: string, userHash: string): Promise<void> {
-    this.overrides.delete(`${agentId}:${userHash}`);
+    if (userHash === "") this.globalVersions.delete(agentId);
+    else this.overrides.delete(`${agentId}:${userHash}`);
     return Promise.resolve();
   }
 

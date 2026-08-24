@@ -1,6 +1,5 @@
 import type { ServiceClient } from "@wingman/db";
 
-import type { HandoffRecord } from "../domain.js";
 import type { PipelineRepository } from "../repository.js";
 import { createReadStore } from "./read.js";
 import { createWriteStore } from "./write.js";
@@ -8,8 +7,7 @@ import { createWriteStore } from "./write.js";
 export function createSupabasePipelineRepository(
   client: ServiceClient,
 ): PipelineRepository {
-  const handoffs = new Map<string, HandoffRecord>();
-  const read = createReadStore(client, handoffs);
-  const write = createWriteStore(client, handoffs, read);
+  const read = createReadStore(client);
+  const write = createWriteStore(client, read);
   return { ...read, ...write };
 }

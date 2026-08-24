@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { AgentConfig, ConfigDiff, ConfigStore, ConfigVersion, Scope } from '@wingman/schema'
+import { ConfigVersionSchema, type AgentConfig, type ConfigDiff, type ConfigStore, type ConfigVersion, type Scope } from '@wingman/schema'
 
 import { assertWritable } from './allowlist'
 import { ResolutionCache } from './cache'
-import type { ConfigRepository, StoredVersion } from './repository'
+import type { ConfigRepository } from './repository'
 import { signVersion } from './signature'
 
 interface StoreOptions {
@@ -13,9 +13,15 @@ interface StoreOptions {
   ttlMs?: number
 }
 
+export interface SignedConfigEnvelope {
+  config: AgentConfig
+  version: number
+  signature: string
+}
+
 const cacheKey = (agentId: string, userHash: string): string => `${agentId}:${userHash}`
 
-export class OutcomeConfigStore implements ConfigStore {
+export class WingmanConfigStore implements ConfigStore {
   readonly #repository: ConfigRepository
   readonly #fallbackConfigs: ReadonlyMap<string, AgentConfig>
   readonly #canonicalize: (value: unknown) => string
@@ -52,33 +58,63 @@ export class OutcomeConfigStore implements ConfigStore {
     }
   }
 
+  async resolveSigned(agentId: string, userHash: string): Promise<SignedConfigEnvelope> {
+    const agent = await this.#repository.agent(agentId)
+    if (!agent) throw new Error(`Unknown agent: ${agentId}`)
+    const override = await this.#repository.liveOverride(agentId, userHash)
+    const versionId = override?.versionId ?? agent.activeVersionId
+    if (versionId) {
+      const stored = await this.#repository.version(versionId)
+      if (stored) {
+        return {
+          config: structuredClone(stored.config),
+          version: stored.version,
+          signature: stored.signature,
+        }
+      }
+    }
+    const config = structuredClone(agent.baseConfig)
+    return {
+      config,
+      version: agent.baseVersion,
+      signature: signVersion({
+        key: agent.signingKey,
+        agentId,
+        version: agent.baseVersion,
+        config,
+        canonicalize: this.#canonicalize,
+      }),
+    }
+  }
+
   async writeVersion(agentId: string, config: AgentConfig, incidentId: string): Promise<ConfigVersion> {
     const agent = await this.#repository.agent(agentId)
     if (!agent) throw new Error(`Unknown agent: ${agentId}`)
     const versions = await this.#repository.versions(agentId)
     const existing = versions.find((version) => version.incidentId === incidentId && this.#canonicalize(version.config) === this.#canonicalize(config))
-    if (existing) return existing as unknown as ConfigVersion
+    if (existing) return existing
     const next = versions.reduce((maximum, version) => Math.max(maximum, version.version), 0) + 1
-    const version: StoredVersion = {
+    const version = ConfigVersionSchema.parse({
       id: randomUUID(),
       agentId,
       version: next,
       config: structuredClone(config),
       incidentId,
       signature: signVersion({ key: agent.signingKey, agentId, version: next, config, canonicalize: this.#canonicalize }),
+      createdBy: 'PIPELINE',
       createdAt: new Date().toISOString(),
-    }
+    })
     try {
       await this.#repository.insertVersion(version)
     } catch (error) {
       const raced = (await this.#repository.versions(agentId)).find((stored) =>
         stored.incidentId === incidentId && this.#canonicalize(stored.config) === this.#canonicalize(config),
       )
-      if (raced) return raced as unknown as ConfigVersion
+      if (raced) return raced
       throw error
     }
     this.#cache.invalidateAgent(agentId)
-    return version as unknown as ConfigVersion
+    return version
   }
 
   async setOverride(agentId: string, userHash: string, versionId: string, scope: Scope): Promise<void> {
@@ -88,12 +124,13 @@ export class OutcomeConfigStore implements ConfigStore {
   }
 
   async revertOverride(agentId: string, userHash: string): Promise<void> {
-    await this.#repository.revokeUserOverride(agentId, userHash)
+    if (userHash === '') await this.#repository.clearGlobalVersion(agentId)
+    else await this.#repository.revokeUserOverride(agentId, userHash)
     this.#cache.invalidateAgent(agentId)
   }
 
   async listVersions(agentId: string): Promise<ConfigVersion[]> {
-    return (await this.#repository.versions(agentId)) as unknown as ConfigVersion[]
+    return this.#repository.versions(agentId)
   }
 
   async assertWritable(agentId: string, diff: ConfigDiff): Promise<void> {

@@ -15,4 +15,8 @@ describe("incident state transitions", () => {
     expect(canTransition("CONFIRMED", "CLUSTERED")).toBe(false);
     expect(canTransition("REVERTED", "CLUSTERED")).toBe(false);
   });
+
+  it("allows an operator to revert a confirmed configuration", () => {
+    expect(canTransition("CONFIRMED", "REVERTED")).toBe(true);
+  });
 });

@@ -57,8 +57,8 @@ export class WebSocketAppServerClient implements AppServerClient {
     try {
       await rpc.request("initialize", {
         clientInfo: {
-          name: "outcome-pipeline",
-          title: "Outcome Pipeline",
+          name: "wingman-pipeline",
+          title: "Wingman Pipeline",
           version: "1.0.0",
         },
         capabilities: { experimentalApi: true },
@@ -94,8 +94,8 @@ export class WebSocketAppServerClient implements AppServerClient {
     try {
       await rpc.request("initialize", {
         clientInfo: {
-          name: "outcome-pipeline",
-          title: "Outcome Pipeline",
+          name: "wingman-pipeline",
+          title: "Wingman Pipeline",
           version: "1.0.0",
         },
         capabilities: { experimentalApi: true },

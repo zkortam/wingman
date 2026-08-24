@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -12,6 +15,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +28,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Typecheck, lint, module boundaries, UI contrast and policy, then the suites.
-      # Boundaries matter most on a pull request: they are what stops demo/ from
-      # reaching past the SDK into the pipeline internals.
+      - run: pnpm audit --audit-level high
+
+      # Typecheck, lint, boundaries, unit/integration suites, build, and a clean
+      # consumer install of the packed public SDK.
       - run: pnpm check

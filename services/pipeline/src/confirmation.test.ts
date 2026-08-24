@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateObservedConfirmation,
   markUnobserved,
+  revertAppliedOutcome,
 } from "./confirmation.js";
 import { ReplayAppServerClient } from "./fix/app-server.js";
 import { InMemoryLedger } from "./ledger/index.js";
@@ -40,6 +41,57 @@ describe("confirmation", () => {
     ).toBe("REVERTED");
   });
 
+  it("revokes the global pointer when a global outcome is refuted", async () => {
+    const fixture = await appliedFixture(
+      new Date(Date.now() + 60_000).toISOString(),
+      "GLOBAL",
+    );
+    expect(
+      (await fixture.configStore.resolve(fixture.agentId, "another-user"))
+        .systemPrompt,
+    ).toBe("fixed");
+
+    await evaluateObservedConfirmation({
+      repository: fixture.repository,
+      configStore: fixture.configStore,
+      ledger: new InMemoryLedger(),
+      appServer: new ReplayAppServerClient(),
+      session: fixture.session,
+      signalCount: 1,
+    });
+
+    expect(
+      (await fixture.configStore.resolve(fixture.agentId, "another-user"))
+        .systemPrompt,
+    ).toBe("base");
+  });
+
+  it("manually reverts config, outcome, and incident as one idempotent command", async () => {
+    const fixture = await appliedFixture(
+      new Date(Date.now() + 60_000).toISOString(),
+    );
+
+    await revertAppliedOutcome({
+      repository: fixture.repository,
+      configStore: fixture.configStore,
+      ledger: new InMemoryLedger(),
+      incidentId: fixture.incidentId,
+    });
+    await revertAppliedOutcome({
+      repository: fixture.repository,
+      configStore: fixture.configStore,
+      ledger: new InMemoryLedger(),
+      incidentId: fixture.incidentId,
+    });
+
+    const snapshot = await fixture.repository.getSnapshot(fixture.incidentId);
+    expect(snapshot.incident.state).toBe("REVERTED");
+    expect(snapshot.incident.stateReason).toBe("OPERATOR_REVERTED");
+    expect(snapshot.outcome?.status).toBe("REVERTED");
+    expect(await fixture.configStore.resolve(fixture.agentId, fixture.userHash))
+      .toEqual({ systemPrompt: "base", tools: {}, retrieval: {}, rules: [] });
+  });
+
   it("retains an unobserved fix after the window", async () => {
     const fixture = await appliedFixture(
       new Date(Date.now() - 1_000).toISOString(),
@@ -61,7 +113,7 @@ describe("confirmation", () => {
   });
 });
 
-async function appliedFixture(windowEndsAt: string) {
+async function appliedFixture(windowEndsAt: string, scope: "USER" | "GLOBAL" = "USER") {
   const database = new ReplayDatabase();
   const repository = new ReplayPipelineRepository(database);
   const configStore = new StubConfigStore(database);
@@ -81,7 +133,12 @@ async function appliedFixture(windowEndsAt: string) {
     { systemPrompt: "fixed", tools: {}, retrieval: {}, rules: [] },
     incidentId,
   );
-  await configStore.setOverride(agentId, userHash, version.id, "USER");
+  await configStore.setOverride(
+    agentId,
+    scope === "GLOBAL" ? "" : userHash,
+    version.id,
+    scope,
+  );
   database.incidents.set(incidentId, {
     id: incidentId,
     orgId,
@@ -108,7 +165,7 @@ async function appliedFixture(windowEndsAt: string) {
     id: randomUUID(),
     incidentId,
     candidateId,
-    scope: "USER",
+    scope,
     appliedTo: [userHash],
     appliedVersionId: version.id,
     status: "PENDING",

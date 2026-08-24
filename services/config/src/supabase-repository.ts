@@ -1,5 +1,5 @@
 import { createServiceClient } from '@wingman/db'
-import type { AgentConfig } from '@wingman/schema'
+import { AgentConfigSchema, ConfigVersionSchema, ScopeSchema } from '@wingman/schema'
 
 import type { ConfigRepository, StoredAgent, StoredOverride, StoredVersion } from './repository'
 
@@ -16,13 +16,14 @@ export class SupabaseConfigRepository implements ConfigRepository {
   }
 
   async agent(agentId: string): Promise<StoredAgent | null> {
-    const data = result(await this.#db.from('agents').select('id,base_config,active_version_id,writable_paths,max_diff_bytes,orgs(signing_key)').eq('id', agentId).maybeSingle())
+    const data = result(await this.#db.from('agents').select('id,base_config,base_version,active_version_id,writable_paths,max_diff_bytes,orgs(signing_key)').eq('id', agentId).maybeSingle())
     if (!data) return null
     const org = Array.isArray(data.orgs) ? data.orgs[0] : data.orgs
     if (typeof org?.signing_key !== 'string' || org.signing_key.length === 0) throw new Error(`Missing signing key: ${agentId}`)
     return {
       id: data.id,
-      baseConfig: data.base_config as AgentConfig,
+      baseConfig: AgentConfigSchema.parse(data.base_config),
+      baseVersion: data.base_version,
       activeVersionId: data.active_version_id,
       writablePaths: data.writable_paths,
       maxDiffBytes: data.max_diff_bytes,
@@ -31,12 +32,12 @@ export class SupabaseConfigRepository implements ConfigRepository {
   }
 
   async version(versionId: string): Promise<StoredVersion | null> {
-    const data = result(await this.#db.from('config_versions').select('id,agent_id,version,config,incident_id,signature,created_at').eq('id', versionId).maybeSingle())
+    const data = result(await this.#db.from('config_versions').select('id,agent_id,version,config,incident_id,signature,created_by,created_at').eq('id', versionId).maybeSingle())
     return data ? this.#mapVersion(data) : null
   }
 
   async versions(agentId: string): Promise<StoredVersion[]> {
-    const data = result(await this.#db.from('config_versions').select('id,agent_id,version,config,incident_id,signature,created_at').eq('agent_id', agentId).order('version', { ascending: false }))
+    const data = result(await this.#db.from('config_versions').select('id,agent_id,version,config,incident_id,signature,created_by,created_at').eq('agent_id', agentId).order('version', { ascending: false }))
     return (data ?? []).map((row) => this.#mapVersion(row))
   }
 
@@ -47,7 +48,7 @@ export class SupabaseConfigRepository implements ConfigRepository {
       agentId: data.agent_id,
       userHash: data.user_hash,
       versionId: data.version_id,
-      scope: data.scope,
+      scope: ScopeSchema.parse(data.scope),
       revokedAt: data.revoked_at,
     } as StoredOverride
   }
@@ -60,7 +61,7 @@ export class SupabaseConfigRepository implements ConfigRepository {
       config: version.config,
       incident_id: version.incidentId,
       signature: version.signature,
-      created_by: 'PIPELINE',
+      created_by: version.createdBy,
       created_at: version.createdAt,
     }))
   }
@@ -80,6 +81,10 @@ export class SupabaseConfigRepository implements ConfigRepository {
     result(await this.#db.from('agents').update({ active_version_id: versionId }).eq('id', agentId))
   }
 
+  async clearGlobalVersion(agentId: string): Promise<void> {
+    result(await this.#db.from('agents').update({ active_version_id: null }).eq('id', agentId))
+  }
+
   async revokeUserOverride(agentId: string, userHash: string): Promise<void> {
     result(await this.#db.from('config_overrides').update({ revoked_at: new Date().toISOString() }).eq('agent_id', agentId).eq('user_hash', userHash).is('revoked_at', null))
   }
@@ -91,16 +96,18 @@ export class SupabaseConfigRepository implements ConfigRepository {
     config: unknown
     incident_id: string | null
     signature: string
+    created_by: string
     created_at: string
   }): StoredVersion {
-    return {
+    return ConfigVersionSchema.parse({
       id: row.id,
       agentId: row.agent_id,
       version: row.version,
-      config: row.config as AgentConfig,
+      config: row.config,
       incidentId: row.incident_id,
       signature: row.signature,
+      createdBy: row.created_by,
       createdAt: row.created_at,
-    }
+    })
   }
 }

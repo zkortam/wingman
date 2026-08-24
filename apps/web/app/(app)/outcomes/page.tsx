@@ -5,6 +5,7 @@ import { Dots } from '../../../src/ui/Dots'
 import { Empty } from '../../../src/ui/Empty'
 import { PageHeader } from '../../../src/ui/PageHeader'
 import { StateBadge } from '../../../src/ui/StateBadge'
+import { ServiceUnavailable } from '../../../src/features/status/ServiceUnavailable'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,12 @@ const date = (value: string | undefined): string => value
   : 'Pending'
 
 export default async function OutcomesPage() {
-  const outcomes = await reader.listOutcomes()
+  let outcomes: Awaited<ReturnType<typeof reader.listOutcomes>>
+  try {
+    outcomes = await reader.listOutcomes()
+  } catch {
+    return <ServiceUnavailable resource="Outcomes" />
+  }
   const confirmed = outcomes.filter((outcome) => outcome.state === 'CONFIRMED')
   const confirmationRate = outcomes.length > 0 ? Math.round((confirmed.length / outcomes.length) * 100) : 0
   const durations = confirmed.flatMap((outcome) => outcome.appliedAt && outcome.confirmedAt

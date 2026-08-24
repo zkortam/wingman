@@ -1,6 +1,8 @@
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
+process.env.WINGMAN_RUNTIME = 'demo'
+
 afterEach(() => cleanup())
 
 Object.assign(navigator, {
