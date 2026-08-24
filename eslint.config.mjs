@@ -2,9 +2,20 @@ import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['**/.next/**', '**/coverage/**', '**/dist/**', '**/types.gen.ts', '.dependency-cruiser.cjs'] },
+  {
+    ignores: [
+      '**/.next/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/types.gen.ts',
+      '.dependency-cruiser.cjs',
+    ],
+  },
   eslint.configs.recommended,
-  ...tseslint.configs.strictTypeChecked.map((config) => ({ ...config, files: ['**/*.ts', '**/*.tsx'] })),
+  ...tseslint.configs.strictTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.ts', '**/*.tsx'],
+  })),
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -30,7 +41,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      'no-console': 'error'
+      'no-console': 'error',
     },
   },
   {
@@ -43,6 +54,6 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
-    }
-  }
+    },
+  },
 )

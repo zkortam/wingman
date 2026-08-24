@@ -12,7 +12,10 @@ interface LiveIncidentTableProps {
   client?: Pick<typeof apiClient, 'listIncidents'>
 }
 
-export const LiveIncidentTable = ({ initialIncidents, client = apiClient }: LiveIncidentTableProps) => {
+export const LiveIncidentTable = ({
+  initialIncidents,
+  client = apiClient,
+}: LiveIncidentTableProps) => {
   const [incidents, setIncidents] = useState(initialIncidents)
 
   useEffect(() => {
@@ -32,7 +35,12 @@ export const LiveIncidentTable = ({ initialIncidents, client = apiClient }: Live
     }
   }, [client])
 
-  return incidents.length > 0
-    ? <IncidentTable incidents={incidents} />
-    : <Empty action={{ href: '/settings', label: 'View integration guide' }} fact="No incidents yet. Wingman needs enough recurring sessions to distinguish defects from isolated variance." />
+  return incidents.length > 0 ? (
+    <IncidentTable incidents={incidents} />
+  ) : (
+    <Empty
+      action={{ href: '/settings', label: 'View integration guide' }}
+      fact="No incidents yet. Wingman needs enough recurring sessions to distinguish defects from isolated variance."
+    />
+  )
 }

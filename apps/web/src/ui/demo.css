@@ -21,7 +21,11 @@
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
   background: var(--bg-subtle);
-  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    12.5px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .demo-version[data-changed="true"] {

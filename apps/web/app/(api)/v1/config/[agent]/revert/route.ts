@@ -6,7 +6,11 @@ import { jsonError, operatorError, readJsonObject } from '../../../../../../src/
 export async function POST(request: Request, { params }: { params: Promise<{ agent: string }> }) {
   const { agent } = await params
   const body = await readJsonObject(request)
-  if (typeof body?.userHash !== 'string' || body.userHash.trim().length === 0 || body.userHash.length > 200) {
+  if (
+    typeof body?.userHash !== 'string' ||
+    body.userHash.trim().length === 0 ||
+    body.userHash.length > 200
+  ) {
     return jsonError(400, 'Invalid user hash')
   }
   try {

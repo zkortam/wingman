@@ -7,7 +7,8 @@ export interface StoredAgent {
   activeVersionId: string | null
   writablePaths: string[]
   maxDiffBytes: number
-  signingKey: string
+  /** Raw key bytes. bytea columns arrive hex-escaped and must be decoded first. */
+  signingKey: string | Buffer
 }
 
 export type StoredVersion = ConfigVersion
@@ -45,12 +46,19 @@ export class InMemoryConfigRepository implements ConfigRepository {
 
   constructor(seed: MemorySeed) {
     for (const agent of seed.agents) this.#agents.set(agent.id, structuredClone(agent))
-    for (const version of seed.versions ?? []) this.#versions.set(version.id, structuredClone(version))
+    for (const version of seed.versions ?? [])
+      this.#versions.set(version.id, structuredClone(version))
   }
 
-  setUnavailable(unavailable: boolean): void { this.#unavailable = unavailable }
-  versionCount(): number { return this.#versions.size }
-  revokedOverrideCount(): number { return this.#overrides.filter((override) => override.revokedAt).length }
+  setUnavailable(unavailable: boolean): void {
+    this.#unavailable = unavailable
+  }
+  versionCount(): number {
+    return this.#versions.size
+  }
+  revokedOverrideCount(): number {
+    return this.#overrides.filter((override) => override.revokedAt).length
+  }
 
   async agent(agentId: string): Promise<StoredAgent | null> {
     this.#assertAvailable()
@@ -64,7 +72,9 @@ export class InMemoryConfigRepository implements ConfigRepository {
 
   async versions(agentId: string): Promise<StoredVersion[]> {
     this.#assertAvailable()
-    return [...this.#versions.values()].filter((version) => version.agentId === agentId).map((version) => structuredClone(version))
+    return [...this.#versions.values()]
+      .filter((version) => version.agentId === agentId)
+      .map((version) => structuredClone(version))
   }
 
   async liveOverride(agentId: string, userHash: string): Promise<StoredOverride | null> {
@@ -76,7 +86,11 @@ export class InMemoryConfigRepository implements ConfigRepository {
   async insertVersion(version: StoredVersion): Promise<void> {
     this.#assertAvailable()
     if (this.#versions.has(version.id)) return
-    if ([...this.#versions.values()].some((stored) => stored.agentId === version.agentId && stored.version === version.version)) {
+    if (
+      [...this.#versions.values()].some(
+        (stored) => stored.agentId === version.agentId && stored.version === version.version,
+      )
+    ) {
       throw new Error(`Duplicate config version: ${version.agentId}:${String(version.version)}`)
     }
     this.#versions.set(version.id, structuredClone(version))
@@ -111,7 +125,8 @@ export class InMemoryConfigRepository implements ConfigRepository {
   #latestLiveOverride(agentId: string, userHash: string): StoredOverride | undefined {
     for (let index = this.#overrides.length - 1; index >= 0; index -= 1) {
       const override = this.#overrides[index]
-      if (override?.agentId === agentId && override.userHash === userHash && !override.revokedAt) return override
+      if (override?.agentId === agentId && override.userHash === userHash && !override.revokedAt)
+        return override
     }
     return undefined
   }

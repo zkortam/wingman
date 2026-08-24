@@ -17,7 +17,11 @@ export class HttpAgentRunner implements AgentRunner {
     timeoutMs?: number
   }) {
     const endpoint = new URL(options.endpoint)
-    if (endpoint.protocol !== 'https:' && endpoint.hostname !== 'localhost' && endpoint.hostname !== '127.0.0.1') {
+    if (
+      endpoint.protocol !== 'https:' &&
+      endpoint.hostname !== 'localhost' &&
+      endpoint.hostname !== '127.0.0.1'
+    ) {
       throw new Error('Agent runner endpoint must use HTTPS')
     }
     if (!options.token.trim()) throw new Error('Agent runner bearer token is required')
@@ -37,13 +41,15 @@ export class HttpAgentRunner implements AgentRunner {
         authorization: `Bearer ${this.#token}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify(AgentReplayRequestSchema.parse({
-        config: input.config,
-        messages: input.messages,
-        context: input.context,
-        sample: input.sample,
-        interceptToolCalls: true,
-      })),
+      body: JSON.stringify(
+        AgentReplayRequestSchema.parse({
+          config: input.config,
+          messages: input.messages,
+          context: input.context,
+          sample: input.sample,
+          interceptToolCalls: true,
+        }),
+      ),
       signal: AbortSignal.timeout(this.#timeoutMs),
     })
     if (!response.ok) throw new Error(`Agent runner returned ${String(response.status)}`)

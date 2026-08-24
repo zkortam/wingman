@@ -5,7 +5,15 @@ import { Diff } from './Diff'
 
 describe('Diff', () => {
   it('renders additions and removals with explicit gutter symbols', () => {
-    render(<Diff path="rules" lines={[{ kind: 'remove', text: 'old' }, { kind: 'add', text: 'new' }]} />)
+    render(
+      <Diff
+        path="rules"
+        lines={[
+          { kind: 'remove', text: 'old' },
+          { kind: 'add', text: 'new' },
+        ]}
+      />,
+    )
     expect(screen.getByText('-')).toBeTruthy()
     expect(screen.getByText('+')).toBeTruthy()
   })

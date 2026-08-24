@@ -26,7 +26,9 @@ describe('IncidentProof', () => {
     const seed = demoIncident('OC-1042')
     if (!seed) throw new Error('Missing fixture')
     for (const state of INCIDENT_STATES) {
-      const { unmount } = render(<IncidentProof client={client} initialIncident={{ ...seed, state }} />)
+      const { unmount } = render(
+        <IncidentProof client={client} initialIncident={{ ...seed, state }} />,
+      )
       expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
       unmount()
     }
@@ -41,8 +43,15 @@ describe('IncidentProof', () => {
       ASSERTED: ['EVIDENCE', 'CLASSIFIED', 'ASSERTION', 'BEFORE'],
     }
     for (const [state, labels] of Object.entries(expected)) {
-      const { container, unmount } = render(<IncidentProof client={client} initialIncident={{ ...seed, state: state as 'OPEN' | 'CLASSIFIED' | 'ASSERTED' }} />)
-      expect([...container.querySelectorAll('.proof-label')].map((node) => node.textContent)).toEqual(labels)
+      const { container, unmount } = render(
+        <IncidentProof
+          client={client}
+          initialIncident={{ ...seed, state: state as 'OPEN' | 'CLASSIFIED' | 'ASSERTED' }}
+        />,
+      )
+      expect(
+        [...container.querySelectorAll('.proof-label')].map((node) => node.textContent),
+      ).toEqual(labels)
       if (state === 'ASSERTED') expect(screen.getByText('Running verification')).toBeTruthy()
       unmount()
     }
@@ -95,7 +104,14 @@ describe('IncidentProof', () => {
   it('provides keyboard paths for evidence, navigation, copy, and dismiss', async () => {
     const incident = demoIncident('OC-1042')
     if (!incident) throw new Error('Missing fixture')
-    render(<IncidentProof client={client} initialIncident={incident} nextId="OC-1038" previousId="OC-1008" />)
+    render(
+      <IncidentProof
+        client={client}
+        initialIncident={incident}
+        nextId="OC-1038"
+        previousId="OC-1008"
+      />,
+    )
     await userEvent.keyboard('e]')
     expect(screen.getByRole('button', { name: 'Collapse evidence' })).toBeTruthy()
     expect(push).toHaveBeenCalledWith('/incidents/OC-1038')
@@ -103,11 +119,41 @@ describe('IncidentProof', () => {
     expect(await screen.findAllByText('Dismissed by operator')).toHaveLength(2)
   })
 
+  /** The single-letter shortcuts sit directly under the browser's own Select All, Copy, and Cut. */
+  it.each([
+    ['{Meta>}a{/Meta}', 'apply'],
+    ['{Control>}a{/Control}', 'apply'],
+    ['{Meta>}x{/Meta}', 'dismiss'],
+    ['{Control>}x{/Control}', 'dismiss'],
+  ])('ignores %s so it does not trigger %s', async (chord, action) => {
+    const incident = demoIncident('OC-1042')
+    if (!incident) throw new Error('Missing fixture')
+    const apply = vi.fn(async () => ({ outcomeId: 'outcome-1', versionId: 'v2' }))
+    const dismiss = vi.fn(async () => undefined)
+    render(<IncidentProof client={{ ...client, apply, dismiss }} initialIncident={incident} />)
+    await userEvent.keyboard(chord)
+    expect(action === 'apply' ? apply : dismiss).not.toHaveBeenCalled()
+  })
+
+  it('still runs the unmodified shortcut', async () => {
+    const incident = demoIncident('OC-1042')
+    if (!incident) throw new Error('Missing fixture')
+    const dismiss = vi.fn(async () => undefined)
+    render(<IncidentProof client={{ ...client, dismiss }} initialIncident={incident} />)
+    await userEvent.keyboard('x')
+    expect(dismiss).toHaveBeenCalledOnce()
+  })
+
   it('prevents duplicate apply submissions while a request is pending', async () => {
     const incident = demoIncident('OC-1042')
     if (!incident) throw new Error('Missing fixture')
     let finish: ((value: { outcomeId: string; versionId: string }) => void) | undefined
-    const apply = vi.fn(() => new Promise<{ outcomeId: string; versionId: string }>((resolve) => { finish = resolve }))
+    const apply = vi.fn(
+      () =>
+        new Promise<{ outcomeId: string; versionId: string }>((resolve) => {
+          finish = resolve
+        }),
+    )
     render(<IncidentProof client={{ ...client, apply }} initialIncident={incident} />)
     const button = screen.getByRole('button', { name: 'Apply' })
     await userEvent.dblClick(button)

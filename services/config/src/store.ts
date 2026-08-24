@@ -1,5 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { ConfigVersionSchema, diffConfigs, type AgentConfig, type ConfigDiff, type ConfigStore, type ConfigVersion, type Scope } from '@wingman/schema'
+import {
+  ConfigVersionSchema,
+  diffConfigs,
+  type AgentConfig,
+  type ConfigDiff,
+  type ConfigStore,
+  type ConfigVersion,
+  type Scope,
+} from '@wingman/schema'
 
 import { assertWritable } from './allowlist'
 import { ResolutionCache } from './cache'
@@ -52,7 +60,9 @@ export class WingmanConfigStore implements ConfigStore {
 
   async base(agentId: string): Promise<AgentConfig> {
     try {
-      return structuredClone((await this.#repository.agent(agentId))?.baseConfig ?? this.#fallback(agentId))
+      return structuredClone(
+        (await this.#repository.agent(agentId))?.baseConfig ?? this.#fallback(agentId),
+      )
     } catch {
       return this.#fallback(agentId)
     }
@@ -87,13 +97,21 @@ export class WingmanConfigStore implements ConfigStore {
     }
   }
 
-  async writeVersion(agentId: string, config: AgentConfig, incidentId: string): Promise<ConfigVersion> {
+  async writeVersion(
+    agentId: string,
+    config: AgentConfig,
+    incidentId: string,
+  ): Promise<ConfigVersion> {
     const agent = await this.#repository.agent(agentId)
     if (!agent) throw new Error(`Unknown agent: ${agentId}`)
     const diff = diffConfigs(agent.baseConfig, config)
     if (diff) assertWritable(diff, agent.writablePaths, agent.maxDiffBytes)
     const versions = await this.#repository.versions(agentId)
-    const existing = versions.find((version) => version.incidentId === incidentId && this.#canonicalize(version.config) === this.#canonicalize(config))
+    const existing = versions.find(
+      (version) =>
+        version.incidentId === incidentId &&
+        this.#canonicalize(version.config) === this.#canonicalize(config),
+    )
     if (existing) return existing
     const next = versions.reduce((maximum, version) => Math.max(maximum, version.version), 0) + 1
     const version = ConfigVersionSchema.parse({
@@ -102,15 +120,23 @@ export class WingmanConfigStore implements ConfigStore {
       version: next,
       config: structuredClone(config),
       incidentId,
-      signature: signVersion({ key: agent.signingKey, agentId, version: next, config, canonicalize: this.#canonicalize }),
+      signature: signVersion({
+        key: agent.signingKey,
+        agentId,
+        version: next,
+        config,
+        canonicalize: this.#canonicalize,
+      }),
       createdBy: 'PIPELINE',
       createdAt: new Date().toISOString(),
     })
     try {
       await this.#repository.insertVersion(version)
     } catch (error) {
-      const raced = (await this.#repository.versions(agentId)).find((stored) =>
-        stored.incidentId === incidentId && this.#canonicalize(stored.config) === this.#canonicalize(config),
+      const raced = (await this.#repository.versions(agentId)).find(
+        (stored) =>
+          stored.incidentId === incidentId &&
+          this.#canonicalize(stored.config) === this.#canonicalize(config),
       )
       if (raced) return raced
       throw error
@@ -119,9 +145,21 @@ export class WingmanConfigStore implements ConfigStore {
     return version
   }
 
-  async setOverride(agentId: string, userHash: string, versionId: string, scope: Scope): Promise<void> {
+  async setOverride(
+    agentId: string,
+    userHash: string,
+    versionId: string,
+    scope: Scope,
+  ): Promise<void> {
     if (scope === 'GLOBAL') await this.#repository.setGlobalVersion(agentId, versionId)
-    else await this.#repository.setUserOverride({ agentId, userHash, versionId, scope, revokedAt: null })
+    else
+      await this.#repository.setUserOverride({
+        agentId,
+        userHash,
+        versionId,
+        scope,
+        revokedAt: null,
+      })
     this.#cache.invalidateAgent(agentId)
   }
 

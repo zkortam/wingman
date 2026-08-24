@@ -33,7 +33,9 @@ export const Dots = ({ n, passCount }: DotsProps) => {
           )
         })}
       </svg>
-      <span className="dots-count">{passCount}/{n} passed</span>
+      <span className="dots-count">
+        {passCount}/{n} passed
+      </span>
     </span>
   )
 }

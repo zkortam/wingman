@@ -7,59 +7,51 @@ import {
   type AgentConfig,
   type RunResult,
   type Turn,
-} from "@wingman/schema";
+} from '@wingman/schema'
 
-import { PIPELINE_POLICY } from "../policy.js";
+import { PIPELINE_POLICY } from '../policy.js'
 
 export interface AssertionRun {
-  n: number;
-  passCount: number;
-  toolExecutions: 0;
-  results: RunResult[];
+  n: number
+  passCount: number
+  toolExecutions: 0
+  results: RunResult[]
 }
 
 export async function runAssertion(input: {
-  runner: AgentRunner;
-  assertion: Assertion;
-  config: AgentConfig;
-  messages: Turn[];
-  context: AssertionContext;
-  samples?: number;
+  runner: AgentRunner
+  assertion: Assertion
+  config: AgentConfig
+  messages: Turn[]
+  context: AssertionContext
+  samples?: number
 }): Promise<AssertionRun> {
-  const n = input.samples ?? PIPELINE_POLICY.verificationSamples;
+  const n = input.samples ?? PIPELINE_POLICY.verificationSamples
   const decisions = await Promise.all(
     Array.from({ length: n }, (_, sample) =>
       input.runner.runTurn({
         config: input.config,
         messages: input.messages,
         context: input.context.session,
-        intercept: () => "INTERCEPT",
+        intercept: () => 'INTERCEPT',
         sample,
       }),
     ),
-  );
-  const toolExecutions = decisions.reduce(
-    (total, decision) => total + decision.toolExecutions,
-    0,
-  );
-  if (toolExecutions !== 0)
-    throw new StageError("runner", "NOT_ISOLATABLE", false);
+  )
+  const toolExecutions = decisions.reduce((total, decision) => total + decision.toolExecutions, 0)
+  if (toolExecutions !== 0) throw new StageError('runner', 'NOT_ISOLATABLE', false)
   const results = decisions.map((decision) => ({
-    passed: evaluateAssertion(
-      input.assertion.definition,
-      decision,
-      input.context,
-    ),
+    passed: evaluateAssertion(input.assertion.definition, decision, input.context),
     toolCalls: decision.toolCalls,
     text: decision.text,
     cassetteKey: decision.cassetteKey,
-  }));
+  }))
   return {
     n,
     passCount: results.filter(({ passed }) => passed).length,
     toolExecutions: 0,
     results,
-  };
+  }
 }
 
-export { classifyVariance, type VarianceConclusion } from "./variance.js";
+export { classifyVariance, type VarianceConclusion } from './variance.js'

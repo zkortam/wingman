@@ -1,13 +1,13 @@
-import { signConfig, userHash, type AgentConfig } from "../packages/schema/dist/index.js";
+import { signConfig, userHash, type AgentConfig } from '../packages/schema/dist/index.js'
 
-const orgId = process.env.WINGMAN_ORG_ID ?? "5e8e68e1-a768-4342-b4f4-d9a1f8ceaa26";
-const agentId = process.env.WINGMAN_AGENT_ID ?? "4ee0d899-d63d-4bc2-b47a-25aa25c6078b";
-const orgSalt = process.env.WINGMAN_ORG_SALT ?? "replace-with-org-salt";
-const signingKey = process.env.WINGMAN_SIGNING_KEY ?? "replace-with-signing-key";
-const operatorUserId = process.env.WINGMAN_OPERATOR_USER_ID ?? "operator";
+const orgId = process.env.WINGMAN_ORG_ID ?? '5e8e68e1-a768-4342-b4f4-d9a1f8ceaa26'
+const agentId = process.env.WINGMAN_AGENT_ID ?? '4ee0d899-d63d-4bc2-b47a-25aa25c6078b'
+const orgSalt = process.env.WINGMAN_ORG_SALT ?? 'replace-with-org-salt'
+const signingKey = process.env.WINGMAN_SIGNING_KEY ?? 'replace-with-signing-key'
+const operatorUserId = process.env.WINGMAN_OPERATOR_USER_ID ?? 'operator'
 
 const config: AgentConfig = {
-  systemPrompt: "You are a careful operations assistant.",
+  systemPrompt: 'You are a careful operations assistant.',
   tools: {
     export_records: {
       description: "Export records using the caller's active filters.",
@@ -15,11 +15,11 @@ const config: AgentConfig = {
   },
   retrieval: {},
   rules: [],
-};
+}
 
-const signature = signConfig(signingKey, agentId, 1, config);
+const signature = signConfig(signingKey, agentId, 1, config)
 const sql = [
-  "begin;",
+  'begin;',
   `insert into orgs (id, name, user_salt, signing_key) values (`,
   `  '${orgId}',`,
   `  'Example org',`,
@@ -43,8 +43,8 @@ const sql = [
   `  '${signature}',`,
   `  'BASE'`,
   `);`,
-  "commit;",
-].join("\n");
+  'commit;',
+].join('\n')
 
 const env = [
   `WINGMAN_ORG_ID=${orgId}`,
@@ -52,10 +52,10 @@ const env = [
   `WINGMAN_ORG_SALT=${orgSalt}`,
   `WINGMAN_SIGNING_KEY=${signingKey}`,
   `WINGMAN_OPERATOR_USER_HASH=${userHash(orgSalt, operatorUserId)}`,
-].join("\n");
+].join('\n')
 
-process.stdout.write(`${sql}\n\n${env}\n`);
+process.stdout.write(`${sql}\n\n${env}\n`)
 
 function escape(value: string): string {
-  return value.replaceAll("'", "''");
+  return value.replaceAll("'", "''")
 }

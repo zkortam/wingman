@@ -6,7 +6,15 @@ import { LiveIncidentTable } from './LiveIncidentTable'
 const listIncidents = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
-const initial = [{ id: 'OC-1', title: 'Export', users: 12, firstSeen: new Date().toISOString(), state: 'CANDIDATE' as const }]
+const initial = [
+  {
+    id: 'OC-1',
+    title: 'Export',
+    users: 12,
+    firstSeen: new Date().toISOString(),
+    state: 'CANDIDATE' as const,
+  },
+]
 
 describe('LiveIncidentTable', () => {
   afterEach(() => vi.useRealTimers())

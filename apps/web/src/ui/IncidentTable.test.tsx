@@ -8,8 +8,20 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
 const incidents = [
-  { id: 'OC-1', title: 'First', users: 2, firstSeen: new Date().toISOString(), state: 'CANDIDATE' as const },
-  { id: 'OC-2', title: 'Second', users: 1, firstSeen: new Date().toISOString(), state: 'PARKED' as const },
+  {
+    id: 'OC-1',
+    title: 'First',
+    users: 2,
+    firstSeen: new Date().toISOString(),
+    state: 'CANDIDATE' as const,
+  },
+  {
+    id: 'OC-2',
+    title: 'Second',
+    users: 1,
+    firstSeen: new Date().toISOString(),
+    state: 'PARKED' as const,
+  },
 ]
 
 describe('IncidentTable', () => {

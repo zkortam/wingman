@@ -27,21 +27,38 @@ export class OpenAIModelClient implements ModelClient {
     if (!payload || typeof payload !== 'object') throw new Error('Model response is invalid')
     const output = (payload as { output?: unknown }).output
     if (!Array.isArray(output)) throw new Error('Model response is invalid')
-    const allowedTools = new Set(tools?.flatMap((tool) => {
-      const name = (tool as { name?: unknown }).name
-      return typeof name === 'string' ? [name] : []
-    }))
+    const allowedTools = new Set(
+      tools?.flatMap((tool) => {
+        const name = (tool as { name?: unknown }).name
+        return typeof name === 'string' ? [name] : []
+      }),
+    )
     for (const item of output) {
       if (!item || typeof item !== 'object') continue
       const call = item as { type?: unknown; name?: unknown; arguments?: unknown }
-      if (call.type !== 'function_call' || typeof call.name !== 'string' || !allowedTools.has(call.name)) continue
+      if (
+        call.type !== 'function_call' ||
+        typeof call.name !== 'string' ||
+        !allowedTools.has(call.name)
+      )
+        continue
       if (typeof call.arguments !== 'string') throw new Error('Model function call is invalid')
       return JSON.parse(call.arguments) as unknown
     }
     for (const item of output) {
-      if (!item || typeof item !== 'object' || !Array.isArray((item as { content?: unknown }).content)) continue
+      if (
+        !item ||
+        typeof item !== 'object' ||
+        !Array.isArray((item as { content?: unknown }).content)
+      )
+        continue
       for (const content of (item as { content: unknown[] }).content) {
-        if (content && typeof content === 'object' && (content as { type?: unknown }).type === 'output_text' && typeof (content as { text?: unknown }).text === 'string') {
+        if (
+          content &&
+          typeof content === 'object' &&
+          (content as { type?: unknown }).type === 'output_text' &&
+          typeof (content as { text?: unknown }).text === 'string'
+        ) {
           return (content as { text: string }).text
         }
       }

@@ -5,7 +5,12 @@ import { ObservationQueue } from './observe'
 describe('ObservationQueue', () => {
   it('returns synchronously, drops the oldest item, and never throws into host code', async () => {
     const sent: unknown[] = []
-    const queue = new ObservationQueue({ capacity: 2, send: async (item) => { sent.push(item) } })
+    const queue = new ObservationQueue({
+      capacity: 2,
+      send: async (item) => {
+        sent.push(item)
+      },
+    })
     const started = performance.now()
     queue.push({ id: 1 })
     queue.push({ id: 2 })
@@ -17,7 +22,12 @@ describe('ObservationQueue', () => {
   })
 
   it('contains transport failure and keeps flush bounded', async () => {
-    const queue = new ObservationQueue({ capacity: 2, send: vi.fn(async () => { throw new Error('offline') }) })
+    const queue = new ObservationQueue({
+      capacity: 2,
+      send: vi.fn(async () => {
+        throw new Error('offline')
+      }),
+    })
     queue.push({ id: 1 })
     await expect(queue.flush()).resolves.toBeUndefined()
   })
@@ -38,7 +48,10 @@ describe('ObservationQueue', () => {
     const queue = new ObservationQueue({
       capacity: 3,
       send: async (item) => {
-        if (sent.length === 0) await new Promise<void>((resolve) => { release = resolve })
+        if (sent.length === 0)
+          await new Promise<void>((resolve) => {
+            release = resolve
+          })
         sent.push(item)
       },
     })
@@ -71,6 +84,6 @@ describe('ObservationQueue', () => {
     await queue.flush()
 
     expect(maximum).toBe(2)
-    expect(queue.stats()).toEqual({ queued: 0, dropped: 1, sent: 2, failed: 1 })
+    expect(queue.stats()).toEqual({ queued: 0, dropped: 1, sent: 2, failed: 1, retrying: 0 })
   })
 })

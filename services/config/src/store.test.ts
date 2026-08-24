@@ -12,9 +12,26 @@ const canonicalize = (value: unknown): string => JSON.stringify(value)
 
 const make = () => {
   const repository = new InMemoryConfigRepository({
-    agents: [{ id: AGENT_ID, baseConfig: base, baseVersion: 1, activeVersionId: null, writablePaths: ['rules'], maxDiffBytes: 4096, signingKey: 'secret' }],
+    agents: [
+      {
+        id: AGENT_ID,
+        baseConfig: base,
+        baseVersion: 1,
+        activeVersionId: null,
+        writablePaths: ['rules'],
+        maxDiffBytes: 4096,
+        signingKey: 'secret',
+      },
+    ],
   })
-  return { repository, store: new WingmanConfigStore({ repository, fallbackConfigs: new Map([[AGENT_ID, base]]), canonicalize }) }
+  return {
+    repository,
+    store: new WingmanConfigStore({
+      repository,
+      fallbackConfigs: new Map([[AGENT_ID, base]]),
+      canonicalize,
+    }),
+  }
 }
 
 describe('WingmanConfigStore', () => {
@@ -90,14 +107,20 @@ describe('WingmanConfigStore', () => {
 
   it('does not expose a mutable cache reference', async () => {
     const { store } = make()
-    const first = await store.resolve(AGENT_ID, 'reporter') as unknown as { systemPrompt: string }
+    const first = (await store.resolve(AGENT_ID, 'reporter')) as unknown as { systemPrompt: string }
     first.systemPrompt = 'tampered'
-    const second = await store.resolve(AGENT_ID, 'reporter') as unknown as { systemPrompt: string }
+    const second = (await store.resolve(AGENT_ID, 'reporter')) as unknown as {
+      systemPrompt: string
+    }
     expect(second.systemPrompt).toBe('base')
   })
 
   it('rejects changes outside the writable field contract', async () => {
     const { store } = make()
-    await expect(store.assertWritable(AGENT_ID, { changes: [{ path: 'systemPrompt', before: 'base', after: 'unsafe' }] })).rejects.toThrow('PATH_NOT_WRITABLE')
+    await expect(
+      store.assertWritable(AGENT_ID, {
+        changes: [{ path: 'systemPrompt', before: 'base', after: 'unsafe' }],
+      }),
+    ).rejects.toThrow('PATH_NOT_WRITABLE')
   })
 })

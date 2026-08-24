@@ -1,4 +1,4 @@
-import { PAGE_CSS } from "./page-css.js";
+import { PAGE_CSS } from './page-css.js'
 
 export const PAGE = `<!doctype html>
 <html lang="en">
@@ -264,4 +264,4 @@ $('reset').onclick = async () => {
 fetch('/api/state').then((r) => r.json()).then((s) => { last = s; render(s) })
 </script>
 </body>
-</html>`;
+</html>`

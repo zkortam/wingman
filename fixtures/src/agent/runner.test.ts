@@ -61,10 +61,28 @@ describe('DemoAgentRunner', () => {
 
   it('preserves five sampled decisions for an explicit variance fixture', async () => {
     const runner = new DemoAgentRunner({ crm: new InMemoryCrm() })
-    const varianceMessages = [{ ...messages[0], context: { viewFilters: { stage: 'Negotiation' }, variance: true } }] as unknown as Turn[]
-    const weakConfig = { ...config, tools: [{ name: 'export_records', description: 'Exports records.' }] } as unknown as AgentConfig
-    const decisions = await Promise.all(Array.from({ length: 5 }, (_, sample) => runner.runTurn({ config: weakConfig, messages: varianceMessages, sample, intercept: () => 'INTERCEPT' })))
-    const filters = decisions.map((decision) => JSON.stringify((decision.toolCalls[0] as unknown as { args: { filters: unknown } }).args.filters))
+    const varianceMessages = [
+      { ...messages[0], context: { viewFilters: { stage: 'Negotiation' }, variance: true } },
+    ] as unknown as Turn[]
+    const weakConfig = {
+      ...config,
+      tools: [{ name: 'export_records', description: 'Exports records.' }],
+    } as unknown as AgentConfig
+    const decisions = await Promise.all(
+      Array.from({ length: 5 }, (_, sample) =>
+        runner.runTurn({
+          config: weakConfig,
+          messages: varianceMessages,
+          sample,
+          intercept: () => 'INTERCEPT',
+        }),
+      ),
+    )
+    const filters = decisions.map((decision) =>
+      JSON.stringify(
+        (decision.toolCalls[0] as unknown as { args: { filters: unknown } }).args.filters,
+      ),
+    )
     expect(new Set(filters).size).toBe(2)
   })
 })

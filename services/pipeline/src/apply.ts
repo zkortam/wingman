@@ -5,80 +5,69 @@ import {
   type EventPublisher,
   type Ledger,
   type Scope,
-} from "@wingman/schema";
+} from '@wingman/schema'
 
-import type { PipelineRepository } from "./repository.js";
-import { PIPELINE_POLICY } from "./policy.js";
+import type { PipelineRepository } from './repository.js'
+import { PIPELINE_POLICY } from './policy.js'
 
-const HOUR_MS = 60 * 60 * 1_000;
+const HOUR_MS = 60 * 60 * 1_000
 
 export async function applyVerifiedCandidate(input: {
-  repository: PipelineRepository;
-  configStore: ConfigStore;
-  events: EventPublisher;
-  ledger: Ledger;
-  incidentId: string;
-  scope: Scope;
+  repository: PipelineRepository
+  configStore: ConfigStore
+  events: EventPublisher
+  ledger: Ledger
+  incidentId: string
+  scope: Scope
 }): Promise<{ outcomeId: string; versionId: string }> {
-  const snapshot = await input.repository.getSnapshot(input.incidentId);
+  const snapshot = await input.repository.getSnapshot(input.incidentId)
   if (snapshot.outcome !== null) {
-    if (snapshot.incident.state === "CANDIDATE" && snapshot.candidate) {
+    // A retry resumes rather than reporting success: the outcome row records the intent to apply, and.
+    const targets = snapshot.outcome.scope === 'GLOBAL' ? [''] : snapshot.outcome.appliedTo
+    for (const userHash of targets) {
+      await input.configStore.setOverride(
+        snapshot.incident.agentId,
+        userHash,
+        snapshot.outcome.appliedVersionId,
+        snapshot.outcome.scope,
+      )
+    }
+    if (snapshot.incident.state === 'CANDIDATE' && snapshot.candidate) {
       await input.repository.updateCandidate(snapshot.candidate.id, {
-        state: "APPLIED",
+        state: 'APPLIED',
         newVersionId: snapshot.outcome.appliedVersionId,
-      });
-      await input.repository.updateIncident(snapshot.incident.id, "CANDIDATE", {
-        state: "APPLIED",
-      });
+      })
+      await input.repository.updateIncident(snapshot.incident.id, 'CANDIDATE', {
+        state: 'APPLIED',
+      })
     }
     return {
       outcomeId: snapshot.outcome.id,
       versionId: snapshot.outcome.appliedVersionId,
-    };
+    }
   }
-  if (
-    snapshot.incident.state !== "CANDIDATE" ||
-    snapshot.candidate?.state !== "VERIFIED"
-  ) {
-    throw new Error("Incident does not have a verified candidate");
+  if (snapshot.incident.state !== 'CANDIDATE' || snapshot.candidate?.state !== 'VERIFIED') {
+    throw new Error('Incident does not have a verified candidate')
   }
-  assertProof(snapshot);
-  const appliedTo = await applyTargets(input.repository, snapshot, input.scope);
+  assertProof(snapshot)
+  const appliedTo = await applyTargets(input.repository, snapshot, input.scope)
   const live = await input.configStore.resolve(
     snapshot.incident.agentId,
-    input.scope === "GLOBAL" ? "" : requiredHash(appliedTo),
-  );
-  await input.configStore.assertWritable(
-    snapshot.incident.agentId,
-    snapshot.candidate.diff,
-  );
-  const config = applyDiff(live, snapshot.candidate.diff);
+    input.scope === 'GLOBAL' ? '' : requiredHash(appliedTo),
+  )
+  await input.configStore.assertWritable(snapshot.incident.agentId, snapshot.candidate.diff)
+  const config = applyDiff(live, snapshot.candidate.diff)
   const version = snapshot.candidate.newVersionId
     ? {
         id: snapshot.candidate.newVersionId,
         version: 0,
       }
-    : await input.configStore.writeVersion(
-        snapshot.incident.agentId,
-        config,
-        snapshot.incident.id,
-      );
-  // DATA-MODEL.md §5: a GLOBAL apply moves the single agent pointer. Writing one
-  // override row per affected user is the design that section exists to reject —
-  // it makes revert an N-row operation and leaves unaffected users behind.
-  // `appliedTo` still records the cohort, because the ledger needs it.
+    : await input.configStore.writeVersion(snapshot.incident.agentId, config, snapshot.incident.id)
+  // DATA-MODEL.md §5: a GLOBAL apply moves the single agent pointer.
   const windowEndsAt = new Date(
     Date.now() + PIPELINE_POLICY.confirmationWindowHours * HOUR_MS,
-  ).toISOString();
-  const targets = input.scope === "GLOBAL" ? [""] : appliedTo;
-  for (const userHash of targets) {
-    await input.configStore.setOverride(
-      snapshot.incident.agentId,
-      userHash,
-      version.id,
-      input.scope,
-    );
-  }
+  ).toISOString()
+  // The outcome row is written before the configuration goes live.
   const outcome = await input.repository.createOutcome({
     incidentId: snapshot.incident.id,
     candidateId: snapshot.candidate.id,
@@ -86,22 +75,31 @@ export async function applyVerifiedCandidate(input: {
     appliedTo,
     versionId: version.id,
     windowEndsAt,
-  });
+  })
+  const targets = input.scope === 'GLOBAL' ? [''] : appliedTo
+  for (const userHash of targets) {
+    await input.configStore.setOverride(
+      snapshot.incident.agentId,
+      userHash,
+      version.id,
+      input.scope,
+    )
+  }
   await input.repository.updateCandidate(snapshot.candidate.id, {
-    state: "APPLIED",
+    state: 'APPLIED',
     newVersionId: version.id,
-  });
-  await input.repository.updateIncident(snapshot.incident.id, "CANDIDATE", {
-    state: "APPLIED",
-  });
+  })
+  await input.repository.updateIncident(snapshot.incident.id, 'CANDIDATE', {
+    state: 'APPLIED',
+  })
   await input.ledger.record({
     incidentId: snapshot.incident.id,
     fingerprint: snapshot.incident.fingerprint,
     diff: snapshot.candidate.diff,
-    outcome: "APPLIED",
-  });
+    outcome: 'APPLIED',
+  })
   await input.events.publish(
-    "candidate.applied",
+    'candidate.applied',
     {
       data: {
         incidentId: snapshot.incident.id,
@@ -110,50 +108,48 @@ export async function applyVerifiedCandidate(input: {
       },
     },
     `apply:${snapshot.candidate.id}:${input.scope}`,
-  );
+  )
   await input.events.publish(
-    "confirmation.due",
+    'confirmation.due',
     { data: { incidentId: snapshot.incident.id } },
     `confirm:${snapshot.incident.id}:${snapshot.candidate.id}`,
     { runAt: windowEndsAt },
-  );
-  return { outcomeId: outcome.id, versionId: version.id };
+  )
+  return { outcomeId: outcome.id, versionId: version.id }
 }
 
 async function applyTargets(
   repository: PipelineRepository,
-  snapshot: Awaited<ReturnType<PipelineRepository["getSnapshot"]>>,
+  snapshot: Awaited<ReturnType<PipelineRepository['getSnapshot']>>,
   scope: Scope,
 ): Promise<string[]> {
-  if (scope === "GLOBAL") return snapshot.incident.userHashes;
-  const sessionId = snapshot.assertion?.sourceSessionId;
+  if (scope === 'GLOBAL') return snapshot.incident.userHashes
+  const sessionId = snapshot.assertion?.sourceSessionId
   if (sessionId === undefined || sessionId === null)
-    throw new Error("USER apply requires a source session");
-  return [(await repository.getSession(sessionId)).userHash];
+    throw new Error('USER apply requires a source session')
+  return [(await repository.getSession(sessionId)).userHash]
 }
 
-function assertProof(
-  snapshot: Awaited<ReturnType<PipelineRepository["getSnapshot"]>>,
-): void {
+function assertProof(snapshot: Awaited<ReturnType<PipelineRepository['getSnapshot']>>): void {
   if (
     snapshot.before === null ||
     snapshot.before.passCount > PIPELINE_POLICY.verifyFailMaximumPasses
   ) {
-    throw new StageError("apply", "NOT_ISOLATABLE", false);
+    throw new StageError('apply', 'NOT_ISOLATABLE', false)
   }
   if (
     snapshot.after === null ||
     snapshot.after.passCount < PIPELINE_POLICY.verifyPassMinimumPasses
   ) {
-    throw new StageError("apply", "SUITE_REGRESSED", false);
+    throw new StageError('apply', 'SUITE_REGRESSED', false)
   }
   if (snapshot.positiveSuite.some(({ passCount, n }) => passCount !== n)) {
-    throw new StageError("apply", "SUITE_REGRESSED", false);
+    throw new StageError('apply', 'SUITE_REGRESSED', false)
   }
 }
 
 function requiredHash(appliedTo: string[]): string {
-  const hash = appliedTo[0];
-  if (hash === undefined) throw new Error("USER apply requires a target user");
-  return hash;
+  const hash = appliedTo[0]
+  if (hash === undefined) throw new Error('USER apply requires a target user')
+  return hash
 }

@@ -1,7 +1,7 @@
 export async function withTimeout<T>(
   work: Promise<T>,
   timeoutMs: number,
-  message = "Timed out",
+  message = 'Timed out',
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   try {

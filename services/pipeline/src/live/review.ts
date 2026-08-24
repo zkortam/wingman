@@ -4,99 +4,89 @@ import {
   type ModelClient,
   type ToolCallReviewDecision,
   type ToolCallReviewRequest,
-} from "@wingman/schema";
-import { z } from "zod";
+} from '@wingman/schema'
+import { z } from 'zod'
 
-import { PIPELINE_MODELS, PIPELINE_POLICY } from "../policy.js";
+import { PIPELINE_MODELS, PIPELINE_POLICY } from '../policy.js'
 
 const ModelDecisionSchema = z
   .object({
-    action: z.enum(["ALLOW", "RETHINK", "ESCALATE"]),
+    action: z.enum(['ALLOW', 'RETHINK', 'ESCALATE']),
     reason: z.string().min(1).max(1_000),
     instruction: z.string().min(1).max(2_000).nullable(),
     confidence: z.number().min(0).max(1),
   })
-  .strict();
+  .strict()
 
-/**
- * Reviews a proposed call but never executes it.
- *
- * The host owns the tool boundary. RETHINK means the host should feed `instruction`
- * back to its agent and ask for another decision; ESCALATE means the host should stop
- * and request human approval. Any unavailable or malformed model response fails open.
- */
+/** Reviews a proposed call but never executes it. */
 export async function reviewProposedToolCall(input: {
-  model: ModelClient;
-  config: AgentConfig;
-  request: ToolCallReviewRequest;
-  timeoutMs?: number;
-  failMode?: "open" | "closed";
+  model: ModelClient
+  config: AgentConfig
+  request: ToolCallReviewRequest
+  timeoutMs?: number
+  failMode?: 'open' | 'closed'
 }): Promise<ToolCallReviewDecision> {
   if (!Object.hasOwn(input.config.tools, input.request.proposedCall.name)) {
     return {
-      action: "ESCALATE",
+      action: 'ESCALATE',
       reason: "The proposed tool is absent from the agent's declared configuration.",
-      instruction: "Do not execute this call until the tool is explicitly configured.",
+      instruction: 'Do not execute this call until the tool is explicitly configured.',
       confidence: 1,
-      source: "POLICY",
-    };
+      source: 'POLICY',
+    }
   }
 
-  const raw = await boundedGenerate(input);
-  if (raw === null) return unavailableDecision(input.failMode);
-  const parsed = ModelDecisionSchema.safeParse(coerce(raw));
-  if (!parsed.success) return unavailableDecision(input.failMode);
+  const raw = await boundedGenerate(input)
+  if (raw === null) return unavailableDecision(input.failMode)
+  const parsed = ModelDecisionSchema.safeParse(coerce(raw))
+  if (!parsed.success) return unavailableDecision(input.failMode)
   const decision = ToolCallReviewDecisionSchema.safeParse({
     ...parsed.data,
-    source: "REMOTE",
-  });
-  return decision.success ? decision.data : unavailableDecision(input.failMode);
+    source: 'REMOTE',
+  })
+  return decision.success ? decision.data : unavailableDecision(input.failMode)
 }
 
 async function boundedGenerate(input: {
-  model: ModelClient;
-  config: AgentConfig;
-  request: ToolCallReviewRequest;
-  timeoutMs?: number;
+  model: ModelClient
+  config: AgentConfig
+  request: ToolCallReviewRequest
+  timeoutMs?: number
 }): Promise<unknown | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([
       Promise.resolve()
-        .then(() => input.model.generate({
-          model: PIPELINE_MODELS.review,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: reviewPrompt(input.config, input.request) },
-          ],
-        }))
+        .then(() =>
+          input.model.generate({
+            model: PIPELINE_MODELS.review,
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: reviewPrompt(input.config, input.request) },
+            ],
+          }),
+        )
         .catch(() => null),
       new Promise<null>((resolve) => {
-        timer = setTimeout(
-          () => resolve(null),
-          input.timeoutMs ?? PIPELINE_POLICY.maxToolReviewMs,
-        );
+        timer = setTimeout(() => resolve(null), input.timeoutMs ?? PIPELINE_POLICY.maxToolReviewMs)
       }),
-    ]);
+    ])
   } finally {
-    if (timer !== undefined) clearTimeout(timer);
+    if (timer !== undefined) clearTimeout(timer)
   }
 }
 
 const SYSTEM_PROMPT = [
-  "Review one proposed agent tool call before execution.",
-  "Return JSON only: action, reason, instruction, confidence.",
+  'Review one proposed agent tool call before execution.',
+  'Return JSON only: action, reason, instruction, confidence.',
   "ALLOW when the call is consistent with the user's latest request and constraints.",
-  "RETHINK only for a concrete mismatch in tool choice or arguments.",
-  "ESCALATE for destructive ambiguity, unsupported capability, or required approval.",
-  "Sentiment is context, never proof of an incorrect call by itself.",
-  "For ALLOW set instruction to null. Otherwise give a short instruction to the host agent.",
-].join("\n");
+  'RETHINK only for a concrete mismatch in tool choice or arguments.',
+  'ESCALATE for destructive ambiguity, unsupported capability, or required approval.',
+  'Sentiment is context, never proof of an incorrect call by itself.',
+  'For ALLOW set instruction to null. Otherwise give a short instruction to the host agent.',
+].join('\n')
 
-function reviewPrompt(
-  config: AgentConfig,
-  request: ToolCallReviewRequest,
-): string {
+function reviewPrompt(config: AgentConfig, request: ToolCallReviewRequest): string {
   return JSON.stringify({
     userMessage: request.userMessage,
     proposedCall: request.proposedCall,
@@ -108,35 +98,33 @@ function reviewPrompt(
       tools: config.tools,
       rules: config.rules,
     },
-  });
+  })
 }
 
 function coerce(value: unknown): unknown {
-  if (typeof value !== "string") return value;
+  if (typeof value !== 'string') return value
   try {
-    return JSON.parse(value);
+    return JSON.parse(value)
   } catch {
-    return null;
+    return null
   }
 }
 
-function unavailableDecision(
-  failMode: "open" | "closed" = "open",
-): ToolCallReviewDecision {
-  if (failMode === "closed") {
+function unavailableDecision(failMode: 'open' | 'closed' = 'open'): ToolCallReviewDecision {
+  if (failMode === 'closed') {
     return {
-      action: "ESCALATE",
-      reason: "Review was unavailable.",
-      instruction: "Do not execute this call until the host can review it.",
+      action: 'ESCALATE',
+      reason: 'Review was unavailable.',
+      instruction: 'Do not execute this call until the host can review it.',
       confidence: 0,
-      source: "FAIL_CLOSED",
-    };
+      source: 'FAIL_CLOSED',
+    }
   }
   return {
-    action: "ALLOW",
+    action: 'ALLOW',
     reason: "Review was unavailable; the host's existing tool policy remains authoritative.",
     instruction: null,
     confidence: 0,
-    source: "FAIL_OPEN",
-  };
+    source: 'FAIL_OPEN',
+  }
 }

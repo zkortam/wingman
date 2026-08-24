@@ -127,4 +127,4 @@ export const PAGE_CSS = `
     font-size:11.5px;cursor:pointer;margin-top:6px}
   .reset:hover{color:#e6edf3;border-color:#8b949e}
   @media(max-width:1100px){.wrap{grid-template-columns:1fr}}
-`;
+`

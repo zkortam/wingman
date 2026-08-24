@@ -46,7 +46,11 @@ describe('critical flow accessibility', () => {
   it('passes the incident proof audit', async () => {
     const incident = demoIncident('OC-1042')
     if (!incident) throw new Error('Missing fixture')
-    render(<main><IncidentProof client={incidentClient} initialIncident={incident} /></main>)
+    render(
+      <main>
+        <IncidentProof client={incidentClient} initialIncident={incident} />
+      </main>,
+    )
     await audit()
   })
 

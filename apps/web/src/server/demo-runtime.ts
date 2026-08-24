@@ -17,13 +17,22 @@ const baseConfig: AgentConfig = {
 }
 const fixedConfig: AgentConfig = {
   ...baseConfig,
-  tools: { export_records: { description: "Exports records. Pass the caller's active view filters in filters so the export matches the visible view." } },
+  tools: {
+    export_records: {
+      description:
+        "Exports records. Pass the caller's active view filters in filters so the export matches the visible view.",
+    },
+  },
 }
 
 const normalize = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(normalize)
   if (!value || typeof value !== 'object') return value
-  return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, nested]) => [key, normalize(nested)]))
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, nested]) => [key, normalize(nested)]),
+  )
 }
 
 interface IncidentRuntimeState {
@@ -44,25 +53,38 @@ interface RuntimeState {
 const initialState = (): RuntimeState => ({
   reporterVersion: 1,
   globalVersion: 1,
-  incidents: Object.fromEntries(demoIncidents().map((incident) => [incident.id, {
-    state: incident.state,
-    stateReason: incident.stateReason ?? null,
-    scope: incident.scope ?? null,
-    confirmation: incident.confirmation ?? null,
-    appliedAt: incident.appliedAt ?? null,
-    confirmedAt: incident.confirmedAt ?? null,
-  }])),
+  incidents: Object.fromEntries(
+    demoIncidents().map((incident) => [
+      incident.id,
+      {
+        state: incident.state,
+        stateReason: incident.stateReason ?? null,
+        scope: incident.scope ?? null,
+        confirmation: incident.confirmation ?? null,
+        appliedAt: incident.appliedAt ?? null,
+        confirmedAt: incident.confirmedAt ?? null,
+      },
+    ]),
+  ),
 })
 
-const stateNamespace = process.env.WINGMAN_DEMO_RUN_ID ?? (process.env.VITEST ? String(process.pid) : 'local')
-const stateKey = createHash('sha256').update(`${process.cwd()}:${stateNamespace}`).digest('hex').slice(0, 16)
+const stateNamespace =
+  process.env.WINGMAN_DEMO_RUN_ID ?? (process.env.VITEST ? String(process.pid) : 'local')
+const stateKey = createHash('sha256')
+  .update(`${process.cwd()}:${stateNamespace}`)
+  .digest('hex')
+  .slice(0, 16)
 const statePath = join(tmpdir(), `outcome-demo-${stateKey}.json`)
 const lockPath = `${statePath}.lock`
 
 class DemoRuntime {
   constructor() {
     try {
-      writeFileSync(statePath, JSON.stringify(initialState()), { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+      writeFileSync(statePath, JSON.stringify(initialState()), {
+        encoding: 'utf8',
+        flag: 'wx',
+        mode: 0o600,
+      })
     } catch {
       return
     }
@@ -70,13 +92,18 @@ class DemoRuntime {
 
   listIncidents(): IncidentSummaryView[] {
     const state = this.#read()
-    return demoIncidentSummaries().map((summary) => ({ ...summary, state: state.incidents[summary.id]?.state ?? summary.state }))
+    return demoIncidentSummaries().map((summary) => ({
+      ...summary,
+      state: state.incidents[summary.id]?.state ?? summary.state,
+    }))
   }
 
   listOutcomes(): IncidentDetailView[] {
     return demoIncidentSummaries().flatMap(({ id }) => {
       const incident = this.incident(id)
-      return incident && ['APPLIED', 'CONFIRMED', 'REVERTED'].includes(incident.state) ? [incident] : []
+      return incident && ['APPLIED', 'CONFIRMED', 'REVERTED'].includes(incident.state)
+        ? [incident]
+        : []
     })
   }
 
@@ -101,7 +128,8 @@ class DemoRuntime {
   apply(id: string, scope: 'USER' | 'GLOBAL'): { outcomeId: string; versionId: string } {
     this.#mutate((state) => {
       const incident = state.incidents[id]
-      if (!incident || incident.state !== 'CANDIDATE') throw new Error('Incident is not ready to apply')
+      if (!incident || incident.state !== 'CANDIDATE')
+        throw new Error('Incident is not ready to apply')
       incident.state = 'APPLIED'
       incident.appliedAt = new Date().toISOString()
       incident.scope = scope
@@ -140,20 +168,31 @@ class DemoRuntime {
       if (incident.state !== 'APPLIED') throw new Error('Incident is not awaiting confirmation')
       incident.state = 'CONFIRMED'
       incident.confirmedAt = new Date().toISOString()
-      incident.confirmation = { status: 'CONFIRMED', detail: 'Confirmed by the next matching task, just now' }
+      incident.confirmation = {
+        status: 'CONFIRMED',
+        detail: 'Confirmed by the next matching task, just now',
+      }
     })
   }
 
   config(agent: string, userHash: string): { config: unknown; version: number; signature: string } {
     const state = this.#read()
-    const version = state.globalVersion === 2 ? 2 : userHash === DEMO_REPORTER_HASH ? state.reporterVersion : 1
+    const version =
+      state.globalVersion === 2 ? 2 : userHash === DEMO_REPORTER_HASH ? state.reporterVersion : 1
     const config = version === 2 ? fixedConfig : baseConfig
     const canonical = JSON.stringify(normalize(config))
-    const signature = createHmac('sha256', 'demo-signing-key').update(`${agent}.${String(version)}.${canonical}`).digest('hex')
+    const signature = createHmac('sha256', 'demo-signing-key')
+      .update(`${agent}.${String(version)}.${canonical}`)
+      .digest('hex')
     return { config, version, signature }
   }
 
-  versions(): Array<{ id: string; version: number; incidentId: string | null; config: AgentConfig }> {
+  versions(): Array<{
+    id: string
+    version: number
+    incidentId: string | null
+    config: AgentConfig
+  }> {
     return [
       { id: 'v1', version: 1, incidentId: null, config: baseConfig },
       { id: 'v2', version: 2, incidentId: 'OC-1042', config: fixedConfig },
@@ -166,7 +205,8 @@ class DemoRuntime {
       state.reporterVersion = 1
       state.globalVersion = 1
       const incident = state.incidents['OC-1042']
-      if (incident?.state === 'APPLIED' || incident?.state === 'CONFIRMED') incident.state = 'REVERTED'
+      if (incident?.state === 'APPLIED' || incident?.state === 'CONFIRMED')
+        incident.state = 'REVERTED'
     })
   }
 

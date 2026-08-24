@@ -3,15 +3,11 @@ import {
   type AgentConfig,
   type ModelClient,
   VerdictSchema,
-} from "@wingman/schema";
-import { z } from "zod";
+} from '@wingman/schema'
+import { z } from 'zod'
 
-import type {
-  GateDecision,
-  IncidentRecord,
-  ObservedSession,
-} from "../domain.js";
-import { PIPELINE_MODELS, PIPELINE_POLICY } from "../policy.js";
+import type { GateDecision, IncidentRecord, ObservedSession } from '../domain.js'
+import { PIPELINE_MODELS, PIPELINE_POLICY } from '../policy.js'
 
 const GateResponseSchema = z
   .object({
@@ -21,29 +17,29 @@ const GateResponseSchema = z
     policyConflict: z.boolean(),
     refusalReason: z.string().min(1).nullable(),
   })
-  .strict();
+  .strict()
 
 export interface GateResult {
-  decision: GateDecision;
-  requiresHumanReview: boolean;
+  decision: GateDecision
+  requiresHumanReview: boolean
 }
 
 export async function runGate(input: {
-  model: ModelClient;
-  incident: IncidentRecord;
-  config: AgentConfig;
-  session: ObservedSession;
+  model: ModelClient
+  incident: IncidentRecord
+  config: AgentConfig
+  session: ObservedSession
 }): Promise<GateResult> {
   const response = await input.model.generate({
     model: PIPELINE_MODELS.gate,
     messages: orderedEvidence(input),
     tools: [gateToolSchema()],
-  });
-  const parsed = GateResponseSchema.safeParse(response);
+  })
+  const parsed = GateResponseSchema.safeParse(response)
   if (!parsed.success) {
     return {
       decision: {
-        verdict: "CONFIG_DEFECT",
+        verdict: 'CONFIG_DEFECT',
         confidence: 0,
         evidence: {
           schemaAmbiguity: parsed.error.issues.map(({ path, code }) => ({
@@ -52,62 +48,55 @@ export async function runGate(input: {
           })),
         },
         policyConflict: false,
-        refusalReason: "SCHEMA_AMBIGUITY",
+        refusalReason: 'SCHEMA_AMBIGUITY',
       },
       requiresHumanReview: true,
-    };
+    }
   }
   return {
     decision: parsed.data,
     requiresHumanReview:
-      parsed.data.confidence < PIPELINE_POLICY.gateMinimumConfidence ||
-      parsed.data.policyConflict,
-  };
+      parsed.data.confidence < PIPELINE_POLICY.gateMinimumConfidence || parsed.data.policyConflict,
+  }
 }
 
 function orderedEvidence(input: {
-  incident: IncidentRecord;
-  config: AgentConfig;
-  session: ObservedSession;
+  incident: IncidentRecord
+  config: AgentConfig
+  session: ObservedSession
 }): unknown[] {
   return [
-    { role: "system", content: { policy: input.config.systemPrompt } },
-    { role: "system", content: { tools: input.config.tools } },
+    { role: 'system', content: { policy: input.config.systemPrompt } },
+    { role: 'system', content: { tools: input.config.tools } },
     {
-      role: "system",
+      role: 'system',
       content: { userRules: input.session.userRules ?? input.config.rules },
     },
-    { role: "system", content: { successfulTraces: [] } },
+    { role: 'system', content: { successfulTraces: [] } },
     {
-      role: "user",
+      role: 'user',
       content: { incidentSessions: input.incident.evidenceExcerpts },
     },
-  ];
+  ]
 }
 
 function gateToolSchema(): unknown {
   return {
-    name: "classify_outcome",
+    name: 'classify_outcome',
     strict: true,
     parameters: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
-      required: [
-        "verdict",
-        "confidence",
-        "evidence",
-        "policyConflict",
-        "refusalReason",
-      ],
+      required: ['verdict', 'confidence', 'evidence', 'policyConflict', 'refusalReason'],
       properties: {
         verdict: { enum: VerdictSchema.options },
-        confidence: { type: "number", minimum: 0, maximum: 1 },
-        evidence: { type: "object" },
-        policyConflict: { type: "boolean" },
-        refusalReason: { type: ["string", "null"] },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        evidence: { type: 'object' },
+        policyConflict: { type: 'boolean' },
+        refusalReason: { type: ['string', 'null'] },
       },
     },
-  };
+  }
 }
 
-export { GateResponseSchema };
+export { GateResponseSchema }
