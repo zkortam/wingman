@@ -16,16 +16,16 @@
     "@wingman/pipeline": "workspace:*",
     "@wingman/schema": "workspace:*",
     "inngest": "^4.18.1",
-    "next": "16.3.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "axe-core": "4.12.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.3",
-    "@types/react": "19.2.10",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "jsdom": "27.4.0",
     "vitest": "4.1.9"
   }
