@@ -17,12 +17,16 @@ const ratio = (first: string, second: string): number => {
 }
 
 const css = await readFile(tokenPath, 'utf8')
-const themes = [...css.matchAll(/:root(?:\[data-theme="dark"\])?\s*\{([^}]+)\}/g)]
+// Quote-agnostic: a formatter that rewrites `[data-theme="dark"]` to single quotes must not.
+const themes = [...css.matchAll(/:root(?:\[data-theme=['"]dark['"]\])?\s*\{([^}]+)\}/g)]
 if (themes.length !== 2) throw new Error('Both light and dark token themes are required')
 
 for (const [, body] of themes) {
   const tokens = Object.fromEntries(
-    [...(body ?? '').matchAll(/--([\w-]+):\s*(#[\da-fA-F]{6})/g)].map((match) => [match[1], match[2]]),
+    [...(body ?? '').matchAll(/--([\w-]+):\s*(#[\da-fA-F]{6})/g)].map((match) => [
+      match[1],
+      match[2],
+    ]),
   )
   const background = tokens.bg
   if (!background) throw new Error('Theme is missing --bg')
@@ -30,6 +34,7 @@ for (const [, body] of themes) {
     const color = tokens[token]
     if (!color) throw new Error(`Theme is missing --${token}`)
     const minimum = token === 'text' ? 4.5 : 3
-    if (ratio(color, background) < minimum) throw new Error(`--${token} fails ${minimum}:1 contrast`)
+    if (ratio(color, background) < minimum)
+      throw new Error(`--${token} fails ${minimum}:1 contrast`)
   }
 }

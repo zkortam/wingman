@@ -1,4 +1,4 @@
-import type { Database } from "@wingman/db";
+import type { Row } from '@wingman/db'
 import {
   AssertionDefinitionSchema,
   AssertionSchema,
@@ -17,13 +17,12 @@ import {
   type Candidate,
   type Outcome,
   type Run,
-} from "@wingman/schema";
-import { z } from "zod";
+} from '@wingman/schema'
+import { z } from 'zod'
 
-import type { IncidentRecord, ObservedSession } from "../domain.js";
+import type { IncidentRecord, ObservedSession } from '../domain.js'
 
-export type Row<Name extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][Name]["Row"];
+export type { Row }
 
 const ContextSchema = z
   .object({
@@ -35,13 +34,10 @@ const ContextSchema = z
     generationCancelled: z.boolean().optional(),
     telemetry: z.unknown().optional(),
   })
-  .passthrough();
+  .passthrough()
 
-export function mapSession(
-  row: Row<"sessions">,
-  turns: Row<"turns">[],
-): ObservedSession {
-  const context = ContextSchema.parse(row.context);
+export function mapSession(row: Row<'sessions'>, turns: Row<'turns'>[]): ObservedSession {
+  const context = ContextSchema.parse(row.context)
   return {
     id: row.id,
     orgId: row.org_id,
@@ -56,23 +52,24 @@ export function mapSession(
     lastQuery: context.lastQuery,
     userRules: context.userRules,
     generationCancelled: context.generationCancelled,
-    telemetry: context.telemetry === undefined
-      ? undefined
-      : TelemetryCorrelationSchema.parse(context.telemetry),
+    telemetry:
+      context.telemetry === undefined
+        ? undefined
+        : TelemetryCorrelationSchema.parse(context.telemetry),
     startedAt: row.started_at,
     endedAt: row.ended_at,
     turns: turns.map((turn) => ({
       idx: turn.idx,
-      role: z.enum(["user", "assistant", "tool"]).parse(turn.role),
+      role: z.enum(['user', 'assistant', 'tool']).parse(turn.role),
       textRedacted: turn.text_redacted,
       toolCalls: z.array(ToolCallSchema).parse(turn.tool_calls),
       embedding: parseVector(turn.embedding),
       createdAt: turn.created_at,
     })),
-  };
+  }
 }
 
-export function mapIncident(row: Row<"incidents">): IncidentRecord {
+export function mapIncident(row: Row<'incidents'>): IncidentRecord {
   return {
     id: row.id,
     orgId: row.org_id,
@@ -87,22 +84,18 @@ export function mapIncident(row: Row<"incidents">): IncidentRecord {
     verdict: row.verdict === null ? null : VerdictSchema.parse(row.verdict),
     verdictConfidence: row.verdict_confidence,
     verdictEvidence:
-      row.verdict_evidence === null
-        ? null
-        : z.record(JsonValueSchema).parse(row.verdict_evidence),
+      row.verdict_evidence === null ? null : z.record(JsonValueSchema).parse(row.verdict_evidence),
     assertionId: row.assertion_id,
     userHashes: row.user_hashes,
     sessionIds: row.session_ids,
-    evidenceExcerpts: z
-      .array(EvidenceExcerptSchema)
-      .parse(row.evidence_excerpts),
+    evidenceExcerpts: z.array(EvidenceExcerptSchema).parse(row.evidence_excerpts),
     firstSeen: row.first_seen,
     lastSeen: row.last_seen,
     expiresAt: row.expires_at,
-  };
+  }
 }
 
-export function mapAssertion(row: Row<"assertions">): Assertion {
+export function mapAssertion(row: Row<'assertions'>): Assertion {
   return AssertionSchema.parse({
     id: row.id,
     incidentId: row.incident_id,
@@ -115,10 +108,10 @@ export function mapAssertion(row: Row<"assertions">): Assertion {
     sourceSessionId: row.source_session_id,
     polarity: row.polarity,
     createdAt: row.created_at,
-  });
+  })
 }
 
-export function mapRun(row: Row<"runs">): Run {
+export function mapRun(row: Row<'runs'>): Run {
   return RunSchema.parse({
     id: row.id,
     assertionId: row.assertion_id,
@@ -132,10 +125,10 @@ export function mapRun(row: Row<"runs">): Run {
     results: z.array(RunResultSchema).parse(row.results),
     toolExecutions: row.tool_executions,
     createdAt: row.created_at,
-  });
+  })
 }
 
-export function mapCandidate(row: Row<"candidates">): Candidate {
+export function mapCandidate(row: Row<'candidates'>): Candidate {
   return CandidateSchema.parse({
     id: row.id,
     incidentId: row.incident_id,
@@ -148,10 +141,10 @@ export function mapCandidate(row: Row<"candidates">): Candidate {
     state: row.state,
     rejectedReason: row.rejected_reason,
     createdAt: row.created_at,
-  });
+  })
 }
 
-export function mapOutcome(row: Row<"outcomes">): Outcome {
+export function mapOutcome(row: Row<'outcomes'>): Outcome {
   return OutcomeSchema.parse({
     id: row.id,
     incidentId: row.incident_id,
@@ -164,19 +157,14 @@ export function mapOutcome(row: Row<"outcomes">): Outcome {
     confirmedAt: row.confirmed_at,
     revertedAt: row.reverted_at,
     createdAt: row.created_at,
-  });
+  })
 }
 
 function parseVector(value: string | null): number[] | null {
-  if (value === null) return null;
-  return value
-    .replace(/^\[/, "")
-    .replace(/]$/, "")
-    .split(",")
-    .filter(Boolean)
-    .map(Number);
+  if (value === null) return null
+  return value.replace(/^\[/, '').replace(/]$/, '').split(',').filter(Boolean).map(Number)
 }
 
 function asJson(value: unknown) {
-  return value === undefined ? undefined : JsonValueSchema.parse(value);
+  return value === undefined ? undefined : JsonValueSchema.parse(value)
 }

@@ -1,21 +1,21 @@
-import type { Scope, Verdict } from "./enums.js";
+import type { Scope, Verdict } from './enums.js'
 
 export interface Events {
-  "session.observed": { data: { sessionId: string } };
-  "incident.clustered": { data: { incidentId: string } };
-  "incident.classified": { data: { incidentId: string; verdict: Verdict } };
-  "incident.asserted": { data: { incidentId: string; assertionId: string } };
-  "candidate.ready": { data: { incidentId: string; candidateId: string } };
-  "candidate.applied": {
-    data: { incidentId: string; candidateId: string; scope: Scope };
-  };
-  "confirmation.due": { data: { incidentId: string } };
+  'session.observed': { data: { sessionId: string } }
+  'incident.clustered': { data: { incidentId: string } }
+  'incident.classified': { data: { incidentId: string; verdict: Verdict } }
+  'incident.asserted': { data: { incidentId: string; assertionId: string } }
+  'candidate.ready': { data: { incidentId: string; candidateId: string } }
+  'candidate.applied': {
+    data: { incidentId: string; candidateId: string; scope: Scope }
+  }
+  'confirmation.due': { data: { incidentId: string } }
 }
 
-export type EventName = keyof Events;
+export type EventName = keyof Events
 
 export interface EventSchedule {
-  runAt: string;
+  runAt: string
 }
 
 export interface EventPublisher {
@@ -24,5 +24,5 @@ export interface EventPublisher {
     event: Events[Name],
     idempotencyKey: string,
     schedule?: EventSchedule,
-  ): Promise<void>;
+  ): Promise<void>
 }

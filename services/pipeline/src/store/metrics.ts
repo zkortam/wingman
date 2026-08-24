@@ -1,68 +1,45 @@
-import type { ServiceClient } from "@wingman/db";
+import type { Executor } from '@wingman/db'
 
-import type { PipelineRepository } from "../repository.js";
-import type { Row } from "./mappers.js";
-import { rows } from "./read-helpers.js";
+import type { PipelineRepository } from '../repository.js'
+import { QUERY_LIMITS } from './query-limits.js'
 
-type MetricsStore = Pick<
-  PipelineRepository,
-  "silentFailureRate" | "gatePrecision"
->;
+type MetricsStore = Pick<PipelineRepository, 'silentFailureRate' | 'gatePrecision'>
 
-export function createMetricsStore(client: ServiceClient): MetricsStore {
+export function createMetricsStore(sql: Executor): MetricsStore {
   return {
     async silentFailureRate(orgId, start, end) {
-      const sessions = await rows<Pick<Row<"sessions">, "id">>(
-        client
-          .from("sessions")
-          .select("id")
-          .eq("org_id", orgId)
-          .gte("started_at", start.toISOString())
-          .lt("started_at", end.toISOString()),
-      );
-      if (sessions.length === 0) return 0;
-      const signals = await rows<Pick<Row<"signals">, "session_id">>(
-        client
-          .from("signals")
-          .select("session_id")
-          .in(
-            "session_id",
-            sessions.map(({ id }) => id),
-          ),
-      );
-      return (
-        new Set(signals.map(({ session_id }) => session_id)).size /
-        sessions.length
-      );
+      const rows = await sql<{ signalled: string; total: string }[]>`
+        with window_sessions as (
+          select id from sessions
+          where org_id = ${orgId}
+            and started_at >= ${start.toISOString()}
+            and started_at < ${end.toISOString()}
+          limit ${QUERY_LIMITS.analyticsRows}
+        )
+        select
+          (select count(distinct s.session_id) from signals s
+             join window_sessions w on w.id = s.session_id)::text as signalled,
+          (select count(*) from window_sessions)::text as total
+      `
+      const total = Number(rows[0]?.total ?? 0)
+      return total === 0 ? 0 : Number(rows[0]?.signalled ?? 0) / total
     },
+
     async gatePrecision(orgId) {
-      const incidents = await rows<
-        Pick<Row<"incidents">, "id" | "attempt" | "assertion_id">
-      >(
-        client
-          .from("incidents")
-          .select("id,attempt,assertion_id")
-          .eq("org_id", orgId)
-          .not("assertion_id", "is", null),
-      );
-      let failed = 0;
-      let total = 0;
-      for (const incident of incidents) {
-        const result = await client
-          .from("runs")
-          .select("pass_count")
-          .eq("incident_id", incident.id)
-          .eq("attempt", incident.attempt)
-          .eq("phase", "VERIFY_FAIL")
-          .maybeSingle();
-        if (result.error) throw result.error;
-        if (result.data !== null) {
-          const run = result.data as Pick<Row<"runs">, "pass_count">;
-          total += 1;
-          if (run.pass_count <= 1) failed += 1;
-        }
-      }
-      return { precision: total === 0 ? 0 : failed / total, n: total };
+      // One aggregate, rather than a query per incident.
+      const rows = await sql<{ failed: string; total: string }[]>`
+        select
+          count(*) filter (where r.pass_count <= 1)::text as failed,
+          count(*)::text as total
+        from incidents i
+        join runs r
+          on r.incident_id = i.id
+         and r.attempt = i.attempt
+         and r.phase = 'VERIFY_FAIL'
+        where i.org_id = ${orgId} and i.assertion_id is not null
+      `
+      const total = Number(rows[0]?.total ?? 0)
+      return { precision: total === 0 ? 0 : Number(rows[0]?.failed ?? 0) / total, n: total }
     },
-  };
+  }
 }

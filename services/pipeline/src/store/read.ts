@@ -1,10 +1,10 @@
-import type { ServiceClient } from "@wingman/db";
+import type { Executor, Row } from '@wingman/db'
 import { HandoffPayloadSchema } from '@wingman/schema'
 
-import type { PipelineSnapshot } from "../domain.js";
-import type { PipelineRepository } from "../repository.js";
-import { sessionFingerprint } from "../cluster/index.js";
-import { createHistoryStore } from "./history.js";
+import { sessionFingerprint } from '../cluster/index.js'
+import type { PipelineSnapshot } from '../domain.js'
+import type { PipelineRepository } from '../repository.js'
+import { createHistoryStore } from './history.js'
 import {
   mapAssertion,
   mapCandidate,
@@ -12,275 +12,232 @@ import {
   mapOutcome,
   mapRun,
   mapSession,
-  type Row,
-} from "./mappers.js";
-import { createMetricsStore } from "./metrics.js";
-import { rows, single } from "./read-helpers.js";
+} from './mappers.js'
+import { createMetricsStore } from './metrics.js'
+import { QUERY_LIMITS } from './query-limits.js'
+import { one, optional } from './read-helpers.js'
 
 type ReadStore = Pick<
   PipelineRepository,
-  | "getSession"
-  | "getBaselines"
-  | "hasMatchingRestart"
-  | "countInFlight"
-  | "getIncident"
-  | "findIncident"
-  | "getAssertion"
-  | "listPositiveAssertions"
-  | "getBaseVersionId"
-  | "getCandidate"
-  | "latestCandidate"
-  | "getOutcomeForIncident"
-  | "findPendingOutcome"
-  | "getSnapshot"
-  | "listSnapshots"
-  | "listOutcomes"
-  | "silentFailureRate"
-  | "gatePrecision"
-  | "getHandoff"
-  | "getWritableConfigPolicy"
-  | "countSignals"
-  | "getIncidentDiff"
->;
+  | 'getSession'
+  | 'getBaselines'
+  | 'hasMatchingRestart'
+  | 'countInFlight'
+  | 'getIncident'
+  | 'findIncident'
+  | 'getAssertion'
+  | 'listPositiveAssertions'
+  | 'getBaseVersionId'
+  | 'getCandidate'
+  | 'latestCandidate'
+  | 'getOutcomeForIncident'
+  | 'findPendingOutcome'
+  | 'getSnapshot'
+  | 'listIncidents'
+  | 'incidentInOrg'
+  | 'listOutcomes'
+  | 'silentFailureRate'
+  | 'gatePrecision'
+  | 'getHandoff'
+  | 'getWritableConfigPolicy'
+  | 'countSignals'
+  | 'getIncidentDiff'
+>
 
-export function createReadStore(
-  client: ServiceClient,
-): ReadStore {
+export function createReadStore(sql: Executor): ReadStore {
   async function getSession(sessionId: string) {
-    const session = await single<Row<"sessions">>(
-      client.from("sessions").select("*").eq("id", sessionId).single(),
-    );
-    const turns = await rows<Row<"turns">>(
-      client.from("turns").select("*").eq("session_id", sessionId).order("idx"),
-    );
-    return mapSession(session, turns);
+    const session = one(
+      await sql<Row<'sessions'>[]>`select * from sessions where id = ${sessionId}`,
+      'Session',
+    )
+    const turns = await sql<Row<'turns'>[]>`
+      select * from turns where session_id = ${sessionId} order by idx
+    `
+    return mapSession(session, [...turns])
   }
 
   async function getIncident(id: string) {
     return mapIncident(
-      await single<Row<"incidents">>(
-        client.from("incidents").select("*").eq("id", id).single(),
-      ),
-    );
-  }
-
-  async function getHandoff(incidentId: string) {
-    const result = await client
-      .from('pipeline_handoffs')
-      .select('incident_id,payload,remote_thread_id')
-      .eq('incident_id', incidentId)
-      .maybeSingle()
-    if (result.error) throw result.error
-    return result.data === null ? null : {
-      incidentId: result.data.incident_id,
-      payload: HandoffPayloadSchema.parse(result.data.payload),
-      remoteThreadId: result.data.remote_thread_id,
-    }
-  }
-
-  async function getSnapshot(incidentId: string): Promise<PipelineSnapshot> {
-    const incident = await getIncident(incidentId);
-    const assertion =
-      incident.assertionId === null
-        ? null
-        : await readAssertion(incident.assertionId);
-    const runRows = await rows<Row<"runs">>(
-      client
-        .from("runs")
-        .select("*")
-        .eq("incident_id", incidentId)
-        .eq("attempt", incident.attempt)
-        .order("created_at"),
-    );
-    const runs = runRows.map(mapRun);
-    const candidateRows = await rows<Row<"candidates">>(
-      client
-        .from("candidates")
-        .select("*")
-        .eq("incident_id", incidentId)
-        .eq("attempt", incident.attempt)
-        .order("iteration"),
-    );
-    const outcomeRows = await rows<Row<"outcomes">>(
-      client
-        .from("outcomes")
-        .select("*")
-        .eq("incident_id", incidentId)
-        .order("created_at"),
-    );
-    const lastCandidate = candidateRows.at(-1);
-    const lastOutcome = outcomeRows.at(-1);
-    return {
-      incident,
-      assertion,
-      before: runs.find(({ phase }) => phase === "VERIFY_FAIL") ?? null,
-      candidate: lastCandidate === undefined ? null : mapCandidate(lastCandidate),
-      after:
-        [...runs].reverse().find(({ phase }) => phase === "VERIFY_PASS") ??
-        null,
-      positiveSuite: runs.filter(({ phase }) => phase === "POSITIVE_SUITE"),
-      outcome: lastOutcome === undefined ? null : mapOutcome(lastOutcome),
-      handoff: await getHandoff(incidentId),
-    };
+      one(await sql<Row<'incidents'>[]>`select * from incidents where id = ${id}`, 'Incident'),
+    )
   }
 
   async function readAssertion(id: string) {
     return mapAssertion(
-      await single<Row<"assertions">>(
-        client.from("assertions").select("*").eq("id", id).single(),
-      ),
-    );
+      one(await sql<Row<'assertions'>[]>`select * from assertions where id = ${id}`, 'Assertion'),
+    )
   }
 
   async function latestCandidate(incidentId: string, attempt: number) {
-    const result = await client
-      .from("candidates")
-      .select("*")
-      .eq("incident_id", incidentId)
-      .eq("attempt", attempt)
-      .order("iteration", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (result.error) throw result.error;
-    return result.data === null
+    const row = optional(
+      await sql<Row<'candidates'>[]>`
+        select * from candidates
+        where incident_id = ${incidentId} and attempt = ${attempt}
+        order by iteration desc
+        limit 1
+      `,
+    )
+    return row === null ? null : mapCandidate(row)
+  }
+
+  async function getHandoff(incidentId: string) {
+    const row = optional(
+      await sql<Row<'pipeline_handoffs'>[]>`
+        select * from pipeline_handoffs where incident_id = ${incidentId}
+      `,
+    )
+    return row === null
       ? null
-      : mapCandidate(result.data as Row<"candidates">);
+      : {
+          incidentId: row.incident_id,
+          payload: HandoffPayloadSchema.parse(row.payload),
+          remoteThreadId: row.remote_thread_id,
+        }
+  }
+
+  async function getSnapshot(incidentId: string): Promise<PipelineSnapshot> {
+    const incident = await getIncident(incidentId)
+    const [runRows, candidateRows, outcomeRows, handoff] = await Promise.all([
+      sql<Row<'runs'>[]>`
+        select * from runs
+        where incident_id = ${incidentId} and attempt = ${incident.attempt}
+        order by created_at
+      `,
+      sql<Row<'candidates'>[]>`
+        select * from candidates
+        where incident_id = ${incidentId} and attempt = ${incident.attempt}
+        order by iteration
+      `,
+      sql<Row<'outcomes'>[]>`
+        select * from outcomes where incident_id = ${incidentId} order by created_at
+      `,
+      getHandoff(incidentId),
+    ])
+    const runs = runRows.map(mapRun)
+    const lastCandidate = candidateRows.at(-1)
+    const lastOutcome = outcomeRows.at(-1)
+    return {
+      incident,
+      assertion: incident.assertionId === null ? null : await readAssertion(incident.assertionId),
+      before: runs.find(({ phase }) => phase === 'VERIFY_FAIL') ?? null,
+      candidate: lastCandidate === undefined ? null : mapCandidate(lastCandidate),
+      after: [...runs].reverse().find(({ phase }) => phase === 'VERIFY_PASS') ?? null,
+      positiveSuite: runs.filter(({ phase }) => phase === 'POSITIVE_SUITE'),
+      outcome: lastOutcome === undefined ? null : mapOutcome(lastOutcome),
+      handoff,
+    }
   }
 
   return {
-    ...createHistoryStore(client),
-    ...createMetricsStore(client),
+    ...createHistoryStore(sql),
+    ...createMetricsStore(sql),
     getSession,
     getIncident,
     async findIncident(agentId, key) {
-      const result = await client
-        .from("incidents")
-        .select("*")
-        .eq("agent_id", agentId)
-        .eq("key", key)
-        .maybeSingle();
-      if (result.error) throw result.error;
-      return result.data === null
-        ? null
-        : mapIncident(result.data as Row<"incidents">);
+      const row = optional(
+        await sql<Row<'incidents'>[]>`
+          select * from incidents where agent_id = ${agentId} and key = ${key}
+        `,
+      )
+      return row === null ? null : mapIncident(row)
     },
     getAssertion: readAssertion,
     async listPositiveAssertions(agentId) {
-      return (
-        await rows<Row<"assertions">>(
-          client
-            .from("assertions")
-            .select("*")
-            .eq("agent_id", agentId)
-            .eq("polarity", "positive"),
-        )
-      ).map(mapAssertion);
+      const rows = await sql<Row<'assertions'>[]>`
+        select * from assertions where agent_id = ${agentId} and polarity = 'positive'
+      `
+      return rows.map(mapAssertion)
     },
     async getBaseVersionId(agentId) {
-      const version = await single<Pick<Row<"config_versions">, "id">>(
-        client
-          .from("config_versions")
-          .select("id")
-          .eq("agent_id", agentId)
-          .order("version")
-          .limit(1)
-          .single(),
-      );
-      return version.id;
+      return one(
+        await sql<Pick<Row<'config_versions'>, 'id'>[]>`
+          select id from config_versions where agent_id = ${agentId} order by version limit 1
+        `,
+        'Base version',
+      ).id
     },
     async getCandidate(id) {
       return mapCandidate(
-        await single<Row<"candidates">>(
-          client.from("candidates").select("*").eq("id", id).single(),
-        ),
-      );
+        one(await sql<Row<'candidates'>[]>`select * from candidates where id = ${id}`, 'Candidate'),
+      )
     },
     latestCandidate,
     async getOutcomeForIncident(incidentId) {
-      const result = await client
-        .from("outcomes")
-        .select("*")
-        .eq("incident_id", incidentId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (result.error) throw result.error;
-      return result.data === null
-        ? null
-        : mapOutcome(result.data as Row<"outcomes">);
+      const row = optional(
+        await sql<Row<'outcomes'>[]>`
+          select * from outcomes where incident_id = ${incidentId}
+          order by created_at desc limit 1
+        `,
+      )
+      return row === null ? null : mapOutcome(row)
     },
     async findPendingOutcome(session) {
-      const outcomes = await rows<Row<"outcomes">>(
-        client
-          .from("outcomes")
-          .select("*")
-          .eq("status", "PENDING")
-          .contains("applied_to", [session.userHash]),
-      );
-      for (const outcome of outcomes) {
-        const incident = await getIncident(outcome.incident_id);
-        if (incident.fingerprint === sessionFingerprint(session))
-          return mapOutcome(outcome);
-      }
-      return null;
+      // Scoped to the agent as well as the fingerprint; user hashes are organisation-scoped.
+      const row = optional(
+        await sql<Row<'outcomes'>[]>`
+          select o.* from outcomes o
+          join incidents i on i.id = o.incident_id
+          where o.status = 'PENDING'
+            and o.applied_to @> array[${session.userHash}]::text[]
+            and i.agent_id = ${session.agentId}
+            and i.fingerprint = ${sessionFingerprint(session)}
+          order by o.created_at
+          limit 1
+        `,
+      )
+      return row === null ? null : mapOutcome(row)
     },
     getSnapshot,
-    async listSnapshots(orgId) {
-      const incidents = await rows<Pick<Row<"incidents">, "id">>(
-        client.from("incidents").select("id").eq("org_id", orgId),
-      );
-      return Promise.all(incidents.map(({ id }) => getSnapshot(id)));
+    async listIncidents(orgId, options) {
+      const rows = await sql<Row<'incidents'>[]>`
+        select * from incidents
+        where org_id = ${orgId}
+        order by last_seen desc
+        limit ${options?.limit ?? QUERY_LIMITS.listPage}
+      `
+      return rows.map(mapIncident)
+    },
+    async incidentInOrg(orgId, incidentId) {
+      const rows = await sql<{ present: boolean }[]>`
+        select exists (
+          select 1 from incidents where id = ${incidentId} and org_id = ${orgId}
+        ) as present
+      `
+      return rows[0]?.present ?? false
     },
     async listOutcomes(orgId) {
-      const incidents = await rows<Pick<Row<"incidents">, "id">>(
-        client.from("incidents").select("id").eq("org_id", orgId),
-      );
-      if (incidents.length === 0) return [];
-      return (
-        await rows<Row<"outcomes">>(
-          client
-            .from("outcomes")
-            .select("*")
-            .in(
-              "incident_id",
-              incidents.map(({ id }) => id),
-            )
-            .order("created_at"),
-        )
-      ).map(mapOutcome);
+      const rows = await sql<Row<'outcomes'>[]>`
+        select o.* from outcomes o
+        join incidents i on i.id = o.incident_id
+        where i.org_id = ${orgId}
+        order by o.created_at
+        limit ${QUERY_LIMITS.analyticsRows}
+      `
+      return rows.map(mapOutcome)
     },
     getHandoff,
     async getWritableConfigPolicy(agentId) {
-      const row = await single<
-        Pick<
-          Row<"agents">,
-          "codex_endpoint" | "max_diff_bytes" | "writable_paths"
-        >
-      >(
-        client
-          .from("agents")
-          .select("codex_endpoint,max_diff_bytes,writable_paths")
-          .eq("id", agentId)
-          .single(),
-      );
+      const row = one(
+        await sql<Pick<Row<'agents'>, 'codex_endpoint' | 'max_diff_bytes' | 'writable_paths'>[]>`
+          select codex_endpoint, max_diff_bytes, writable_paths from agents where id = ${agentId}
+        `,
+        'Agent',
+      )
       return {
         codexEndpoint: row.codex_endpoint,
         maxDiffBytes: row.max_diff_bytes,
         writablePaths: row.writable_paths,
-      };
+      }
     },
     async countSignals(sessionId) {
-      const { count, error } = await client
-        .from("signals")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", sessionId);
-      if (error) throw error;
-      return count ?? 0;
+      const rows = await sql<{ count: string }[]>`
+        select count(*)::text as count from signals where session_id = ${sessionId}
+      `
+      return Number(rows[0]?.count ?? 0)
     },
     async getIncidentDiff(incidentId) {
-      const incident = await getIncident(incidentId);
-      const candidate = await latestCandidate(incidentId, incident.attempt);
-      return candidate?.diff ?? null;
+      const incident = await getIncident(incidentId)
+      return (await latestCandidate(incidentId, incident.attempt))?.diff ?? null
     },
-  };
+  }
 }

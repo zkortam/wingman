@@ -11,14 +11,31 @@
   border-radius: 4px;
   padding: 3px 8px;
   color: var(--text-muted);
-  font: 500 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    500 12.5px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
-.incident-status[data-tone="accent"] { color: var(--accent); }
-.incident-status[data-tone="pass"] { color: var(--pass); background: var(--pass-soft); }
-.incident-status[data-tone="fail"] { color: var(--fail); background: var(--fail-soft); }
-.incident-status[data-tone="warn"] { color: var(--warn); background: var(--warn-soft); }
-.incident-status[data-tone="faint"] { color: var(--text-faint); }
+.incident-status[data-tone="accent"] {
+  color: var(--accent);
+}
+.incident-status[data-tone="pass"] {
+  color: var(--pass);
+  background: var(--pass-soft);
+}
+.incident-status[data-tone="fail"] {
+  color: var(--fail);
+  background: var(--fail-soft);
+}
+.incident-status[data-tone="warn"] {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+.incident-status[data-tone="faint"] {
+  color: var(--text-faint);
+}
 
 .proof {
   border-top: 1px solid var(--border);
@@ -52,7 +69,11 @@
 .evidence-meta {
   margin-bottom: 7px;
   color: var(--text-muted);
-  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    12.5px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .transcript-line {
@@ -117,7 +138,11 @@
 .diff-header {
   margin-bottom: 8px;
   color: var(--text-muted);
-  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    12.5px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .diff {
@@ -125,7 +150,11 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--bg-subtle);
-  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font:
+    13px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 
 .diff-line {
@@ -135,8 +164,14 @@
   padding-right: 12px;
 }
 
-.diff-line[data-kind="add"] { background: var(--pass-soft); color: var(--pass); }
-.diff-line[data-kind="remove"] { background: var(--fail-soft); color: var(--fail); }
+.diff-line[data-kind="add"] {
+  background: var(--pass-soft);
+  color: var(--pass);
+}
+.diff-line[data-kind="remove"] {
+  background: var(--fail-soft);
+  color: var(--fail);
+}
 
 .diff-gutter {
   padding-left: 8px;

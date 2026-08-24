@@ -1,21 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createProductionPipelineControlPlane, createProductionPipelineFunctions, createProductionPipelineMaintenance } from './production'
+import {
+  createProductionPipelineControlPlane,
+  createProductionPipelineFunctions,
+  createProductionPipelineMaintenance,
+} from './production'
 
 describe('production pipeline control plane', () => {
   afterEach(() => vi.unstubAllEnvs())
 
   it('fails explicitly when database credentials are absent', () => {
-    vi.stubEnv('SUPABASE_URL', '')
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
-    expect(() => createProductionPipelineControlPlane()).toThrow(
-      'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required',
-    )
+    vi.stubEnv('DATABASE_URL', '')
+    expect(() => createProductionPipelineControlPlane()).toThrow('DATABASE_URL is required')
   })
 
   it('requires an explicit remote replay boundary for verification', () => {
-    vi.stubEnv('SUPABASE_URL', 'https://database.example')
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role')
+    vi.stubEnv('DATABASE_URL', 'postgres://wingman:wingman@localhost:5432/wingman')
     vi.stubEnv('OPENAI_API_KEY', 'openai-key')
     vi.stubEnv('WINGMAN_RUNNER_ENDPOINT', '')
     vi.stubEnv('WINGMAN_RUNNER_TOKEN', '')

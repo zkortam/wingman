@@ -46,14 +46,14 @@ repeating an operation the user has already rejected. Conventional tracing recor
 the mistake after it happens. Wingman adds a control point before execution and an
 evidence pipeline after the session.
 
-| Capability | Behavior |
-|---|---|
-| Tool-call review | Returns `ALLOW`, `RETHINK`, or `ESCALATE` before the host executes a proposed tool call. |
-| User-friction detection | Detects retries, restated constraints, abandonment, and expectation mismatches from redacted sessions. |
-| Verified repair | Requires the same assertion to fail before a candidate change and pass after it. |
-| Safe rollout | Applies signed, bounded configuration versions to one user or globally, with confirmation and rollback. |
-| Privacy-first evidence | HMAC-pseudonymizes user IDs and scrubs allowlisted text and arguments inside the agent host. |
-| Operator control | Provides incident proof, apply, dismiss, reopen, handoff, confirmation, and revert workflows. |
+| Capability              | Behavior                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| Tool-call review        | Returns `ALLOW`, `RETHINK`, or `ESCALATE` before the host executes a proposed tool call.                |
+| User-friction detection | Detects retries, restated constraints, abandonment, and expectation mismatches from redacted sessions.  |
+| Verified repair         | Requires the same assertion to fail before a candidate change and pass after it.                        |
+| Safe rollout            | Applies signed, bounded configuration versions to one user or globally, with confirmation and rollback. |
+| Privacy-first evidence  | HMAC-pseudonymizes user IDs and scrubs allowlisted text and arguments inside the agent host.            |
+| Operator control        | Provides incident proof, apply, dismiss, reopen, handoff, confirmation, and revert workflows.           |
 
 ## Core guarantees
 
@@ -104,20 +104,21 @@ npm install @zkortam/wingman-sdk
 ```
 
 That pulls [`@zkortam/wingman-schema`](https://www.npmjs.com/package/@zkortam/wingman-schema)
-with it. Do not deep-import `services/*`.
+with it, and nothing else: the SDK has no third-party runtime dependencies. Do
+not deep-import `services/*`.
 
 ### Agent-host environment
 
 Set these in the process that runs your agent, not in the browser:
 
-| Variable | Used by |
-|---|---|
-| `WINGMAN_URL` | SDK `endpoint`. HTTPS required except loopback. |
-| `WINGMAN_API_KEY` | Bearer token for review, observe, and config. |
-| `WINGMAN_ORG_ID` | Organization UUID stamped on observed sessions. |
-| `WINGMAN_ORG_SALT` | HMAC salt; raw user IDs never leave the host. |
-| `WINGMAN_SIGNING_KEY` | Verifies signed config from the control plane. |
-| `WINGMAN_AGENT_ID` | Default agent UUID for review and config. |
+| Variable               | Used by                                              |
+| ---------------------- | ---------------------------------------------------- |
+| `WINGMAN_URL`          | SDK `endpoint`. HTTPS required except loopback.      |
+| `WINGMAN_API_KEY`      | Bearer token for review, observe, and config.        |
+| `WINGMAN_ORG_ID`       | Organization UUID stamped on observed sessions.      |
+| `WINGMAN_ORG_SALT`     | HMAC salt; raw user IDs never leave the host.        |
+| `WINGMAN_SIGNING_KEY`  | Verifies signed config from the control plane.       |
+| `WINGMAN_AGENT_ID`     | Default agent UUID for review and config.            |
 | `WINGMAN_RUNNER_TOKEN` | Bearer token for the host's model-only replay route. |
 
 The control plane uses `WINGMAN_API_URL` for its own origin (demo reset, local
@@ -125,7 +126,7 @@ links). An agent on the same machine sets `WINGMAN_URL` to that same origin.
 
 ## Repository quick start
 
-Requirements: Node.js 22 or newer and pnpm 10.
+Requirements: Node.js 22 or newer, pnpm 10, and Docker for the database.
 
 ```bash
 git clone https://github.com/zkortam/wingman.git
@@ -141,6 +142,14 @@ pnpm demo:reset
 pnpm demo:up
 ```
 
+Run against a real database:
+
+```bash
+pnpm db:up        # Postgres 17 with pgvector, via docker compose
+pnpm db:migrate   # apply db/migrations
+pnpm test         # the repository contract now runs against real SQL too
+```
+
 The operator demo is available only when `WINGMAN_RUNTIME=demo`; production
 requests to `/demo` return 404. See [DEMO.md](DEMO.md).
 
@@ -151,7 +160,7 @@ immediately before the host's tool executor—not as a tool the model may choose
 call.
 
 ```ts
-import { Wingman } from "@zkortam/wingman-sdk";
+import { Wingman } from '@zkortam/wingman-sdk'
 
 const wingman = Wingman.init({
   endpoint: process.env.WINGMAN_URL!,
@@ -161,7 +170,7 @@ const wingman = Wingman.init({
   signingKey: process.env.WINGMAN_SIGNING_KEY!,
   defaultAgent: process.env.WINGMAN_AGENT_ID!,
   baseConfig: {
-    systemPrompt: "You are a careful operations assistant.",
+    systemPrompt: 'You are a careful operations assistant.',
     tools: {
       export_records: {
         description: "Export records using the caller's active filters.",
@@ -170,10 +179,10 @@ const wingman = Wingman.init({
     retrieval: {},
     rules: [],
   },
-  writable: ["rules", "tools.*.description"],
-  redact: { fields: ["turns", "lastQuery", "viewFilters"] },
+  writable: ['rules', 'tools.*.description'],
+  redact: { fields: ['turns', 'lastQuery', 'viewFilters'] },
   config: { timeoutMs: 1_000 },
-});
+})
 ```
 
 ### 1. Review before execution
@@ -192,23 +201,41 @@ const decision = await wingman.reviewToolCall({
     createdAt: turn.createdAt,
   })),
   context,
-});
+})
 
 switch (decision.action) {
-  case "ALLOW":
-    await executeInYourHost(proposedCall);
-    break;
-  case "RETHINK":
-    await askAgentToReconsider(decision.instruction);
-    break;
-  case "ESCALATE":
-    await requestHumanApproval(decision.reason);
-    break;
+  case 'ALLOW':
+    await executeInYourHost(proposedCall)
+    break
+  case 'RETHINK':
+    await askAgentToReconsider(decision.instruction)
+    break
+  case 'ESCALATE':
+    await requestHumanApproval(decision.reason)
+    break
 }
 ```
 
 Review failures are fail-open by default so Wingman cannot take down the host agent.
 High-risk integrations can set `review: { failMode: "closed" }`.
+
+Because failures are contained, they are also reported. Pass `onDiagnostic` to
+tell a genuine approval apart from a guardrail that has quietly stopped running:
+
+```ts
+Wingman.init({
+  // ...
+  onDiagnostic: (event) => {
+    // code is one of UNAUTHORIZED, UNAVAILABLE, TIMEOUT, INVALID_INPUT,
+    // INVALID_RESPONSE, CONFIG_REJECTED, CONFIG_FALLBACK,
+    // STORAGE_UNAVAILABLE, EVIDENCE_DROPPED.
+    logger.warn({ stage: event.stage, code: event.code }, event.message)
+  },
+})
+```
+
+A rotated API key that missed one deployment produces `UNAUTHORIZED` on every
+review rather than a silent stream of `ALLOW`.
 
 ### 2. Observe a completed session
 
@@ -226,14 +253,14 @@ wingman.observeSession({
     createdAt: turn.createdAt,
   })),
   telemetry: {
-    convention: "opentelemetry-genai",
+    convention: 'opentelemetry-genai',
     traceId: activeSpan.spanContext().traceId,
     spanId: activeSpan.spanContext().spanId,
   },
-});
+})
 
-await wingman.flush();
-console.log(wingman.observationStats());
+await wingman.flush()
+console.log(wingman.observationStats())
 ```
 
 Invalid observations and delivery failures are contained and counted; they do not
@@ -242,7 +269,7 @@ throw into the agent's request path.
 ### 3. Resolve signed configuration
 
 ```ts
-const config = await wingman.config({ agent: agentId, userId });
+const config = await wingman.config({ agent: agentId, userId })
 ```
 
 Resolution order is remote signed config → last-known-good local config → compiled
@@ -252,13 +279,13 @@ base config. Reads are cached and concurrent cold starts are coalesced. Configur
 ### 4. Expose model-only replay
 
 ```ts
-import { createAgentReplayHandler } from "@zkortam/wingman-sdk";
+import { createAgentReplayHandler } from '@zkortam/wingman-sdk'
 
 export const POST = createAgentReplayHandler({
   token: process.env.WINGMAN_RUNNER_TOKEN!,
   run: ({ config, messages, context, sample }) =>
     runModelWithoutExecutingTools({ config, messages, context, sample }),
-});
+})
 ```
 
 The callback receives no tool executor. The service connects using
@@ -281,13 +308,13 @@ observability contract.
 
 ## Production deployment
 
-1. Apply `supabase/migrations` in filename order (`supabase db push` or `psql`).
-   Migrations are append-only.
+1. Apply `db/migrations` with `pnpm db:migrate` (it records what it has run and
+   is safe to repeat). Migrations are append-only.
 2. Seed one org, agent, and BASE config. `pnpm bootstrap-config` prints the
    INSERT statements and the matching agent-host env. Details:
    [DATA-MODEL.md](DATA-MODEL.md) §11.
 3. Configure the variables in [.env.example](.env.example) with distinct credentials
-   for SDK traffic, operators, Inngest, replay, Supabase, model providers, and handoff.
+   for SDK traffic, operators, Inngest, replay, Postgres, model providers, and handoff.
 4. Deploy `apps/web`; it serves the operator UI, authenticated SDK endpoints, and
    `/api/inngest`.
 5. Install the SDK in every agent host and expose the private model-only replay route.
@@ -296,12 +323,12 @@ observability contract.
 
 Machine endpoints:
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /v1/reviews/tool-calls` | Synchronous proposed-tool review. |
-| `POST /v1/events` | Redacted session evidence ingestion. |
-| `GET /v1/config/:agent/:userHash` | Signed configuration resolution. |
-| `POST /api/inngest` | Authenticated asynchronous pipeline execution. |
+| Endpoint                          | Purpose                                        |
+| --------------------------------- | ---------------------------------------------- |
+| `POST /v1/reviews/tool-calls`     | Synchronous proposed-tool review.              |
+| `POST /v1/events`                 | Redacted session evidence ingestion.           |
+| `GET /v1/config/:agent/:userHash` | Signed configuration resolution.               |
+| `POST /api/inngest`               | Authenticated asynchronous pipeline execution. |
 
 The Settings page reports only configured/not-configured readiness. It never renders
 credential values. Backend outages produce explicit safe UI states and stable 503 API
@@ -312,14 +339,14 @@ responses.
 ```text
 packages/schema    Runtime-validated wire contracts and frozen ports
 packages/sdk       Public host integration package
-packages/db        Generated Supabase types and service client
+packages/db        Postgres connection, row types, and migrations runner
 services/config    Signed configuration resolution and versioning
 services/ingest    Redaction verification and idempotent persistence
 services/pipeline  Detection, proof, repair, rollout, confirmation, rollback
 apps/web           Operator control plane and production API composition root
 fixtures           Deterministic contract and pipeline integration fixtures
 demo               Isolated customer integration environment
-supabase           Append-only database migrations
+db                 Append-only database migrations
 ```
 
 Production packages cannot import from `demo` or `fixtures`. Configuration cannot
@@ -333,39 +360,44 @@ pnpm check
 
 The release gate runs:
 
+- formatting;
 - strict workspace typechecking and linting;
 - dependency and import-boundary enforcement;
 - UI contrast and design-policy validation;
 - colocated unit and integration suites;
 - deterministic pipeline fixtures;
 - public package and production application builds;
-- SDK/schema tarball inspection; and
+- inspection of the tarballs as they are actually published; and
 - installation and import from a clean consumer project.
 
 Useful focused commands:
 
 ```bash
 pnpm test:pipeline   # pipeline units plus deterministic replay fixtures
+pnpm coverage        # the suite with the coverage thresholds enforced
+pnpm format          # apply repository formatting
 pnpm build           # public packages and production Next.js application
-pnpm package:check   # pack and import SDK/schema as a clean consumer
+pnpm package:check   # pack and import the published SDK/schema as a consumer
 ```
 
-CI additionally performs a frozen-lock installation and fails on high-severity
-dependency advisories.
+CI runs the gate on Linux, Windows, and macOS and on Node 22 and 24, performs a
+frozen-lock installation, enforces coverage thresholds, and fails on
+high-severity dependency advisories. Publishing runs the whole gate again and
+refuses to publish a version that does not match the git tag.
 
 ## Documentation
 
-| Document | Purpose |
-|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Boundaries, invariants, failure semantics, and lifecycle. |
-| [INTEGRATIONS.md](INTEGRATIONS.md) | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
-| [DATA-MODEL.md](DATA-MODEL.md) | Persistence ownership, state, and migration contract. |
-| [DEMO.md](DEMO.md) | Operator and Amazoff demos, fixtures, cassettes. |
-| [UI-SPEC.md](UI-SPEC.md) | Operator interaction and visual policy. |
-| [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment responsibilities. |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Development, compatibility, and pull-request requirements. |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards. |
-| [CHANGELOG.md](CHANGELOG.md) | Public package history. |
+| Document                                 | Purpose                                                       |
+| ---------------------------------------- | ------------------------------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md)       | Boundaries, invariants, failure semantics, and lifecycle.     |
+| [INTEGRATIONS.md](INTEGRATIONS.md)       | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
+| [DATA-MODEL.md](DATA-MODEL.md)           | Persistence ownership, state, and migration contract.         |
+| [DEMO.md](DEMO.md)                       | Operator and Amazoff demos, fixtures, cassettes.              |
+| [UI-SPEC.md](UI-SPEC.md)                 | Operator interaction and visual policy.                       |
+| [SECURITY.md](SECURITY.md)               | Vulnerability reporting and deployment responsibilities.      |
+| [CONTRIBUTING.md](CONTRIBUTING.md)       | Development, compatibility, and pull-request requirements.    |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards.                                          |
+| [CHANGELOG.md](CHANGELOG.md)             | Public package history.                                       |
 
 ## Contributing
 

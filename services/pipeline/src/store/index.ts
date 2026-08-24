@@ -1,13 +1,11 @@
-import type { ServiceClient } from "@wingman/db";
+import type { Executor } from '@wingman/db'
 
-import type { PipelineRepository } from "../repository.js";
-import { createReadStore } from "./read.js";
-import { createWriteStore } from "./write.js";
+import type { PipelineRepository } from '../repository.js'
+import { createReadStore } from './read.js'
+import { createWriteStore } from './write.js'
 
-export function createSupabasePipelineRepository(
-  client: ServiceClient,
-): PipelineRepository {
-  const read = createReadStore(client);
-  const write = createWriteStore(client, read);
-  return { ...read, ...write };
+export function createPostgresPipelineRepository(sql: Executor): PipelineRepository {
+  const read = createReadStore(sql)
+  const write = createWriteStore(sql, read)
+  return { ...read, ...write }
 }

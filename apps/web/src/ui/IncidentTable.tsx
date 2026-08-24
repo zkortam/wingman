@@ -12,7 +12,8 @@ export const IncidentTable = ({ incidents }: { incidents: IncidentSummaryView[] 
 
   useEffect(() => {
     const listener = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+        return
       if (event.key === 'j') setSelected((value) => Math.min(value + 1, incidents.length - 1))
       if (event.key === 'k') setSelected((value) => Math.max(value - 1, 0))
       if (event.key === 'Enter' || event.key === 'a') {
@@ -30,8 +31,20 @@ export const IncidentTable = ({ incidents }: { incidents: IncidentSummaryView[] 
 
   return (
     <table className="data-table incidents-table">
-      <colgroup><col /><col className="incidents-users-column" /><col className="incidents-date-column" /><col className="incidents-state-column" /></colgroup>
-      <thead><tr><th scope="col">INCIDENT</th><th scope="col">USERS</th><th scope="col">FIRST SEEN</th><th scope="col">STATE</th></tr></thead>
+      <colgroup>
+        <col />
+        <col className="incidents-users-column" />
+        <col className="incidents-date-column" />
+        <col className="incidents-state-column" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">INCIDENT</th>
+          <th scope="col">USERS</th>
+          <th scope="col">FIRST SEEN</th>
+          <th scope="col">STATE</th>
+        </tr>
+      </thead>
       <tbody>
         {incidents.map((incident, index) => (
           <tr
@@ -40,10 +53,20 @@ export const IncidentTable = ({ incidents }: { incidents: IncidentSummaryView[] 
             onClick={() => router.push(`/incidents/${incident.id}`)}
             onMouseEnter={() => setSelected(index)}
           >
-            <td><button className="table-link" type="button"><span className="table-title">{incident.title}</span></button></td>
-            <td className="numeric" aria-live="polite">{incident.users}</td>
-            <td title={new Date(incident.firstSeen).toLocaleString()}>{formatRelativeDate(incident.firstSeen)}</td>
-            <td><StateBadge state={incident.state} /></td>
+            <td>
+              <button className="table-link" type="button">
+                <span className="table-title">{incident.title}</span>
+              </button>
+            </td>
+            <td className="numeric" aria-live="polite">
+              {incident.users}
+            </td>
+            <td title={new Date(incident.firstSeen).toLocaleString()}>
+              {formatRelativeDate(incident.firstSeen)}
+            </td>
+            <td>
+              <StateBadge state={incident.state} />
+            </td>
           </tr>
         ))}
       </tbody>

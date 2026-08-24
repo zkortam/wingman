@@ -22,7 +22,11 @@ const versions = [
     incidentId: 'OC-1042',
     config: {
       systemPrompt: 'Ops Copilot',
-      tools: { export_records: { description: "Exports records. Pass the caller's active view filters in filters." } },
+      tools: {
+        export_records: {
+          description: "Exports records. Pass the caller's active view filters in filters.",
+        },
+      },
       retrieval: {},
       rules: [],
     },
@@ -32,13 +36,19 @@ const identity = { agentId: 'agent-production', userHash: 'hashed-production-use
 
 describe('ConfigWorkspace', () => {
   it('compares immutable versions and links their incident', () => {
-    render(<ConfigWorkspace {...identity} client={client} initialOverrideActive versions={versions} />)
-    expect(screen.getByRole('link', { name: 'OC-1042' }).getAttribute('href')).toBe('/incidents/OC-1042')
+    render(
+      <ConfigWorkspace {...identity} client={client} initialOverrideActive versions={versions} />,
+    )
+    expect(screen.getByRole('link', { name: 'OC-1042' }).getAttribute('href')).toBe(
+      '/incidents/OC-1042',
+    )
     expect(screen.getByText(/Pass the caller's active view filters/)).toBeTruthy()
   })
 
   it('requires confirmation and removes a reverted override', async () => {
-    render(<ConfigWorkspace {...identity} client={client} initialOverrideActive versions={versions} />)
+    render(
+      <ConfigWorkspace {...identity} client={client} initialOverrideActive versions={versions} />,
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Revert' }))
     expect(screen.getByRole('dialog')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))

@@ -11,7 +11,10 @@ describe('Evidence', () => {
 
   it('shows only the signal context until expanded', () => {
     const session = {
-      id: 's1', signal: 'RETRY_REQUEST' as const, confidence: 0.8, baseline: 0.1,
+      id: 's1',
+      signal: 'RETRY_REQUEST' as const,
+      confidence: 0.8,
+      baseline: 0.1,
       turns: [
         { role: 'user' as const, text: 'Original request' },
         { role: 'assistant' as const, text: 'Incorrect answer' },
@@ -20,7 +23,9 @@ describe('Evidence', () => {
     }
     const { rerender } = render(<Evidence sessions={[session]} />)
     expect(screen.queryByText('Original request')).toBeNull()
-    expect(screen.getByText('Retry request').closest('[data-signaled]')?.getAttribute('data-signaled')).toBe('true')
+    expect(
+      screen.getByText('Retry request').closest('[data-signaled]')?.getAttribute('data-signaled'),
+    ).toBe('true')
     rerender(<Evidence expanded sessions={[session]} />)
     expect(screen.getByText('Original request')).toBeTruthy()
   })

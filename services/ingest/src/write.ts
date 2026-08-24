@@ -1,14 +1,14 @@
-import type { ServiceClient } from "@wingman/db";
-import type { SessionInput, Signal, ToolCall } from "@wingman/schema";
+import type { Executor } from '@wingman/db'
+import type { SessionInput, Signal, ToolCall } from '@wingman/schema'
 
 export interface StoredTurn {
-  sessionId: string;
-  idx: number;
-  role: "user" | "assistant" | "tool";
-  textRedacted: string | null;
-  toolCalls: ToolCall[];
-  embedding: number[] | null;
-  createdAt: string;
+  sessionId: string
+  idx: number
+  role: 'user' | 'assistant' | 'tool'
+  textRedacted: string | null
+  toolCalls: ToolCall[]
+  embedding: number[] | null
+  createdAt: string
 }
 
 export interface IngestStore {
@@ -16,11 +16,11 @@ export interface IngestStore {
     session: SessionInput,
     fingerprint: string | null,
     turns: StoredTurn[],
-  ): Promise<void>;
-  writeSignals(signals: Signal[]): Promise<void>;
+  ): Promise<void>
+  writeSignals(signals: Signal[]): Promise<void>
 }
 
-export function createSupabaseIngestStore(client: ServiceClient): IngestStore {
+export function createPostgresIngestStore(sql: Executor): IngestStore {
   return {
     async writeSession(session, fingerprint, turns) {
       const context = {
@@ -31,57 +31,53 @@ export function createSupabaseIngestStore(client: ServiceClient): IngestStore {
         userRules: session.userRules,
         generationCancelled: session.generationCancelled,
         telemetry: session.telemetry,
-      };
-      const { error: sessionError } = await client.from("sessions").upsert(
-        {
-          id: session.id,
-          org_id: session.orgId,
-          agent_id: session.agentId,
-          user_hash: session.userHash,
-          persona_id: session.personaId ?? null,
-          config_version_id: session.configVersionId ?? null,
-          task_fingerprint: fingerprint,
-          context,
-          started_at: session.startedAt,
-          ended_at: session.endedAt ?? null,
-        },
-        { onConflict: "id", ignoreDuplicates: true },
-      );
-      if (sessionError) throw sessionError;
-
-      const rows = turns.map((turn) => ({
-        session_id: turn.sessionId,
-        idx: turn.idx,
-        role: turn.role,
-        text_redacted: turn.textRedacted,
-        tool_calls: turn.toolCalls,
-        embedding:
-          turn.embedding === null ? null : `[${turn.embedding.join(",")}]`,
-        created_at: turn.createdAt,
-      }));
-      const { error: turnsError } = await client
-        .from("turns")
-        .upsert(rows, { onConflict: "session_id,idx", ignoreDuplicates: true });
-      if (turnsError) throw turnsError;
+      }
+      // One transaction: a session must not appear without the turns that justify it.
+      await sql.begin(async (tx) => {
+        await tx`
+          insert into sessions (
+            id, org_id, agent_id, user_hash, persona_id, config_version_id,
+            task_fingerprint, context, started_at, ended_at
+          ) values (
+            ${session.id}::uuid, ${session.orgId}::uuid, ${session.agentId}::uuid,
+            ${session.userHash}, ${session.personaId ?? null}, ${session.configVersionId ?? null},
+            ${fingerprint}, ${tx.json(context)}::jsonb,
+            ${session.startedAt}::timestamptz, ${session.endedAt ?? null}
+          )
+          on conflict (id) do nothing
+        `
+        if (turns.length === 0) return
+        const rows = turns.map((turn) => ({
+          session_id: turn.sessionId,
+          idx: turn.idx,
+          role: turn.role,
+          text_redacted: turn.textRedacted,
+          tool_calls: tx.json(turn.toolCalls),
+          embedding: turn.embedding === null ? null : `[${turn.embedding.join(',')}]`,
+          created_at: turn.createdAt,
+        }))
+        await tx`
+          insert into turns ${tx(rows, 'session_id', 'idx', 'role', 'text_redacted', 'tool_calls', 'embedding', 'created_at')}
+          on conflict (session_id, idx) do nothing
+        `
+      })
     },
 
     async writeSignals(signals) {
-      if (signals.length === 0) return;
-      const { error } = await client.from("signals").upsert(
-        signals.map((signal) => ({
-          session_id: signal.sessionId,
-          turn_idx: signal.turnIdx,
-          kind: signal.kind,
-          confidence: signal.confidence,
-          baseline: signal.baseline,
-          evidence: signal.evidence,
-          ...(signal.detectedAt === undefined
-            ? {}
-            : { detected_at: signal.detectedAt }),
-        })),
-        { onConflict: "session_id,turn_idx,kind", ignoreDuplicates: true },
-      );
-      if (error) throw error;
+      if (signals.length === 0) return
+      const rows = signals.map((signal) => ({
+        session_id: signal.sessionId,
+        turn_idx: signal.turnIdx,
+        kind: signal.kind,
+        confidence: signal.confidence,
+        baseline: signal.baseline,
+        evidence: sql.json(signal.evidence),
+        detected_at: signal.detectedAt ?? new Date().toISOString(),
+      }))
+      await sql`
+        insert into signals ${sql(rows, 'session_id', 'turn_idx', 'kind', 'confidence', 'baseline', 'evidence', 'detected_at')}
+        on conflict (session_id, turn_idx, kind) do nothing
+      `
     },
-  };
+  }
 }

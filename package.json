@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
-    "check": "pnpm typecheck && pnpm lint && pnpm boundaries && pnpm contrast && pnpm ui-policy && pnpm test && pnpm test:pipeline && pnpm build && pnpm package:check",
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm boundaries && pnpm contrast && pnpm ui-policy && pnpm test && pnpm test:pipeline && pnpm build && pnpm package:check",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint . --max-warnings=0",
     "boundaries": "node scripts/check-boundaries.ts && node scripts/run-dependency-cruiser.ts",
@@ -30,13 +30,22 @@
     "demo:reset": "node fixtures/src/reset.ts",
     "demo:up": "node scripts/demo-up.ts",
     "fixtures:generate": "node fixtures/src/generate.ts",
-    "demo": "pnpm --filter @demo/host start"
+    "demo": "pnpm --filter @demo/host start",
+    "coverage": "vitest run --config vitest.config.ts --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down -v",
+    "db:migrate": "node scripts/db-migrate.ts",
+    "test:db": "vitest run --config vitest.db.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",
     "@types/node": "20.19.30",
+    "@vitest/coverage-v8": "4.1.9",
     "dependency-cruiser": "18.2.0",
     "eslint": "9.39.2",
+    "prettier": "3.6.2",
     "typescript": "5.9.3",
     "typescript-eslint": "8.54.0",
     "vitest": "4.1.9"

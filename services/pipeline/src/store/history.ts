@@ -1,121 +1,96 @@
-import type { ServiceClient } from "@wingman/db";
-import { type SignalKind, SignalKindSchema } from "@wingman/schema";
+import type { Executor } from '@wingman/db'
+import { SignalKindSchema, type SignalKind } from '@wingman/schema'
 
-import type { Baselines } from "../detect/index.js";
-import type { PipelineRepository } from "../repository.js";
-import type { Row } from "./mappers.js";
-import { rows } from "./read-helpers.js";
+import type { Baselines } from '../detect/index.js'
+import type { PipelineRepository } from '../repository.js'
+import { QUERY_LIMITS } from './query-limits.js'
 
 type HistoryStore = Pick<
   PipelineRepository,
-  "getBaselines" | "hasMatchingRestart" | "countInFlight"
->;
+  'getBaselines' | 'hasMatchingRestart' | 'countInFlight'
+>
 
-const SIGNAL_KINDS = SignalKindSchema.options;
+const SIGNAL_KINDS = SignalKindSchema.options
+const IN_FLIGHT = ['OPEN', 'CLUSTERED', 'CLASSIFIED', 'ASSERTED', 'CANDIDATE', 'APPLIED']
 
-export function createHistoryStore(client: ServiceClient): HistoryStore {
+export function createHistoryStore(sql: Executor): HistoryStore {
   return {
     async getBaselines(session, since): Promise<Baselines> {
-      const userSessions = await rows<Pick<Row<"sessions">, "id">>(
-        client
-          .from("sessions")
-          .select("id")
-          .eq("agent_id", session.agentId)
-          .eq("user_hash", session.userHash)
-          .gte("started_at", since.toISOString())
-          .lt("started_at", session.startedAt),
-      );
-      const cohortSessions = await rows<Pick<Row<"sessions">, "id">>(
-        client
-          .from("sessions")
-          .select("id")
-          .eq("agent_id", session.agentId)
-          .gte("started_at", since.toISOString())
-          .lt("started_at", session.startedAt),
-      );
-      const userRates = await signalRates(
-        client,
-        userSessions.map(({ id }) => id),
-      );
-      const cohortRates = await signalRates(
-        client,
-        cohortSessions.map(({ id }) => id),
-      );
+      // Rates are computed in SQL; reading every session id back to re-query signals
+      // against it produced an identifier list no request line could carry.
+      const rows = await sql<
+        { kind: string; user_rate: number; cohort_rate: number; user_total: number }[]
+      >`
+        with cohort as (
+          select id, user_hash from sessions
+          where agent_id = ${session.agentId}
+            and started_at >= ${since.toISOString()}
+            and started_at < ${session.startedAt}
+          order by started_at desc
+          limit ${QUERY_LIMITS.analyticsRows}
+        ),
+        totals as (
+          select
+            count(*) filter (where user_hash = ${session.userHash})::float8 as user_total,
+            count(*)::float8 as cohort_total
+          from cohort
+        ),
+        signalled as (
+          select s.kind,
+            count(distinct s.session_id) filter (
+              where c.user_hash = ${session.userHash}
+            )::float8 as user_hits,
+            count(distinct s.session_id)::float8 as cohort_hits
+          from signals s join cohort c on c.id = s.session_id
+          group by s.kind
+        )
+        select k.kind,
+          totals.user_total,
+          case when totals.user_total = 0 then 0
+               else coalesce(signalled.user_hits, 0) / totals.user_total end as user_rate,
+          case when totals.cohort_total = 0 then 0
+               else coalesce(signalled.cohort_hits, 0) / totals.cohort_total end as cohort_rate
+        from unnest(${SIGNAL_KINDS as unknown as string[]}::text[]) as k(kind)
+        cross join totals
+        left join signalled on signalled.kind = k.kind
+      `
+      // The cohort rate stands in until this user has history of their own.
+      const hasUserSessions = (rows[0]?.user_total ?? 0) > 0
+      const byKind = new Map(rows.map((row) => [row.kind, row]))
       return Object.fromEntries(
-        SIGNAL_KINDS.map((kind) => [
-          kind,
-          userSessions.length === 0 ? cohortRates[kind] : userRates[kind],
-        ]),
-      ) as Baselines;
+        SIGNAL_KINDS.map((kind) => {
+          const row = byKind.get(kind)
+          if (row === undefined) return [kind, 0]
+          return [kind, hasUserSessions ? row.user_rate : row.cohort_rate]
+        }),
+      ) as Record<SignalKind, number>
     },
+
     async hasMatchingRestart(session, withinMinutes) {
-      if (session.taskFingerprint === null) return false;
+      if (session.taskFingerprint === null) return false
       const earliest = new Date(
         new Date(session.startedAt).getTime() - withinMinutes * 60_000,
-      ).toISOString();
-      const candidates = await rows<Pick<Row<"sessions">, "context">>(
-        client
-          .from("sessions")
-          .select("context")
-          .eq("agent_id", session.agentId)
-          .eq("user_hash", session.userHash)
-          .eq("task_fingerprint", session.taskFingerprint)
-          .gte("started_at", earliest)
-          .lt("started_at", session.startedAt),
-      );
-      return candidates.some(({ context }) => {
-        return (
-          typeof context === "object" &&
-          context !== null &&
-          !Array.isArray(context) &&
-          context.generationCancelled === true
-        );
-      });
+      ).toISOString()
+      const rows = await sql<{ present: boolean }[]>`
+        select exists (
+          select 1 from sessions
+          where agent_id = ${session.agentId}
+            and user_hash = ${session.userHash}
+            and task_fingerprint = ${session.taskFingerprint}
+            and started_at >= ${earliest}
+            and started_at < ${session.startedAt}
+            and context ->> 'generationCancelled' = 'true'
+        ) as present
+      `
+      return rows[0]?.present ?? false
     },
+
     async countInFlight(agentId) {
-      const { count, error } = await client
-        .from("incidents")
-        .select("id", { count: "exact", head: true })
-        .eq("agent_id", agentId)
-        .in("state", [
-          "OPEN",
-          "CLUSTERED",
-          "CLASSIFIED",
-          "ASSERTED",
-          "CANDIDATE",
-          "APPLIED",
-        ]);
-      if (error) throw error;
-      return count ?? 0;
+      const rows = await sql<{ count: string }[]>`
+        select count(*)::text as count from incidents
+        where agent_id = ${agentId} and state = any(${IN_FLIGHT}::text[])
+      `
+      return Number(rows[0]?.count ?? 0)
     },
-  };
-}
-
-async function signalRates(
-  client: ServiceClient,
-  sessionIds: string[],
-): Promise<Record<SignalKind, number>> {
-  if (sessionIds.length === 0) return zeroRates();
-  const signals = await rows<Pick<Row<"signals">, "session_id" | "kind">>(
-    client
-      .from("signals")
-      .select("session_id,kind")
-      .in("session_id", sessionIds),
-  );
-  return Object.fromEntries(
-    SIGNAL_KINDS.map((kind) => [
-      kind,
-      new Set(
-        signals
-          .filter((signal) => signal.kind === kind)
-          .map(({ session_id }) => session_id),
-      ).size / sessionIds.length,
-    ]),
-  ) as Record<SignalKind, number>;
-}
-
-function zeroRates(): Record<SignalKind, number> {
-  return Object.fromEntries(
-    SIGNAL_KINDS.map((kind) => [kind, 0]),
-  ) as Record<SignalKind, number>;
+  }
 }

@@ -104,33 +104,73 @@ export const incidentPresentation = (incident: IncidentDetailView): IncidentPres
     return { status: 'Collecting evidence', tone: 'neutral', show: early, actions: [] }
   }
   if (incident.state === 'CLASSIFIED') {
-    return { status: 'Classified', tone: 'neutral', show: { ...early, verdict: Boolean(incident.verdict) }, actions: [] }
+    return {
+      status: 'Classified',
+      tone: 'neutral',
+      show: { ...early, verdict: Boolean(incident.verdict) },
+      actions: [],
+    }
   }
   if (incident.state === 'ASSERTED') {
     return {
       status: 'Verifying',
       tone: 'neutral',
-      show: { ...early, verdict: Boolean(incident.verdict), assertion: Boolean(incident.assertion), before: true },
+      show: {
+        ...early,
+        verdict: Boolean(incident.verdict),
+        assertion: Boolean(incident.assertion),
+        before: true,
+      },
       actions: [],
     }
   }
   if (incident.state === 'CANDIDATE') {
-    return { status: 'Ready to apply', tone: 'neutral', show: common, actions: ['apply', 'dismiss'] }
+    return {
+      status: 'Ready to apply',
+      tone: 'neutral',
+      show: common,
+      actions: ['apply', 'dismiss'],
+    }
   }
   if (incident.state === 'APPLIED') {
-    return { status: `Applied to ${incident.users} users, confirming`, tone: 'accent', show: common, actions: ['revert'] }
+    return {
+      status: `Applied to ${incident.users} users, confirming`,
+      tone: 'accent',
+      show: common,
+      actions: ['revert'],
+    }
   }
   if (incident.state === 'CONFIRMED') {
-    return { status: 'Assertion verified | User outcome confirmed', tone: 'pass', show: common, actions: ['revert'] }
+    return {
+      status: 'Assertion verified | User outcome confirmed',
+      tone: 'pass',
+      show: common,
+      actions: ['revert'],
+    }
   }
   if (incident.state === 'REVERTED') {
-    return { status: 'Reverted: signal fired again', tone: 'fail', show: common, actions: ['reopen'] }
+    return {
+      status: 'Reverted: signal fired again',
+      tone: 'fail',
+      show: common,
+      actions: ['reopen'],
+    }
   }
   if (incident.state === 'EXPIRED') {
-    return { status: 'Expired: no recurrence in 14 days', tone: 'faint', show: common, actions: ['reopen'] }
+    return {
+      status: 'Expired: no recurrence in 14 days',
+      tone: 'faint',
+      show: common,
+      actions: ['reopen'],
+    }
   }
   if (incident.state === 'PARKED') {
-    return { status: `Parked at ${incident.stateReason ?? 'pipeline'}`, tone: 'warn', show: common, actions: ['retry', 'dismiss'] }
+    return {
+      status: `Parked at ${incident.stateReason ?? 'pipeline'}`,
+      tone: 'warn',
+      show: common,
+      actions: ['retry', 'dismiss'],
+    }
   }
   if (incident.state === 'HUMAN_REVIEW') {
     const codeDefect = incident.verdict?.kind === 'CODE_DEFECT'

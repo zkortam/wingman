@@ -8,7 +8,9 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ usePathname: () => '/inbox', useRouter: () => ({ push }) }))
 
 describe('Rail', () => {
-  beforeEach(() => { document.documentElement.dataset.theme = '' })
+  beforeEach(() => {
+    document.documentElement.dataset.theme = ''
+  })
 
   it('shows four product destinations and the shortcut sheet', async () => {
     render(<Rail />)
@@ -26,6 +28,11 @@ describe('Rail', () => {
   it('supports every global navigation chord', async () => {
     render(<Rail />)
     await userEvent.keyboard('gogcgs gi')
-    expect(push.mock.calls.map(([path]) => path)).toEqual(['/outcomes', '/config', '/settings', '/inbox'])
+    expect(push.mock.calls.map(([path]) => path)).toEqual([
+      '/outcomes',
+      '/config',
+      '/settings',
+      '/inbox',
+    ])
   })
 })

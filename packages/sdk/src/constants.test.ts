@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { CONFIG_CACHE_TTL_MS, CONFIG_MAX_DIFF_BYTES, CONFIG_TIMEOUT_MS, OBSERVATION_QUEUE_CAPACITY, OBSERVATION_TIMEOUT_MS } from './constants'
+import {
+  CONFIG_CACHE_TTL_MS,
+  CONFIG_MAX_DIFF_BYTES,
+  CONFIG_TIMEOUT_MS,
+  OBSERVATION_QUEUE_CAPACITY,
+  OBSERVATION_TIMEOUT_MS,
+} from './constants'
 
 describe('SDK budgets', () => {
   it('pins the serving and backpressure contracts', () => {

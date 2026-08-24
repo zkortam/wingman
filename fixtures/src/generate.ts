@@ -43,13 +43,33 @@ export const generateSessions = (options: GenerateOptions): SessionFixture[] => 
       context: { viewFilters: { stage: 'Negotiation' } },
       turns: affected
         ? [
-            { role: 'user', text: 'Export these opportunities to CSV.', createdAt: startedAt.toISOString() },
-            { role: 'assistant', text: 'Exported 50 opportunities.', createdAt: new Date(startedAt.getTime() + 30_000).toISOString() },
-            { role: 'user', text: 'No, just the ones I have filtered.', createdAt: new Date(startedAt.getTime() + 60_000).toISOString() },
+            {
+              role: 'user',
+              text: 'Export these opportunities to CSV.',
+              createdAt: startedAt.toISOString(),
+            },
+            {
+              role: 'assistant',
+              text: 'Exported 50 opportunities.',
+              createdAt: new Date(startedAt.getTime() + 30_000).toISOString(),
+            },
+            {
+              role: 'user',
+              text: 'No, just the ones I have filtered.',
+              createdAt: new Date(startedAt.getTime() + 60_000).toISOString(),
+            },
           ]
         : [
-            { role: 'user', text: 'Show my active opportunities.', createdAt: startedAt.toISOString() },
-            { role: 'assistant', text: 'Here are your active opportunities.', createdAt: new Date(startedAt.getTime() + 30_000).toISOString() },
+            {
+              role: 'user',
+              text: 'Show my active opportunities.',
+              createdAt: startedAt.toISOString(),
+            },
+            {
+              role: 'assistant',
+              text: 'Here are your active opportunities.',
+              createdAt: new Date(startedAt.getTime() + 30_000).toISOString(),
+            },
           ],
     }
   })

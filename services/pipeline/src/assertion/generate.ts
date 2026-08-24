@@ -5,44 +5,35 @@ import {
   type AgentConfig,
   type AssertionDefinition,
   type ModelClient,
-} from "@wingman/schema";
-import { z } from "zod";
+} from '@wingman/schema'
+import { z } from 'zod'
 
-import type { IncidentRecord, ObservedSession } from "../domain.js";
-import { PIPELINE_MODELS, PIPELINE_POLICY } from "../policy.js";
+import type { IncidentRecord, ObservedSession } from '../domain.js'
+import { PIPELINE_MODELS, PIPELINE_POLICY } from '../policy.js'
 
-const ExecutableAssertionSchema = AssertionDefinitionSchema.refine(
-  isDecidableAtToolBoundary,
-  {
-    message: "Assertion is not decidable at the tool boundary",
-  },
-);
-const AssertionResponseSchema = z
-  .object({ assertion: ExecutableAssertionSchema })
-  .strict();
+const ExecutableAssertionSchema = AssertionDefinitionSchema.refine(isDecidableAtToolBoundary, {
+  message: 'Assertion is not decidable at the tool boundary',
+})
+const AssertionResponseSchema = z.object({ assertion: ExecutableAssertionSchema }).strict()
 
 export async function generateAssertion(input: {
-  model: ModelClient;
-  incident: IncidentRecord;
-  session: ObservedSession;
-  config: AgentConfig;
+  model: ModelClient
+  incident: IncidentRecord
+  session: ObservedSession
+  config: AgentConfig
 }): Promise<AssertionDefinition> {
-  for (
-    let attempt = 0;
-    attempt < PIPELINE_POLICY.assertionAttempts;
-    attempt += 1
-  ) {
+  for (let attempt = 0; attempt < PIPELINE_POLICY.assertionAttempts; attempt += 1) {
     const response = await input.model.generate({
       model: PIPELINE_MODELS.assertion,
       sample: attempt,
       messages: [
         {
-          role: "system",
+          role: 'system',
           content:
-            "Return one executable negative assertion. Only TOOL_CALLED or TOOL_ARG_EQUALS are accepted.",
+            'Return one executable negative assertion. Only TOOL_CALLED or TOOL_ARG_EQUALS are accepted.',
         },
         {
-          role: "user",
+          role: 'user',
           content: {
             tools: input.config.tools,
             contextReferences: allowedContext(input.session),
@@ -51,51 +42,51 @@ export async function generateAssertion(input: {
         },
       ],
       tools: [assertionToolSchema()],
-    });
-    const parsed = AssertionResponseSchema.safeParse(response);
-    if (parsed.success) return parsed.data.assertion;
+    })
+    const parsed = AssertionResponseSchema.safeParse(response)
+    if (parsed.success) return parsed.data.assertion
   }
-  throw new StageError("assertion", "SCHEMA_INVALID", false);
+  throw new StageError('assertion', 'SCHEMA_INVALID', false)
 }
 
 function allowedContext(session: ObservedSession): Record<string, boolean> {
   return {
-    "session.viewFilters": session.viewFilters !== undefined,
-    "session.selectedIds": session.selectedIds !== undefined,
-    "session.dateRange": session.dateRange !== undefined,
-    "session.lastQuery": session.lastQuery !== undefined,
-    "user.rules": (session.userRules?.length ?? 0) > 0,
-  };
+    'session.viewFilters': session.viewFilters !== undefined,
+    'session.selectedIds': session.selectedIds !== undefined,
+    'session.dateRange': session.dateRange !== undefined,
+    'session.lastQuery': session.lastQuery !== undefined,
+    'user.rules': (session.userRules?.length ?? 0) > 0,
+  }
 }
 
 function assertionToolSchema(): unknown {
   return {
-    name: "define_assertion",
+    name: 'define_assertion',
     strict: true,
     parameters: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
-      required: ["assertion"],
+      required: ['assertion'],
       properties: {
         assertion: {
           oneOf: [
             {
-              type: "object",
+              type: 'object',
               additionalProperties: false,
-              required: ["kind", "tool"],
+              required: ['kind', 'tool'],
               properties: {
-                kind: { const: "TOOL_CALLED" },
-                tool: { type: "string" },
+                kind: { const: 'TOOL_CALLED' },
+                tool: { type: 'string' },
               },
             },
             {
-              type: "object",
+              type: 'object',
               additionalProperties: false,
-              required: ["kind", "tool", "arg", "expected"],
+              required: ['kind', 'tool', 'arg', 'expected'],
               properties: {
-                kind: { const: "TOOL_ARG_EQUALS" },
-                tool: { type: "string" },
-                arg: { type: "string" },
+                kind: { const: 'TOOL_ARG_EQUALS' },
+                tool: { type: 'string' },
+                arg: { type: 'string' },
                 expected: {},
               },
             },
@@ -103,7 +94,7 @@ function assertionToolSchema(): unknown {
         },
       },
     },
-  };
+  }
 }
 
-export { AssertionResponseSchema, ExecutableAssertionSchema };
+export { AssertionResponseSchema, ExecutableAssertionSchema }

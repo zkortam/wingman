@@ -1,27 +1,24 @@
-import { isConfigPathWritable } from '@wingman/schema'
+import {
+  configDiffBytes,
+  diffConfigs,
+  isConfigPathWritable,
+  type AgentConfig,
+} from '@wingman/schema'
 
-interface ConfigChange {
-  path: string
-  value: unknown
+/** The writable-path allowlist and the byte cap are one rule enforced in two places: the control. */
+const changePaths = (base: AgentConfig, candidate: AgentConfig): string[] =>
+  diffConfigs(base, candidate)?.changes.map(({ path }) => path) ?? []
+
+export const hasOnlyWritableChanges = (
+  base: AgentConfig,
+  candidate: AgentConfig,
+  writablePaths: string[],
+): boolean =>
+  changePaths(base, candidate).every((path) =>
+    writablePaths.some((allowed) => isConfigPathWritable(path, allowed)),
+  )
+
+export const configChangeBytes = (base: AgentConfig, candidate: AgentConfig): number => {
+  const diff = diffConfigs(base, candidate)
+  return diff === null ? 0 : configDiffBytes(diff)
 }
-
-const changes = (base: unknown, candidate: unknown, path = ''): ConfigChange[] => {
-  if (Object.is(base, candidate)) return []
-  if (Array.isArray(base) && Array.isArray(candidate)) {
-    return JSON.stringify(base) === JSON.stringify(candidate) ? [] : [{ path, value: candidate }]
-  }
-  if (base && candidate && typeof base === 'object' && typeof candidate === 'object') {
-    const baseRecord = base as Record<string, unknown>
-    const candidateRecord = candidate as Record<string, unknown>
-    return [...new Set([...Object.keys(baseRecord), ...Object.keys(candidateRecord)])].flatMap((key) =>
-      changes(baseRecord[key], candidateRecord[key], path ? `${path}.${key}` : key),
-    )
-  }
-  return [{ path, value: candidate ?? null }]
-}
-
-export const hasOnlyWritableChanges = (base: unknown, candidate: unknown, writablePaths: string[]): boolean =>
-  changes(base, candidate).every(({ path }) => writablePaths.some((allowed) => isConfigPathWritable(path, allowed)))
-
-export const configChangeBytes = (base: unknown, candidate: unknown): number =>
-  new TextEncoder().encode(JSON.stringify(changes(base, candidate))).byteLength

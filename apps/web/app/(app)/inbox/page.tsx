@@ -8,9 +8,7 @@ import { ServiceUnavailable } from '../../../src/features/status/ServiceUnavaila
 
 export const dynamic = 'force-dynamic'
 
-export default async function InboxPage(props: {
-  searchParams?: Promise<{ evidence?: string }>
-}) {
+export default async function InboxPage(props: { searchParams?: Promise<{ evidence?: string }> }) {
   let incidents: Awaited<ReturnType<typeof reader.listIncidents>>
   let rate: Awaited<ReturnType<typeof reader.silentFailureRate>>
   let precision: Awaited<ReturnType<typeof reader.gatePrecision>>
@@ -28,13 +26,25 @@ export default async function InboxPage(props: {
     <>
       <PageHeader title="Inbox" meta="Incidents ranked by affected users" />
       <div className="stat-line">
-        <Link aria-label="View sessions behind the silent failure rate" href="/inbox?evidence=sessions">
-          <Stat delta={delta} direction={rate.thisWeek <= rate.lastWeek ? 'down' : 'up'} label="Silent failure rate" value={`${rate.thisWeek.toFixed(1)}%`} />
+        <Link
+          aria-label="View sessions behind the silent failure rate"
+          href="/inbox?evidence=sessions"
+        >
+          <Stat
+            delta={delta}
+            direction={rate.thisWeek <= rate.lastWeek ? 'down' : 'up'}
+            label="Silent failure rate"
+            value={`${rate.thisWeek.toFixed(1)}%`}
+          />
         </Link>
         <Stat label="Gate precision" value={`${Math.round(precision.precision * 100)}%`} />
       </div>
       {showEvidence ? (
-        <p className="muted">Sessions behind the rate: {incidents.reduce((sum, incident) => sum + incident.users, 0)} affected users across {incidents.length} incidents. Open a row for copied excerpts that outlive event retention.</p>
+        <p className="muted">
+          Sessions behind the rate: {incidents.reduce((sum, incident) => sum + incident.users, 0)}{' '}
+          affected users across {incidents.length} incidents. Open a row for copied excerpts that
+          outlive event retention.
+        </p>
       ) : null}
       <LiveIncidentTable initialIncidents={incidents} />
     </>

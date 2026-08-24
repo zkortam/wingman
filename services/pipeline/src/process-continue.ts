@@ -7,97 +7,83 @@ import {
   type EventPublisher,
   type Ledger,
   type ModelClient,
-} from "@wingman/schema";
+} from '@wingman/schema'
 
-import { generateAssertion } from "./assertion/generate.js";
-import type { IncidentRecord, ObservedSession } from "./domain.js";
-import type { FixAgent } from "./fix/agent.js";
-import type { AppServerClient } from "./fix/app-server.js";
-import { handoffCodeDefect } from "./fix/handoff.js";
-import { assertionContext, proposeAndVerify } from "./fix/verify.js";
-import { loggedStage, type StageLogger } from "./logging.js";
-import type { PipelineRepository } from "./repository.js";
-import { classifyVariance, runAssertion } from "./runner/index.js";
+import { generateAssertion } from './assertion/generate.js'
+import type { IncidentRecord, ObservedSession } from './domain.js'
+import type { FixAgent } from './fix/agent.js'
+import type { AppServerClient } from './fix/app-server.js'
+import { handoffCodeDefect } from './fix/handoff.js'
+import { assertionContext, proposeAndVerify } from './fix/verify.js'
+import { loggedStage, type StageLogger } from './logging.js'
+import type { PipelineRepository } from './repository.js'
+import { classifyVariance, runAssertion } from './runner/index.js'
 
 export type ContinueInput = {
-  repository: PipelineRepository;
-  runner: AgentRunner;
-  configStore: ConfigStore;
-  model: ModelClient;
-  fixAgent: FixAgent;
-  appServer: AppServerClient;
-  ledger: Ledger;
-  events: EventPublisher;
-  logger: StageLogger;
-  incident: IncidentRecord;
-  session: ObservedSession;
-};
-
-export async function continueFromClassified(
-  input: ContinueInput,
-): Promise<IncidentRecord> {
-  if (input.incident.verdict === "VARIANCE") {
-    return input.repository.updateIncident(input.incident.id, "CLASSIFIED", {
-      state: "DISCARDED",
-      stateReason: "GATE_VARIANCE",
-    });
-  }
-  if (input.incident.verdict === "UNSUPPORTED") {
-    return input.repository.updateIncident(input.incident.id, "CLASSIFIED", {
-      state: "HUMAN_REVIEW",
-      stateReason: "UNSUPPORTED_CAPABILITY",
-    });
-  }
-  return assertAndVerify(input, await liveConfig(input));
+  repository: PipelineRepository
+  runner: AgentRunner
+  configStore: ConfigStore
+  model: ModelClient
+  fixAgent: FixAgent
+  appServer: AppServerClient
+  ledger: Ledger
+  events: EventPublisher
+  logger: StageLogger
+  incident: IncidentRecord
+  session: ObservedSession
 }
 
-export async function continueFromAsserted(
-  input: ContinueInput,
-): Promise<IncidentRecord> {
-  const live = await liveConfig(input);
-  if (input.incident.assertionId === null) {
-    return assertAndVerify(input, live);
+export async function continueFromClassified(input: ContinueInput): Promise<IncidentRecord> {
+  if (input.incident.verdict === 'VARIANCE') {
+    return input.repository.updateIncident(input.incident.id, 'CLASSIFIED', {
+      state: 'DISCARDED',
+      stateReason: 'GATE_VARIANCE',
+    })
   }
-  const assertion = await input.repository.getAssertion(
-    input.incident.assertionId,
-  );
-  return verifyAndFix(input, live, assertion);
+  if (input.incident.verdict === 'UNSUPPORTED') {
+    return input.repository.updateIncident(input.incident.id, 'CLASSIFIED', {
+      state: 'HUMAN_REVIEW',
+      stateReason: 'UNSUPPORTED_CAPABILITY',
+    })
+  }
+  return assertAndVerify(input, await liveConfig(input))
+}
+
+export async function continueFromAsserted(input: ContinueInput): Promise<IncidentRecord> {
+  const live = await liveConfig(input)
+  if (input.incident.assertionId === null) {
+    return assertAndVerify(input, live)
+  }
+  const assertion = await input.repository.getAssertion(input.incident.assertionId)
+  return verifyAndFix(input, live, assertion)
 }
 
 async function liveConfig(input: ContinueInput): Promise<AgentConfig> {
-  return input.configStore.resolve(
-    input.incident.agentId,
-    input.session.userHash,
-  );
+  return input.configStore.resolve(input.incident.agentId, input.session.userHash)
 }
 
-async function assertAndVerify(
-  input: ContinueInput,
-  base: AgentConfig,
-): Promise<IncidentRecord> {
-  let incident = input.incident;
+async function assertAndVerify(input: ContinueInput, base: AgentConfig): Promise<IncidentRecord> {
+  let incident = input.incident
   const asserted = await loggedStage({
     logger: input.logger,
     incidentId: incident.id,
-    stage: "assert",
+    stage: 'assert',
     run: async () => {
       const definition = await generateAssertion({
         model: input.model,
         incident,
         session: input.session,
         config: base,
-      });
-      const identity = assertionIdentity(definition);
+      })
+      const identity = assertionIdentity(definition)
       if (incident.assertionId !== null) {
-        const existing = await input.repository.getAssertion(
-          incident.assertionId,
-        );
+        const existing = await input.repository.getAssertion(incident.assertionId)
         if (existing.identity !== identity) {
           incident = await input.repository.splitIncident(
             incident,
             assertedIncidentKey(incident.key, identity),
             identity,
-          );
+          )
         }
       }
       const assertion = await input.repository.saveAssertion({
@@ -105,40 +91,35 @@ async function assertAndVerify(
         definition,
         identity,
         sourceSessionId: input.session.id,
-        polarity: "negative",
-      });
-      incident = await input.repository.updateIncident(
-        incident.id,
-        "CLASSIFIED",
-        { state: "ASSERTED", assertionId: assertion.id },
-      );
+        polarity: 'negative',
+      })
+      incident = await input.repository.updateIncident(incident.id, 'CLASSIFIED', {
+        state: 'ASSERTED',
+        assertionId: assertion.id,
+      })
       await input.events.publish(
-        "incident.asserted",
+        'incident.asserted',
         { data: { incidentId: incident.id, assertionId: assertion.id } },
         `assert:${incident.id}:${incident.attempt}`,
-      );
-      return { assertion, incident };
+      )
+      return { assertion, incident }
     },
     outcome: ({ assertion }) => assertion.definition.kind,
-  });
-  return verifyAndFix(
-    { ...input, incident: asserted.incident },
-    base,
-    asserted.assertion,
-  );
+  })
+  return verifyAndFix({ ...input, incident: asserted.incident }, base, asserted.assertion)
 }
 
 async function verifyAndFix(
   input: ContinueInput,
   base: AgentConfig,
-  assertion: Awaited<ReturnType<PipelineRepository["getAssertion"]>>,
+  assertion: Awaited<ReturnType<PipelineRepository['getAssertion']>>,
 ): Promise<IncidentRecord> {
-  const incident = input.incident;
-  const context = assertionContext(input.session, base.rules);
+  const incident = input.incident
+  const context = assertionContext(input.session, base.rules)
   const before = await loggedStage({
     logger: input.logger,
     incidentId: incident.id,
-    stage: "verify-fail",
+    stage: 'verify-fail',
     run: async () => {
       const beforeResult = await runAssertion({
         runner: input.runner,
@@ -146,34 +127,32 @@ async function verifyAndFix(
         config: base,
         messages: input.session.turns,
         context,
-      });
+      })
       return input.repository.saveRun({
         assertionId: assertion.id,
         incidentId: incident.id,
-        phase: "VERIFY_FAIL",
+        phase: 'VERIFY_FAIL',
         attempt: incident.attempt,
         configVersionId: input.session.configVersionId ?? null,
         candidateId: null,
         ...beforeResult,
-      });
+      })
     },
     outcome: ({ passCount, n }) => `${passCount}/${n}`,
-  });
-  const variance = classifyVariance(before.passCount, before.n);
-  if (variance !== "DEFECT") {
-    return input.repository.updateIncident(incident.id, "ASSERTED", {
-      state: "DISCARDED",
+  })
+  const variance = classifyVariance(before.passCount, before.n)
+  if (variance !== 'DEFECT') {
+    return input.repository.updateIncident(incident.id, 'ASSERTED', {
+      state: 'DISCARDED',
       stateReason:
-        variance === "MODEL_VARIANCE"
-          ? "VERIFY_MODEL_VARIANCE"
-          : "VERIFY_FALSE_POSITIVE",
-    });
+        variance === 'MODEL_VARIANCE' ? 'VERIFY_MODEL_VARIANCE' : 'VERIFY_FALSE_POSITIVE',
+    })
   }
-  if (incident.verdict === "CODE_DEFECT") {
+  if (incident.verdict === 'CODE_DEFECT') {
     await loggedStage({
       logger: input.logger,
       incidentId: incident.id,
-      stage: "handoff",
+      stage: 'handoff',
       run: () =>
         handoffCodeDefect({
           repository: input.repository,
@@ -182,12 +161,12 @@ async function verifyAndFix(
           assertion,
           before,
         }),
-      outcome: () => "HUMAN_REVIEW",
-    });
-    return input.repository.updateIncident(incident.id, "ASSERTED", {
-      state: "HUMAN_REVIEW",
-      stateReason: "CODE_DEFECT_HANDOFF",
-    });
+      outcome: () => 'HUMAN_REVIEW',
+    })
+    return input.repository.updateIncident(incident.id, 'ASSERTED', {
+      state: 'HUMAN_REVIEW',
+      stateReason: 'CODE_DEFECT_HANDOFF',
+    })
   }
   return proposeAndVerify({
     ...input,
@@ -196,5 +175,5 @@ async function verifyAndFix(
     before,
     base,
     context,
-  });
+  })
 }

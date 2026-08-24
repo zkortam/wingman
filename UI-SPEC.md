@@ -15,35 +15,35 @@ Defined once in `apps/web/src/ui/tokens.css`. Nothing in the app uses a raw hex 
 
 ```css
 :root {
-  --bg:            #ffffff;
-  --bg-subtle:     #fafafa;   /* page chrome, table headers */
-  --bg-inset:      #f4f4f5;   /* row hover, code blocks */
-  --border:        #e4e4e7;
-  --border-strong: #d4d4d8;   /* focused inputs, active row rule */
-  --text:          #18181b;
-  --text-muted:    #71717a;   /* meta, labels */
-  --text-faint:    #a1a1aa;   /* disabled, expired */
-  --accent:        #2563eb;   /* THE one accent. primary action + focus ring only. */
-  --accent-fg:     #ffffff;
-  --fail:          #dc2626;
-  --pass:          #16a34a;
-  --warn:          #b45309;   /* PARKED, HUMAN_REVIEW */
+  --bg: #ffffff;
+  --bg-subtle: #fafafa; /* page chrome, table headers */
+  --bg-inset: #f4f4f5; /* row hover, code blocks */
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8; /* focused inputs, active row rule */
+  --text: #18181b;
+  --text-muted: #71717a; /* meta, labels */
+  --text-faint: #a1a1aa; /* disabled, expired */
+  --accent: #2563eb; /* THE one accent. primary action + focus ring only. */
+  --accent-fg: #ffffff;
+  --fail: #dc2626;
+  --pass: #16a34a;
+  --warn: #b45309; /* PARKED, HUMAN_REVIEW */
 }
 
-:root[data-theme="dark"] {
-  --bg:            #0a0a0b;
-  --bg-subtle:     #131315;
-  --bg-inset:      #1b1b1f;
-  --border:        #26262b;
+:root[data-theme='dark'] {
+  --bg: #0a0a0b;
+  --bg-subtle: #131315;
+  --bg-inset: #1b1b1f;
+  --border: #26262b;
   --border-strong: #3f3f46;
-  --text:          #fafafa;
-  --text-muted:    #a1a1aa;
-  --text-faint:    #71717a;
-  --accent:        #3b82f6;
-  --accent-fg:     #0a0a0b;
-  --fail:          #f87171;
-  --pass:          #4ade80;
-  --warn:          #fbbf24;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+  --accent: #3b82f6;
+  --accent-fg: #0a0a0b;
+  --fail: #f87171;
+  --pass: #4ade80;
+  --warn: #fbbf24;
 }
 ```
 
@@ -51,13 +51,13 @@ Defined once in `apps/web/src/ui/tokens.css`. Nothing in the app uses a raw hex 
 
 ### Type
 
-| Role | Size / line-height | Family | Notes |
-|---|---|---|---|
-| Display — the one number | 32 / 1.1 | system | `font-variant-numeric: tabular-nums` |
-| Screen title | 20 / 1.3 | system | weight 600 |
-| Body | 14 / 1.5 | system | weight 400 |
-| Meta, labels | 12.5 / 1.4 | system | `--text-muted`, uppercase only for block labels in the incident proof |
-| Mono | 13 / 1.5 | `ui-monospace, SFMono-Regular, Menlo, monospace` | **every identifier, diff, assertion, run, config path, version number** |
+| Role                     | Size / line-height | Family                                           | Notes                                                                   |
+| ------------------------ | ------------------ | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| Display — the one number | 32 / 1.1           | system                                           | `font-variant-numeric: tabular-nums`                                    |
+| Screen title             | 20 / 1.3           | system                                           | weight 600                                                              |
+| Body                     | 14 / 1.5           | system                                           | weight 400                                                              |
+| Meta, labels             | 12.5 / 1.4         | system                                           | `--text-muted`, uppercase only for block labels in the incident proof   |
+| Mono                     | 13 / 1.5           | `ui-monospace, SFMono-Regular, Menlo, monospace` | **every identifier, diff, assertion, run, config path, version number** |
 
 System font stack for prose. Monospace is not decoration — it is the signal that a string is an identifier you can copy.
 
@@ -93,7 +93,7 @@ Gradients · glassmorphism · card shadows · glow · emoji in chrome · sparkle
 - **Left rail 200px, fixed.** Text only, no icons. Five items. Active item: `--text` on `--bg-inset`, 2px `--accent` left rule. Everything else `--text-muted`.
 - **Content max-width 1080px, left-aligned.** Not centred — centred content in a tool reads as marketing.
 - **No top bar, no breadcrumbs, no search field.** Navigation is four links and the keyboard.
-- **Minimum viewport 1024px.** Below that, one line: *"Outcome is built for a desktop window."* This is an internal tool used at a desk; pretending otherwise costs real time for zero users.
+- **Minimum viewport 1024px.** Below that, one line: _"Outcome is built for a desktop window."_ This is an internal tool used at a desk; pretending otherwise costs real time for zero users.
 
 ---
 
@@ -101,23 +101,23 @@ Gradients · glassmorphism · card shadows · glow · emoji in chrome · sparkle
 
 Fifteen. `apps/web/src/ui/`. A sixteenth means a screen is doing too much.
 
-| Component | Contract | Notes |
-|---|---|---|
-| `Rail` | — | five links, active state, `?` hint at the bottom |
-| `PageHeader` | `title, meta?, actions?` | 20px title, 12.5px meta line beneath |
-| `Stat` | `value, deltaFrom, label` | the display number + `▾ 0.3 from last week`. Delta is `--pass` when down, `--fail` when up — **failure rate falling is good**, so the arrow direction and the color both invert from the naive default. |
-| `Table` `Row` | `columns, rows, onSelect` | real `<table>`, `<th scope="col">`, 40px rows, 1px row rules, no zebra, hover `--bg-inset` |
-| `StateBadge` | `state` | 12 states, §7 |
-| `Dots` | `n, passCount` | **the signature visual**, §4 |
-| `Diff` | `lines` | unified, mono, `+`/`−` gutter, `--pass`/`--fail` at 8% alpha background |
-| `Assertion` | `kind, params` | one mono line: `TOOL_ARG_EQUALS  export_records.filters == view.activeFilters` |
-| `Evidence` | `sessions` | transcript excerpts, signal turns marked with a 2px `--warn` left rule and the signal name in 12.5px mono |
-| `Verdict` | `verdict, confidence, evidence[]` | `CONFIG_DEFECT · 0.86` + the ranked evidence list that produced it |
-| `KeyHint` | `keys` | `<kbd>` styled: 11px mono, 1px border, 3px radius |
-| `Empty` | `fact, action?` | one sentence of fact, one action. Never an illustration, never an apology. |
-| `Confirm` | `title, body, destructive` | the only modal in the app. Used for global apply and revert. |
-| `Toast` | `message` | bottom-left, 4s, one line, no icon, no close button |
-| `CopyId` | `id` | mono, click copies, 120ms `--pass` flash, no toast |
+| Component     | Contract                          | Notes                                                                                                                                                                                                   |
+| ------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Rail`        | —                                 | five links, active state, `?` hint at the bottom                                                                                                                                                        |
+| `PageHeader`  | `title, meta?, actions?`          | 20px title, 12.5px meta line beneath                                                                                                                                                                    |
+| `Stat`        | `value, deltaFrom, label`         | the display number + `▾ 0.3 from last week`. Delta is `--pass` when down, `--fail` when up — **failure rate falling is good**, so the arrow direction and the color both invert from the naive default. |
+| `Table` `Row` | `columns, rows, onSelect`         | real `<table>`, `<th scope="col">`, 40px rows, 1px row rules, no zebra, hover `--bg-inset`                                                                                                              |
+| `StateBadge`  | `state`                           | 12 states, §7                                                                                                                                                                                           |
+| `Dots`        | `n, passCount`                    | **the signature visual**, §4                                                                                                                                                                            |
+| `Diff`        | `lines`                           | unified, mono, `+`/`−` gutter, `--pass`/`--fail` at 8% alpha background                                                                                                                                 |
+| `Assertion`   | `kind, params`                    | one mono line: `TOOL_ARG_EQUALS  export_records.filters == view.activeFilters`                                                                                                                          |
+| `Evidence`    | `sessions`                        | transcript excerpts, signal turns marked with a 2px `--warn` left rule and the signal name in 12.5px mono                                                                                               |
+| `Verdict`     | `verdict, confidence, evidence[]` | `CONFIG_DEFECT · 0.86` + the ranked evidence list that produced it                                                                                                                                      |
+| `KeyHint`     | `keys`                            | `<kbd>` styled: 11px mono, 1px border, 3px radius                                                                                                                                                       |
+| `Empty`       | `fact, action?`                   | one sentence of fact, one action. Never an illustration, never an apology.                                                                                                                              |
+| `Confirm`     | `title, body, destructive`        | the only modal in the app. Used for global apply and revert.                                                                                                                                            |
+| `Toast`       | `message`                         | bottom-left, 4s, one line, no icon, no close button                                                                                                                                                     |
+| `CopyId`      | `id`                              | mono, click copies, 120ms `--pass` flash, no toast                                                                                                                                                      |
 
 ### 4. `Dots` — get this one right
 
@@ -157,13 +157,13 @@ Clickable through to the sessions that produced it. Every number in this applica
 
 **Rows are 40px.** Twenty incidents visible without scrolling on a 900px-tall window. Density is the feature.
 
-| State | Render |
-|---|---|
-| Loading < 300ms | nothing. No skeleton. |
-| Loading ≥ 300ms | one 12.5px `--text-muted` line: `Loading…` |
-| Empty (new org) | *"No incidents yet. Outcome needs about 500 sessions a month to find anything."* + `[ View integration guide ]` |
-| Empty (all handled) | *"Nothing waiting. 14 incidents confirmed this month."* + `[ View outcomes ]` |
-| Error | *"Couldn't load incidents."* + `[ Retry ]`. Inline, one line, no illustration. |
+| State               | Render                                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Loading < 300ms     | nothing. No skeleton.                                                                                           |
+| Loading ≥ 300ms     | one 12.5px `--text-muted` line: `Loading…`                                                                      |
+| Empty (new org)     | _"No incidents yet. Outcome needs about 500 sessions a month to find anything."_ + `[ View integration guide ]` |
+| Empty (all handled) | _"Nothing waiting. 14 incidents confirmed this month."_ + `[ View outcomes ]`                                   |
+| Error               | _"Couldn't load incidents."_ + `[ Retry ]`. Inline, one line, no illustration.                                  |
 
 **Live counter.** When a live session joins an existing incident the users count updates in place — `12` → `13` — inside an `aria-live="polite"` region, with **no animation**. That tick is demo beat 3 and it must land as a fact, not an effect.
 
@@ -197,34 +197,34 @@ SCOPE         7 affected users        [ Apply ]   [ Dismiss ]
 
 **A parked or discarded incident is a first-class view, not an error page.**
 
-| State | Above the fold | Blocks shown | Actions |
-|---|---|---|---|
-| `OPEN` `CLUSTERED` | `Collecting evidence` badge | Evidence only | none |
-| `CLASSIFIED` | verdict badge | Evidence, Classified | none |
-| `ASSERTED` | `Verifying` badge | + Assertion, `BEFORE  ·····  running` | none |
-| **`DISCARDED` (variance)** | **`Discarded — model variance`**, `--warn` | + `BEFORE ●●○●○ 2/5 passed` and the sentence *"Passed 2 of 5 runs against the unchanged config. Intermittent, not a defect. Nothing was applied."* | `[ Reopen ]` |
-| `DISCARDED` (5/5) | `Discarded — our read was wrong` | + `BEFORE ○○○○○ 5/5 passed` + *"The assertion passed every run. The detection was a false positive."* | `[ Reopen ]` |
-| **`HUMAN_REVIEW`** | **`Needs a human`**, `--warn` | + the gate's refusal reason verbatim | `[ Classify manually ]` `[ Dismiss ]` |
-| `PARKED` | `Parked at <stage>` | + `state_reason` verbatim, + whatever completed | `[ Retry ]` `[ Dismiss ]` |
-| `CANDIDATE` | full proof | all eight blocks | **`[ Apply ]` `[ Dismiss ]`** |
-| `APPLIED` | `Applied to 7 users · confirming` | all + `CONFIRMATION  window ends in 21h` | `[ Revert ]` |
-| **`CONFIRMED`** | **`Assertion Verified ✓ · User Outcome Confirmed ✓`** in `--pass` | all + who confirmed and when | `[ Revert ]` |
-| `REVERTED` | `Reverted — signal fired again`, `--fail` | all + the refuting session | `[ Reopen ]` |
-| `EXPIRED` | `Expired — no recurrence in 14 days`, `--text-faint` | all, dimmed | `[ Reopen ]` |
-| `CODE_DEFECT` | `Handed off to Codex` | + the handoff payload, collapsed | `[ Copy payload ]` `[ Resend ]` |
+| State                      | Above the fold                                                    | Blocks shown                                                                                                                                       | Actions                               |
+| -------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `OPEN` `CLUSTERED`         | `Collecting evidence` badge                                       | Evidence only                                                                                                                                      | none                                  |
+| `CLASSIFIED`               | verdict badge                                                     | Evidence, Classified                                                                                                                               | none                                  |
+| `ASSERTED`                 | `Verifying` badge                                                 | + Assertion, `BEFORE  ·····  running`                                                                                                              | none                                  |
+| **`DISCARDED` (variance)** | **`Discarded — model variance`**, `--warn`                        | + `BEFORE ●●○●○ 2/5 passed` and the sentence _"Passed 2 of 5 runs against the unchanged config. Intermittent, not a defect. Nothing was applied."_ | `[ Reopen ]`                          |
+| `DISCARDED` (5/5)          | `Discarded — our read was wrong`                                  | + `BEFORE ○○○○○ 5/5 passed` + _"The assertion passed every run. The detection was a false positive."_                                              | `[ Reopen ]`                          |
+| **`HUMAN_REVIEW`**         | **`Needs a human`**, `--warn`                                     | + the gate's refusal reason verbatim                                                                                                               | `[ Classify manually ]` `[ Dismiss ]` |
+| `PARKED`                   | `Parked at <stage>`                                               | + `state_reason` verbatim, + whatever completed                                                                                                    | `[ Retry ]` `[ Dismiss ]`             |
+| `CANDIDATE`                | full proof                                                        | all eight blocks                                                                                                                                   | **`[ Apply ]` `[ Dismiss ]`**         |
+| `APPLIED`                  | `Applied to 7 users · confirming`                                 | all + `CONFIRMATION  window ends in 21h`                                                                                                           | `[ Revert ]`                          |
+| **`CONFIRMED`**            | **`Assertion Verified ✓ · User Outcome Confirmed ✓`** in `--pass` | all + who confirmed and when                                                                                                                       | `[ Revert ]`                          |
+| `REVERTED`                 | `Reverted — signal fired again`, `--fail`                         | all + the refuting session                                                                                                                         | `[ Reopen ]`                          |
+| `EXPIRED`                  | `Expired — no recurrence in 14 days`, `--text-faint`              | all, dimmed                                                                                                                                        | `[ Reopen ]`                          |
+| `CODE_DEFECT`              | `Handed off to Codex`                                             | + the handoff payload, collapsed                                                                                                                   | `[ Copy payload ]` `[ Resend ]`       |
 
 **The `DISCARDED` view is not a dead end.** It proves the system can correctly refuse
 to act when evidence is insufficient. Design it as carefully as an applied outcome.
 
 ### 6.2 Block details
 
-**Evidence.** Three sessions, collapsed to the two turns around each signal. Signal turns carry a 2px `--warn` left rule and a 12.5px mono tag: `RETRY_REQUEST · 0.81 · baseline 0.12`. `e` expands to the full transcript. All text is the redacted text — say so, once, in 12.5px muted: *"Redacted in the customer's process before transmission."*
+**Evidence.** Three sessions, collapsed to the two turns around each signal. Signal turns carry a 2px `--warn` left rule and a 12.5px mono tag: `RETRY_REQUEST · 0.81 · baseline 0.12`. `e` expands to the full transcript. All text is the redacted text — say so, once, in 12.5px muted: _"Redacted in the customer's process before transmission."_
 
 **Classified.** `CONFIG_DEFECT · 0.86` then the ranked evidence the gate actually used, in order: system prompt and policy → tool definitions → the user's rule set → prior successful traces → other sessions. Showing the hierarchy is what makes the verdict auditable rather than an oracle.
 
 **Assertion.** One mono line. Hover reveals the raw params JSON. This is the reproduction, and it is the artifact that makes the whole claim work — give it room.
 
-**Change.** Unified diff, GitHub gutter, mono, path label above in `--text-muted`. Line count in the label: `6-line diff · tools[export_records].description`. If the diff exceeds `max_diff_bytes` the block shows *"Diff exceeds the 4 KB cap. Human approval required regardless of scope."*
+**Change.** Unified diff, GitHub gutter, mono, path label above in `--text-muted`. Line count in the label: `6-line diff · tools[export_records].description`. If the diff exceeds `max_diff_bytes` the block shows _"Diff exceeds the 4 KB cap. Human approval required regardless of scope."_
 
 **Scope.** `USER` shows `[ Apply ]` as the single primary — no confirmation, blast radius is one person and revert is a pointer swap. `GLOBAL` shows `[ Apply globally ]` and **opens the one modal in the app**, because that one is not trivially reversible in the user's head even though it is in ours.
 
@@ -236,14 +236,14 @@ to act when evidence is insufficient. Design it as carefully as an applied outco
 
 12.5px, 1px border, 4px radius, 2px/6px padding, mono. **No fills** except the three terminal states, which get an 8% alpha background.
 
-| Badge | Color | Fill |
-|---|---|---|
+| Badge                                                  | Color          | Fill |
+| ------------------------------------------------------ | -------------- | ---- |
 | `OPEN` `CLUSTERED` `CLASSIFIED` `ASSERTED` `CANDIDATE` | `--text-muted` | none |
-| `APPLIED` | `--accent` | none |
-| `CONFIRMED` | `--pass` | 8% |
-| `DISCARDED` `EXPIRED` | `--text-faint` | none |
-| `PARKED` `HUMAN_REVIEW` | `--warn` | 8% |
-| `REVERTED` | `--fail` | 8% |
+| `APPLIED`                                              | `--accent`     | none |
+| `CONFIRMED`                                            | `--pass`       | 8%   |
+| `DISCARDED` `EXPIRED`                                  | `--text-faint` | none |
+| `PARKED` `HUMAN_REVIEW`                                | `--warn`       | 8%   |
+| `REVERTED`                                             | `--fail`       | 8%   |
 
 ---
 
@@ -255,7 +255,7 @@ A dense table: `INCIDENT` · `SCOPE` · `USERS` · `APPLIED` · `CONFIRMED` · `
 
 **PDF export is a real feature**, not a stub — `@media print` styles, rail hidden, one incident per block, the dots rendered as SVG so they survive printing. The value proposition of this screen is that someone forwards it.
 
-Empty: *"No confirmed outcomes yet. The first one usually lands within a week of the first apply."*
+Empty: _"No confirmed outcomes yet. The first one usually lands within a week of the first apply."_
 
 ---
 
@@ -266,7 +266,7 @@ Empty: *"No confirmed outcomes yet. The first one usually lands within a week of
 - **Base config**, mono, collapsed.
 - **Every version** with its originating incident linked. Select any two → diff between them. Same `Diff` component.
 - **Per-user overrides**, listed, each individually revertable, each showing `last_resolved_at` — anything unexercised for 90 days is flagged stale in `--text-faint`.
-- **Override count as a first-class number that should trend toward zero**, with the sentence that explains why: *"Overrides that prove out get promoted to global. A number that only grows means promotion is not happening."*
+- **Override count as a first-class number that should trend toward zero**, with the sentence that explains why: _"Overrides that prove out get promoted to global. A number that only grows means promotion is not happening."_
 
 Revert opens `Confirm`. It is destructive from the user's point of view even though it is one UPDATE from ours.
 
@@ -276,7 +276,7 @@ Revert opens `Confirm`. It is destructive from the user's point of view even tho
 
 Keys · redaction allowlist · writable-field allowlist · permission tier (`observe` / `resolve` / `apply`) · Codex endpoint.
 
-The writable-field allowlist is the most important control in the product and it should read that way: the paths as mono chips, and one line of plain English beneath — *"Outcome can never write outside these paths. Enforced in your process by the SDK before anything is sent."*
+The writable-field allowlist is the most important control in the product and it should read that way: the paths as mono chips, and one line of plain English beneath — _"Outcome can never write outside these paths. Enforced in your process by the SDK before anything is sent."_
 
 No account settings, no billing, no team management. Auth is on the do-not-build list.
 
@@ -286,18 +286,18 @@ No account settings, no billing, no team management. Auth is on the do-not-build
 
 Keyboard-first is not a flourish; the buyer lives in Linear and will notice within ten seconds.
 
-| Key | Action |
-|---|---|
-| `j` / `k` | move down / up |
-| `enter` | open |
-| `esc` | back, or close the modal |
-| `a` | apply |
-| `x` | dismiss |
-| `e` | expand evidence |
-| `[` / `]` | previous / next incident |
-| `c` | copy the id under the cursor |
+| Key                     | Action                               |
+| ----------------------- | ------------------------------------ |
+| `j` / `k`               | move down / up                       |
+| `enter`                 | open                                 |
+| `esc`                   | back, or close the modal             |
+| `a`                     | apply                                |
+| `x`                     | dismiss                              |
+| `e`                     | expand evidence                      |
+| `[` / `]`               | previous / next incident             |
+| `c`                     | copy the id under the cursor         |
 | `g i` `g o` `g c` `g s` | inbox · outcomes · config · settings |
-| `?` | shortcut sheet |
+| `?`                     | shortcut sheet                       |
 
 **Every action has a keyboard path and every keyboard action has a visible control.** No mouse-only features, no keyboard-only features. `?` opens a plain two-column list, not a modal with a search field.
 
@@ -324,7 +324,7 @@ Not a compliance checkbox — half of these are also what makes the demo readabl
 - **Numbers:** tabular figures, thousands separators, never rounded when they are counts. `12 users`, not `~12 users`.
 - **Dates:** relative under 7 days (`3h ago`), absolute after (`Aug 19`). Absolute dates on hover, always.
 - **Identifiers** are always mono and always copyable.
-- **The system's refusals are stated plainly and without hedging.** *"Passed 2 of 5 runs against the unchanged config. Intermittent, not a defect. Nothing was applied."* — that sentence is the product's character. It does not say "we couldn't determine."
+- **The system's refusals are stated plainly and without hedging.** _"Passed 2 of 5 runs against the unchanged config. Intermittent, not a defect. Nothing was applied."_ — that sentence is the product's character. It does not say "we couldn't determine."
 
 ---
 
@@ -352,15 +352,15 @@ No styling beyond this. Two panes, a header line each, monospace transcripts. It
 
 ## 15. Build order
 
-| # | Ship | Why this order |
-|---|---|---|
-| 1 | `tokens.css`, `Table`, `StateBadge`, `Dots` | `Dots` is the signature visual; build it before anything depends on it |
-| 2 | Inbox against `fixtures/incidents/seed.json` | proves the reader contract before A's pipeline exists |
-| 3 | Incident — `CANDIDATE` state only | the demo path |
-| 4 | `Diff`, `Evidence`, `Verdict`, `Assertion` | the proof blocks |
-| 5 | Incident — `DISCARDED` and `HUMAN_REVIEW` | refusal and escalation behavior |
-| 6 | Demo windows | beat 10 |
-| 7 | Incident — remaining states | after the demo path is safe |
-| 8 | Outcomes, Config, Settings | first on the cut list |
+| #   | Ship                                         | Why this order                                                         |
+| --- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | `tokens.css`, `Table`, `StateBadge`, `Dots`  | `Dots` is the signature visual; build it before anything depends on it |
+| 2   | Inbox against `fixtures/incidents/seed.json` | proves the reader contract before A's pipeline exists                  |
+| 3   | Incident — `CANDIDATE` state only            | the demo path                                                          |
+| 4   | `Diff`, `Evidence`, `Verdict`, `Assertion`   | the proof blocks                                                       |
+| 5   | Incident — `DISCARDED` and `HUMAN_REVIEW`    | refusal and escalation behavior                                        |
+| 6   | Demo windows                                 | beat 10                                                                |
+| 7   | Incident — remaining states                  | after the demo path is safe                                            |
+| 8   | Outcomes, Config, Settings                   | first on the cut list                                                  |
 
 **Cut from the top of 8, never from the middle of 1–6.**

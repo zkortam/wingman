@@ -40,7 +40,12 @@ export const Rail = () => {
 
   useEffect(() => {
     const listener = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement
+      )
+        return
       if (event.key === '?') {
         setShowShortcuts((visible) => !visible)
       }
@@ -73,7 +78,11 @@ export const Rail = () => {
         ))}
       </nav>
       <div className="rail-footer">
-        <button className="theme-button" onClick={() => setShowShortcuts((visible) => !visible)} type="button">
+        <button
+          className="theme-button"
+          onClick={() => setShowShortcuts((visible) => !visible)}
+          type="button"
+        >
           <KeyHint keys={['?']} /> keys
         </button>
         <button

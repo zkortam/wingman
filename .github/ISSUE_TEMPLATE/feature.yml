@@ -1,6 +1,6 @@
 name: Feature
 description: A bounded change that helps a host, operator, or contributor.
-labels: ["enhancement"]
+labels: ['enhancement']
 body:
   - type: textarea
     id: problem

@@ -8,11 +8,11 @@ This file defines the DDL, write ownership, state machine, and the four derivati
 
 ## 1. Three zones, three retention policies
 
-| Zone | Tables | Retention | Availability requirement |
-|---|---|---|---|
-| **Config** | `orgs`, `agents`, `config_versions`, `config_overrides` | forever | **highest.** The read path. Must survive everything else being down. |
-| **Events** | `sessions`, `turns`, `signals` | **30 days**, hard-deleted | normal |
-| **Ledger** | `incidents`, `assertions`, `runs`, `candidates`, `outcomes`, `pipeline_handoffs` | **forever** | normal |
+| Zone       | Tables                                                                           | Retention                 | Availability requirement                                             |
+| ---------- | -------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
+| **Config** | `orgs`, `agents`, `config_versions`, `config_overrides`                          | forever                   | **highest.** The read path. Must survive everything else being down. |
+| **Events** | `sessions`, `turns`, `signals`                                                   | **30 days**, hard-deleted | normal                                                               |
+| **Ledger** | `incidents`, `assertions`, `runs`, `candidates`, `outcomes`, `pipeline_handoffs` | **forever**               | normal                                                               |
 
 The ledger outlives the events it was derived from. An incident from March still reads as a complete proof in September even though its sessions were deleted in April — which is why `incidents.session_ids` is an array of ids and the evidence excerpts are copied onto the incident, not joined at read time.
 
@@ -22,10 +22,10 @@ The ledger outlives the events it was derived from. An incident from March still
 
 **One writer per table.** This prevents competing state transitions and keeps idempotency auditable.
 
-| Tables | Sole writer | Readers |
-|---|---|---|
-| `orgs`, `agents`, `config_versions`, `config_overrides` | `services/config` | pipeline, sdk delivery |
-| `sessions`, `turns`, `signals` | `services/ingest` | pipeline |
+| Tables                                                                           | Sole writer         | Readers                 |
+| -------------------------------------------------------------------------------- | ------------------- | ----------------------- |
+| `orgs`, `agents`, `config_versions`, `config_overrides`                          | `services/config`   | pipeline, sdk delivery  |
+| `sessions`, `turns`, `signals`                                                   | `services/ingest`   | pipeline                |
 | `incidents`, `assertions`, `runs`, `candidates`, `outcomes`, `pipeline_handoffs` | `services/pipeline` | operators through ports |
 
 ---
@@ -40,7 +40,7 @@ The ledger outlives the events it was derived from. An incident from March still
 
 ---
 
-## 4. DDL — `supabase/migrations/0001_init.sql`
+## 4. DDL — `db/migrations/0001_init.sql`
 
 ```sql
 create extension if not exists pgcrypto;
@@ -335,22 +335,22 @@ any state ──► EXPIRED        (no recurrence in 14 days)
 
 Allowed transitions, enforced in `services/pipeline/src/state.ts` and unit-tested as a table:
 
-| From | To | Trigger |
-|---|---|---|
-| `OPEN` | `CLUSTERED` | second session joins the key, or immediately at K=1 |
-| `CLUSTERED` | `CLASSIFIED` | gate returned a verdict |
-| `CLUSTERED` | `HUMAN_REVIEW` | gate refused |
-| `CLASSIFIED` | `DISCARDED` | verdict `VARIANCE` |
-| `CLASSIFIED` | `ASSERTED` | assertion generated and schema-valid |
-| `CLASSIFIED` | `PARKED` | assertion generation returned junk 3× |
-| `ASSERTED` | `DISCARDED` | verify-fail passCount in 2..5 — flaky, or our read was wrong |
-| `ASSERTED` | `CANDIDATE` | verify-fail passCount ≤ 1 **and** a candidate was produced |
-| `ASSERTED` | `HUMAN_REVIEW` | verdict `CODE_DEFECT` → handoff payload, no auto path |
-| `CANDIDATE` | `PARKED` | verify-pass < 4/5, or the positive suite regressed, or iteration 3 exhausted |
-| `CANDIDATE` | `APPLIED` | `USER` scope auto, or a human approved `GLOBAL` |
-| `APPLIED` | `CONFIRMED` | user repeated the task, signal did not fire |
-| `APPLIED` | `REVERTED` | user repeated the task, **signal fired again** |
-| `APPLIED` | `CONFIRMED` | window elapsed with no matching task → `UNOBSERVED`, **kept** |
+| From         | To             | Trigger                                                                      |
+| ------------ | -------------- | ---------------------------------------------------------------------------- |
+| `OPEN`       | `CLUSTERED`    | second session joins the key, or immediately at K=1                          |
+| `CLUSTERED`  | `CLASSIFIED`   | gate returned a verdict                                                      |
+| `CLUSTERED`  | `HUMAN_REVIEW` | gate refused                                                                 |
+| `CLASSIFIED` | `DISCARDED`    | verdict `VARIANCE`                                                           |
+| `CLASSIFIED` | `ASSERTED`     | assertion generated and schema-valid                                         |
+| `CLASSIFIED` | `PARKED`       | assertion generation returned junk 3×                                        |
+| `ASSERTED`   | `DISCARDED`    | verify-fail passCount in 2..5 — flaky, or our read was wrong                 |
+| `ASSERTED`   | `CANDIDATE`    | verify-fail passCount ≤ 1 **and** a candidate was produced                   |
+| `ASSERTED`   | `HUMAN_REVIEW` | verdict `CODE_DEFECT` → handoff payload, no auto path                        |
+| `CANDIDATE`  | `PARKED`       | verify-pass < 4/5, or the positive suite regressed, or iteration 3 exhausted |
+| `CANDIDATE`  | `APPLIED`      | `USER` scope auto, or a human approved `GLOBAL`                              |
+| `APPLIED`    | `CONFIRMED`    | user repeated the task, signal did not fire                                  |
+| `APPLIED`    | `REVERTED`     | user repeated the task, **signal fired again**                               |
+| `APPLIED`    | `CONFIRMED`    | window elapsed with no matching task → `UNOBSERVED`, **kept**                |
 
 The last row is the one people get wrong. **Revert on evidence of failure, never on absence of evidence.** `UNOBSERVED` keeps the fix and marks the outcome unconfirmed; a user who hits a task once a month would otherwise have a working fix silently rolled back.
 
@@ -363,28 +363,43 @@ Confirmation window: **24 hours** from apply, or the user's next session with a 
 Both engineers implement these. They must agree byte for byte, so all four live in `@wingman/schema` as pure functions with tests.
 
 ### `userHash(orgSalt, userId)`
+
 ```ts
 hmacSHA256(orgSalt, userId).hex().slice(0, 32)
 ```
+
 Per-org salt, not global — a hash cannot be correlated across customers. **We never store an identity.** The salt is copied into the agent host at install as `WINGMAN_ORG_SALT` (the same UTF-8 bytes stored in `orgs.user_salt`). The SDK hashes locally, so raw user ids never reach Wingman. There is no salt-fetch API.
 
 ### `taskFingerprint(session)`
+
 Deliberately crude. Clustering is recall-oriented; precision comes from the gate and from the assertion.
+
 ```ts
-sha256([ agentId, firstToolDecision?.name ?? 'no_tool', objectTypeOf(firstToolDecision) ].join('|'))
+sha256(
+  [
+    agentId,
+    firstToolDecision?.name ?? 'no_tool',
+    objectTypeOf(firstToolDecision),
+  ].join('|'),
+)
 ```
+
 Falls back to the cosine centroid of the session's user-turn embeddings when there is no tool decision. If embeddings get cut, sessions with no tool decision simply do not cluster — an acceptable loss, documented rather than hidden.
 
 ### `incidentKey(agentId, signalKind, taskFingerprint)`
+
 ```ts
 sha256([agentId, signalKind, taskFingerprint].join('|'))
 ```
+
 **The idempotency key for the entire pipeline.** Every stage upserts on it. Inngest redelivery is therefore free.
 
 ### `assertionIdentity(kind, params)`
+
 ```ts
 sha256(canonicalJSON({ kind, ...params }))
 ```
+
 **The assertion is the true cluster key.** Fingerprint is a bucketing heuristic; identity is identity. If a new session's assertion identity does not match the incident's, it spawns its own incident — enforced by `unique (agent_id, identity)` on `assertions`.
 
 ---
@@ -399,7 +414,12 @@ export function canonicalJSON(v: unknown): string
 // object keys sorted lexicographically · no whitespace · arrays keep order
 // numbers via JSON.stringify · undefined dropped · no Date/Map/Set (throws)
 
-export function signConfig(key: Buffer, agentId: string, version: number, cfg: AgentConfig): string
+export function signConfig(
+  key: Buffer,
+  agentId: string,
+  version: number,
+  cfg: AgentConfig,
+): string
 // = hmacSHA256(key, `${agentId}.${version}.${canonicalJSON(cfg)}`).hex()
 ```
 
@@ -445,7 +465,7 @@ Sweep order matters: children first, or the cascade does the work but the delete
 
 ## 11. Bootstrap one org and one agent
 
-Apply migrations in filename order (`supabase db push`, `psql`, or the SQL editor). Then insert one org, one agent, and a BASE `config_versions` row whose `signature` is `signConfig(signingKey, agentId, 1, config)` from `@wingman/schema`.
+Apply migrations with `pnpm db:migrate`, or in filename order with `psql`. Then insert one org, one agent, and a BASE `config_versions` row whose `signature` is `signConfig(signingKey, agentId, 1, config)` from `@wingman/schema`.
 
 Store `user_salt` and `signing_key` as the UTF-8 bytes of the same strings the agent host puts in `WINGMAN_ORG_SALT` and `WINGMAN_SIGNING_KEY`. HMAC keys are those strings, not decoded hex. `convert_to('your-salt', 'UTF8')` on the Postgres side matches `createHmac('sha256', process.env.WINGMAN_ORG_SALT)`.
 
@@ -459,11 +479,11 @@ prints the INSERT statements and the agent-host env block. Copy `WINGMAN_OPERATO
 
 ## 12. Deliberate scope boundaries
 
-| Not modelled | Why | When it arrives |
-|---|---|---|
-| Users, teams, memberships | Identity belongs to the deployment's control plane | when a deployment exposes a multi-user operator API |
-| Direct-client tenant policies | RLS is deny-all; access is server-side only | before any direct database client is enabled |
-| Soft deletes on ledger rows | The ledger is the audit trail. It does not delete. | never |
-| `ORG` and `SESSION` scopes | USER and GLOBAL have clear, reversible semantics | when a production requirement justifies another scope |
-| Assertion versioning | An edited assertion is a new assertion, by identity | never |
-| A `config_diffs` table | The diff lives on `candidates`; versions store full configs | never — full configs make revert trivial |
+| Not modelled                  | Why                                                         | When it arrives                                       |
+| ----------------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| Users, teams, memberships     | Identity belongs to the deployment's control plane          | when a deployment exposes a multi-user operator API   |
+| Direct-client tenant policies | RLS is deny-all; access is server-side only                 | before any direct database client is enabled          |
+| Soft deletes on ledger rows   | The ledger is the audit trail. It does not delete.          | never                                                 |
+| `ORG` and `SESSION` scopes    | USER and GLOBAL have clear, reversible semantics            | when a production requirement justifies another scope |
+| Assertion versioning          | An edited assertion is a new assertion, by identity         | never                                                 |
+| A `config_diffs` table        | The diff lives on `candidates`; versions store full configs | never — full configs make revert trivial              |

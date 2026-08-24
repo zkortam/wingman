@@ -1,0 +1,28 @@
+{
+  "semi": false,
+  "singleQuote": true,
+  "printWidth": 100,
+  "trailingComma": "all",
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["*.md", "*.yml", "*.yaml"],
+      "options": {
+        "printWidth": 80
+      }
+    },
+    {
+      "files": ["*.json"],
+      "options": {
+        "singleQuote": false
+      }
+    },
+    {
+      "files": ["*.css"],
+      "options": {
+        "singleQuote": false
+      }
+    }
+  ]
+}

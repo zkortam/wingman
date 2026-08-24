@@ -1,264 +1,285 @@
-import type { ServiceClient } from "@wingman/db";
-import type { Json } from "@wingman/db";
+import type { Executor, Row } from '@wingman/db'
 
-import { PIPELINE_POLICY } from "../policy.js";
-import type { PipelineRepository } from "../repository.js";
-import { assertTransition } from "../state.js";
-import { createMaintenanceStore } from "./maintenance.js";
-import {
-  mapAssertion,
-  mapCandidate,
-  mapIncident,
-  mapOutcome,
-  mapRun,
-  type Row,
-} from "./mappers.js";
-import { single } from "./read-helpers.js";
-import {
-  assertSamePayload,
-  findRun,
-  toCandidateUpdate,
-  toIncidentUpdate,
-  toOutcomeUpdate,
-} from "./write-helpers.js";
+import { PIPELINE_POLICY } from '../policy.js'
+import type { PipelineRepository } from '../repository.js'
+import { assertTransition } from '../state.js'
+import { createMaintenanceStore } from './maintenance.js'
+import { mapAssertion, mapCandidate, mapIncident, mapOutcome, mapRun } from './mappers.js'
+import { one, optional } from './read-helpers.js'
+import { assertSamePayload } from './write-helpers.js'
 
 type WriteStore = Pick<
   PipelineRepository,
-  | "createOrJoinIncident"
-  | "updateIncident"
-  | "splitIncident"
-  | "saveAssertion"
-  | "saveRun"
-  | "saveCandidate"
-  | "updateCandidate"
-  | "createOutcome"
-  | "updateOutcome"
-  | "expireIncidents"
-  | "retainEvents"
-  | "saveHandoff"
->;
+  | 'createOrJoinIncident'
+  | 'updateIncident'
+  | 'splitIncident'
+  | 'saveAssertion'
+  | 'promoteAssertion'
+  | 'saveRun'
+  | 'saveCandidate'
+  | 'updateCandidate'
+  | 'createOutcome'
+  | 'updateOutcome'
+  | 'expireIncidents'
+  | 'retainEvents'
+  | 'saveHandoff'
+>
 
 export function createWriteStore(
-  client: ServiceClient,
-  read: Pick<PipelineRepository, "findIncident" | "getIncident">,
+  sql: Executor,
+  read: Pick<PipelineRepository, 'findIncident' | 'getIncident'>,
 ): WriteStore {
   return {
-    ...createMaintenanceStore(client),
+    ...createMaintenanceStore(sql),
+
     async createOrJoinIncident(input) {
-      const row = await single<Row<"incidents">>(
-        client.rpc("wingman_join_incident", {
-          p_org_id: input.session.orgId,
-          p_agent_id: input.session.agentId,
-          p_key: input.key,
-          p_fingerprint: input.fingerprint,
-          p_signal_kind: input.signalKind,
-          p_title: input.title,
-          p_user_hash: input.session.userHash,
-          p_session_id: input.session.id,
-          p_evidence: input.evidence as Json,
-          p_seen_at: input.session.endedAt ?? input.session.startedAt,
-          p_expires_at: input.expiresAt,
-          p_cluster_minimum: PIPELINE_POLICY.clusterMinimumSessions,
-        }).single(),
-      );
-      return mapIncident(row);
+      const row = one(
+        await sql<Row<'incidents'>[]>`
+          select * from wingman_join_incident(
+            ${input.session.orgId}::uuid,
+            ${input.session.agentId}::uuid,
+            ${input.key},
+            ${input.fingerprint},
+            ${input.signalKind},
+            ${input.title},
+            ${input.session.userHash},
+            ${input.session.id}::uuid,
+            ${sql.json(input.evidence)}::jsonb,
+            ${input.session.endedAt ?? input.session.startedAt}::timestamptz,
+            ${input.expiresAt}::timestamptz,
+            ${PIPELINE_POLICY.clusterMinimumSessions}
+          )
+        `,
+        'Incident',
+      )
+      return mapIncident(row)
     },
 
     async updateIncident(id, expectedState, patch) {
       if (patch.state !== undefined && patch.state !== expectedState)
-        assertTransition(expectedState, patch.state);
-      const row = await single<Row<"incidents">>(
-        client
-          .from("incidents")
-          .update(toIncidentUpdate(patch))
-          .eq("id", id)
-          .eq("state", expectedState)
-          .select("*")
-          .single(),
-      );
-      return mapIncident(row);
+        assertTransition(expectedState, patch.state)
+      const row = optional(
+        await sql<Row<'incidents'>[]>`
+          update incidents set
+            state = ${patch.state ?? sql`state`},
+            state_reason = ${patch.stateReason === undefined ? sql`state_reason` : patch.stateReason},
+            attempt = ${patch.attempt ?? sql`attempt`},
+            verdict = ${patch.verdict === undefined ? sql`verdict` : patch.verdict},
+            verdict_confidence = ${
+              patch.verdictConfidence === undefined
+                ? sql`verdict_confidence`
+                : patch.verdictConfidence
+            },
+            verdict_evidence = ${
+              patch.verdictEvidence === undefined
+                ? sql`verdict_evidence`
+                : patch.verdictEvidence === null
+                  ? null
+                  : sql.json(patch.verdictEvidence)
+            },
+            assertion_id = ${patch.assertionId === undefined ? sql`assertion_id` : patch.assertionId}
+          where id = ${id} and state = ${expectedState}
+          returning *
+        `,
+      )
+      // Compare-and-set: no row means the state moved under us.
+      if (row === null) throw new Error(`Incident state changed: ${id}`)
+      return mapIncident(row)
     },
 
     async splitIncident(incident, key, identity) {
-      const existing = await read.findIncident(incident.agentId, key);
-      if (existing !== null) return existing;
-      const row = await single<Row<"incidents">>(
-        client
-          .from("incidents")
-          .insert({
-            org_id: incident.orgId,
-            agent_id: incident.agentId,
-            key,
-            fingerprint: incident.fingerprint,
-            signal_kind: incident.signalKind,
-            title: incident.title,
-            state: "CLASSIFIED",
-            state_reason: `ASSERTION_SPLIT:${identity}`,
-            user_hashes: incident.userHashes,
-            session_ids: incident.sessionIds,
-            evidence_excerpts: incident.evidenceExcerpts,
-            expires_at: incident.expiresAt,
-          })
-          .select("*")
-          .single(),
-      );
-      return mapIncident(row);
+      const existing = await read.findIncident(incident.agentId, key)
+      if (existing !== null) return existing
+      const row = one(
+        await sql<Row<'incidents'>[]>`
+          insert into incidents (
+            org_id, agent_id, key, fingerprint, signal_kind, title, state, state_reason,
+            user_hashes, session_ids, evidence_excerpts, expires_at,
+            verdict, verdict_confidence, verdict_evidence
+          ) values (
+            ${incident.orgId}::uuid, ${incident.agentId}::uuid, ${key}, ${incident.fingerprint},
+            ${incident.signalKind}, ${incident.title}, 'CLASSIFIED',
+            ${`ASSERTION_SPLIT:${identity}`},
+            ${incident.userHashes}::text[], ${incident.sessionIds}::uuid[],
+            ${sql.json(incident.evidenceExcerpts)}::jsonb, ${incident.expiresAt}::timestamptz,
+            ${incident.verdict}, ${incident.verdictConfidence},
+            ${incident.verdictEvidence === null ? null : sql.json(incident.verdictEvidence)}
+          )
+          returning *
+        `,
+        'Incident',
+      )
+      return mapIncident(row)
     },
 
     async saveAssertion(input) {
-      const result = await client
-        .from("assertions")
-        .select("*")
-        .eq("agent_id", input.incident.agentId)
-        .eq("identity", input.identity)
-        .maybeSingle();
-      if (result.error) throw result.error;
-      if (result.data !== null) {
-        const existing = mapAssertion(result.data as Row<"assertions">);
-        assertSamePayload("assertion", existing.definition, input.definition);
-        return existing;
+      const existing = optional(
+        await sql<Row<'assertions'>[]>`
+          select * from assertions
+          where agent_id = ${input.incident.agentId} and identity = ${input.identity}
+        `,
+      )
+      if (existing !== null) {
+        const mapped = mapAssertion(existing)
+        assertSamePayload('assertion', mapped.definition, input.definition)
+        return mapped
       }
-      const { kind, ...params } = input.definition;
-      const row = await single<Row<"assertions">>(
-        client
-          .from("assertions")
-          .insert({
-            incident_id: input.incident.id,
-            agent_id: input.incident.agentId,
-            kind,
-            params: params as Json,
-            identity: input.identity,
-            source_session_id: input.sourceSessionId,
-            polarity: input.polarity,
-          })
-          .select("*")
-          .single(),
-      );
-      return mapAssertion(row);
+      const { kind, ...params } = input.definition
+      const row = one(
+        await sql<Row<'assertions'>[]>`
+          insert into assertions (
+            incident_id, agent_id, kind, params, identity, source_session_id, polarity
+          ) values (
+            ${input.incident.id}::uuid, ${input.incident.agentId}::uuid, ${kind},
+            ${sql.json(params)}::jsonb, ${input.identity},
+            ${input.sourceSessionId}, ${input.polarity}
+          )
+          returning *
+        `,
+        'Assertion',
+      )
+      return mapAssertion(row)
+    },
+
+    async promoteAssertion(id) {
+      const row = one(
+        await sql<Row<'assertions'>[]>`
+          update assertions set polarity = 'positive' where id = ${id} returning *
+        `,
+        'Assertion',
+      )
+      return mapAssertion(row)
     },
 
     async saveRun(input) {
-      const existing = await findRun(client, input);
+      const existing = optional(
+        await sql<Row<'runs'>[]>`
+          select * from runs
+          where assertion_id = ${input.assertionId}
+            and phase = ${input.phase}
+            and attempt = ${input.attempt}
+            and incident_id is not distinct from ${input.incidentId}
+            and candidate_id is not distinct from ${input.candidateId}
+        `,
+      )
       if (existing !== null) {
-        const mapped = mapRun(existing);
+        const mapped = mapRun(existing)
         assertSamePayload(
-          "runner",
+          'runner',
           { n: mapped.n, passCount: mapped.passCount, results: mapped.results },
           { n: input.n, passCount: input.passCount, results: input.results },
-        );
-        return mapped;
+        )
+        return mapped
       }
-      const row = await single<Row<"runs">>(
-        client
-          .from("runs")
-          .insert({
-            assertion_id: input.assertionId,
-            incident_id: input.incidentId,
-            phase: input.phase,
-            attempt: input.attempt,
-            config_version_id: input.configVersionId,
-            candidate_id: input.candidateId,
-            n: input.n,
-            pass_count: input.passCount,
-            results: input.results as Json,
-            tool_executions: input.toolExecutions,
-          })
-          .select("*")
-          .single(),
-      );
-      return mapRun(row);
+      const row = one(
+        await sql<Row<'runs'>[]>`
+          insert into runs (
+            assertion_id, incident_id, phase, attempt, config_version_id, candidate_id,
+            n, pass_count, results, tool_executions
+          ) values (
+            ${input.assertionId}::uuid, ${input.incidentId}, ${input.phase}, ${input.attempt},
+            ${input.configVersionId}, ${input.candidateId}, ${input.n}, ${input.passCount},
+            ${sql.json(input.results)}::jsonb, ${input.toolExecutions}
+          )
+          returning *
+        `,
+        'Run',
+      )
+      return mapRun(row)
     },
 
     async saveCandidate(input) {
-      const result = await client
-        .from("candidates")
-        .select("*")
-        .eq("incident_id", input.incidentId)
-        .eq("attempt", input.attempt)
-        .eq("iteration", input.iteration)
-        .maybeSingle();
-      if (result.error) throw result.error;
-      if (result.data !== null) {
-        const existing = mapCandidate(result.data as Row<"candidates">);
-        assertSamePayload("fix", existing.diff, input.diff);
-        return existing;
+      const existing = optional(
+        await sql<Row<'candidates'>[]>`
+          select * from candidates
+          where incident_id = ${input.incidentId}
+            and attempt = ${input.attempt}
+            and iteration = ${input.iteration}
+        `,
+      )
+      if (existing !== null) {
+        const mapped = mapCandidate(existing)
+        assertSamePayload('fix', mapped.diff, input.diff)
+        return mapped
       }
-      const row = await single<Row<"candidates">>(
-        client
-          .from("candidates")
-          .insert({
-            incident_id: input.incidentId,
-            diff: input.diff as Json,
-            diff_bytes: input.diffBytes,
-            base_version_id: input.baseVersionId,
-            attempt: input.attempt,
-            iteration: input.iteration,
-          })
-          .select("*")
-          .single(),
-      );
-      return mapCandidate(row);
+      const row = one(
+        await sql<Row<'candidates'>[]>`
+          insert into candidates (
+            incident_id, diff, diff_bytes, base_version_id, attempt, iteration
+          ) values (
+            ${input.incidentId}::uuid, ${sql.json(input.diff)}::jsonb, ${input.diffBytes},
+            ${input.baseVersionId}::uuid, ${input.attempt}, ${input.iteration}
+          )
+          returning *
+        `,
+        'Candidate',
+      )
+      return mapCandidate(row)
     },
 
     async updateCandidate(id, patch) {
-      const row = await single<Row<"candidates">>(
-        client
-          .from("candidates")
-          .update(toCandidateUpdate(patch))
-          .eq("id", id)
-          .select("*")
-          .single(),
-      );
-      return mapCandidate(row);
+      const row = one(
+        await sql<Row<'candidates'>[]>`
+          update candidates set
+            state = ${patch.state},
+            rejected_reason = ${
+              patch.rejectedReason === undefined ? sql`rejected_reason` : patch.rejectedReason
+            },
+            new_version_id = ${
+              patch.newVersionId === undefined ? sql`new_version_id` : patch.newVersionId
+            }
+          where id = ${id}
+          returning *
+        `,
+        'Candidate',
+      )
+      return mapCandidate(row)
     },
 
     async createOutcome(input) {
-      const result = await client
-        .from("outcomes")
-        .select("*")
-        .eq("incident_id", input.incidentId)
-        .eq("candidate_id", input.candidateId)
-        .eq("scope", input.scope)
-        .maybeSingle();
-      if (result.error) throw result.error;
-      if (result.data !== null)
-        return mapOutcome(result.data as Row<"outcomes">);
-      const row = await single<Row<"outcomes">>(
-        client
-          .from("outcomes")
-          .insert({
-            incident_id: input.incidentId,
-            candidate_id: input.candidateId,
-            scope: input.scope,
-            applied_to: input.appliedTo,
-            applied_version_id: input.versionId,
-            window_ends_at: input.windowEndsAt,
-          })
-          .select("*")
-          .single(),
-      );
-      return mapOutcome(row);
+      const row = one(
+        await sql<Row<'outcomes'>[]>`
+          insert into outcomes (
+            incident_id, candidate_id, scope, applied_to, applied_version_id, window_ends_at
+          ) values (
+            ${input.incidentId}::uuid, ${input.candidateId}::uuid, ${input.scope},
+            ${input.appliedTo}::text[], ${input.versionId}::uuid,
+            ${input.windowEndsAt}::timestamptz
+          )
+          on conflict (incident_id, candidate_id, scope)
+            do update set incident_id = excluded.incident_id
+          returning *
+        `,
+        'Outcome',
+      )
+      return mapOutcome(row)
     },
 
     async updateOutcome(id, patch) {
-      const row = await single<Row<"outcomes">>(
-        client
-          .from("outcomes")
-          .update(toOutcomeUpdate(patch))
-          .eq("id", id)
-          .select("*")
-          .single(),
-      );
-      return mapOutcome(row);
+      const row = one(
+        await sql<Row<'outcomes'>[]>`
+          update outcomes set
+            status = ${patch.status},
+            confirmed_at = ${
+              patch.confirmedAt === undefined ? sql`confirmed_at` : patch.confirmedAt
+            },
+            reverted_at = ${patch.revertedAt === undefined ? sql`reverted_at` : patch.revertedAt}
+          where id = ${id}
+          returning *
+        `,
+        'Outcome',
+      )
+      return mapOutcome(row)
     },
 
     async saveHandoff(record) {
-      const { error } = await client.from('pipeline_handoffs').upsert({
-        incident_id: record.incidentId,
-        payload: record.payload,
-        remote_thread_id: record.remoteThreadId,
-      }, { onConflict: 'incident_id', ignoreDuplicates: true })
-      if (error) throw error
+      await sql`
+        insert into pipeline_handoffs (incident_id, payload, remote_thread_id)
+        values (
+          ${record.incidentId}::uuid, ${sql.json(record.payload)}::jsonb, ${record.remoteThreadId}
+        )
+        on conflict (incident_id) do nothing
+      `
     },
-  };
+  }
 }

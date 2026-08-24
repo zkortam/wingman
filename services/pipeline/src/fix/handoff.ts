@@ -1,15 +1,15 @@
-import { HandoffPayloadSchema, type Assertion } from "@wingman/schema";
+import { HandoffPayloadSchema, type Assertion } from '@wingman/schema'
 
-import type { IncidentRecord } from "../domain.js";
-import type { PipelineRepository } from "../repository.js";
-import type { AppServerClient } from "./app-server.js";
+import type { IncidentRecord } from '../domain.js'
+import type { PipelineRepository } from '../repository.js'
+import type { AppServerClient } from './app-server.js'
 
 export async function handoffCodeDefect(input: {
-  repository: PipelineRepository;
-  appServer: AppServerClient;
-  incident: IncidentRecord;
-  assertion: Assertion;
-  before: Awaited<ReturnType<PipelineRepository["saveRun"]>>;
+  repository: PipelineRepository
+  appServer: AppServerClient
+  incident: IncidentRecord
+  assertion: Assertion
+  before: Awaited<ReturnType<PipelineRepository['saveRun']>>
 }): Promise<void> {
   const payload = HandoffPayloadSchema.parse({
     task: `Investigate code defect: ${input.incident.title}`,
@@ -21,11 +21,11 @@ export async function handoffCodeDefect(input: {
       priorAttempts: [],
     },
     constraints: { maxIterations: 5, requireTestPass: true },
-  });
-  const remote = await input.appServer.handoff(payload);
+  })
+  const remote = await input.appServer.handoff(payload)
   await input.repository.saveHandoff({
     incidentId: input.incident.id,
     payload,
     remoteThreadId: remote.threadId,
-  });
+  })
 }

@@ -1,28 +1,25 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto'
 
-import { OutcomeSchema } from "@wingman/schema";
-import { describe, expect, it } from "vitest";
+import { OutcomeSchema } from '@wingman/schema'
+import { describe, expect, it } from 'vitest'
 
 import {
   evaluateObservedConfirmation,
   markUnobserved,
   revertAppliedOutcome,
-} from "./confirmation.js";
-import { ReplayAppServerClient } from "./fix/app-server.js";
-import { InMemoryLedger } from "./ledger/index.js";
-import { StubConfigStore } from "./stubs/config-store.js";
-import { ReplayDatabase } from "./stubs/database.js";
-import { ReplayPipelineRepository } from "./stubs/repository.js";
+} from './confirmation.js'
+import { ReplayAppServerClient } from './fix/app-server.js'
+import { InMemoryLedger } from './ledger/index.js'
+import { StubConfigStore } from './stubs/config-store.js'
+import { ReplayDatabase } from './stubs/database.js'
+import { ReplayPipelineRepository } from './stubs/repository.js'
 
-describe("confirmation", () => {
-  it("refutes and immediately reverts when a matching signal recurs", async () => {
-    const fixture = await appliedFixture(
-      new Date(Date.now() + 60_000).toISOString(),
-    );
+describe('confirmation', () => {
+  it('refutes and immediately reverts when a matching signal recurs', async () => {
+    const fixture = await appliedFixture(new Date(Date.now() + 60_000).toISOString())
     expect(
-      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash))
-        .systemPrompt,
-    ).toBe("fixed");
+      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash)).systemPrompt,
+    ).toBe('fixed')
     const outcome = await evaluateObservedConfirmation({
       repository: fixture.repository,
       configStore: fixture.configStore,
@@ -30,26 +27,19 @@ describe("confirmation", () => {
       appServer: new ReplayAppServerClient(),
       session: fixture.session,
       signalCount: 2,
-    });
-    expect(outcome?.status).toBe("REFUTED");
+    })
+    expect(outcome?.status).toBe('REFUTED')
     expect(
-      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash))
-        .systemPrompt,
-    ).toBe("base");
-    expect(
-      (await fixture.repository.getIncident(fixture.incidentId)).state,
-    ).toBe("REVERTED");
-  });
+      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash)).systemPrompt,
+    ).toBe('base')
+    expect((await fixture.repository.getIncident(fixture.incidentId)).state).toBe('REVERTED')
+  })
 
-  it("revokes the global pointer when a global outcome is refuted", async () => {
-    const fixture = await appliedFixture(
-      new Date(Date.now() + 60_000).toISOString(),
-      "GLOBAL",
-    );
-    expect(
-      (await fixture.configStore.resolve(fixture.agentId, "another-user"))
-        .systemPrompt,
-    ).toBe("fixed");
+  it('revokes the global pointer when a global outcome is refuted', async () => {
+    const fixture = await appliedFixture(new Date(Date.now() + 60_000).toISOString(), 'GLOBAL')
+    expect((await fixture.configStore.resolve(fixture.agentId, 'another-user')).systemPrompt).toBe(
+      'fixed',
+    )
 
     await evaluateObservedConfirmation({
       repository: fixture.repository,
@@ -58,99 +48,128 @@ describe("confirmation", () => {
       appServer: new ReplayAppServerClient(),
       session: fixture.session,
       signalCount: 1,
-    });
+    })
 
-    expect(
-      (await fixture.configStore.resolve(fixture.agentId, "another-user"))
-        .systemPrompt,
-    ).toBe("base");
-  });
+    expect((await fixture.configStore.resolve(fixture.agentId, 'another-user')).systemPrompt).toBe(
+      'base',
+    )
+  })
 
-  it("manually reverts config, outcome, and incident as one idempotent command", async () => {
-    const fixture = await appliedFixture(
-      new Date(Date.now() + 60_000).toISOString(),
-    );
+  it('manually reverts config, outcome, and incident as one idempotent command', async () => {
+    const fixture = await appliedFixture(new Date(Date.now() + 60_000).toISOString())
 
     await revertAppliedOutcome({
       repository: fixture.repository,
       configStore: fixture.configStore,
       ledger: new InMemoryLedger(),
       incidentId: fixture.incidentId,
-    });
+    })
     await revertAppliedOutcome({
       repository: fixture.repository,
       configStore: fixture.configStore,
       ledger: new InMemoryLedger(),
       incidentId: fixture.incidentId,
-    });
+    })
 
-    const snapshot = await fixture.repository.getSnapshot(fixture.incidentId);
-    expect(snapshot.incident.state).toBe("REVERTED");
-    expect(snapshot.incident.stateReason).toBe("OPERATOR_REVERTED");
-    expect(snapshot.outcome?.status).toBe("REVERTED");
-    expect(await fixture.configStore.resolve(fixture.agentId, fixture.userHash))
-      .toEqual({ systemPrompt: "base", tools: {}, retrieval: {}, rules: [] });
-  });
+    const snapshot = await fixture.repository.getSnapshot(fixture.incidentId)
+    expect(snapshot.incident.state).toBe('REVERTED')
+    expect(snapshot.incident.stateReason).toBe('OPERATOR_REVERTED')
+    expect(snapshot.outcome?.status).toBe('REVERTED')
+    expect(await fixture.configStore.resolve(fixture.agentId, fixture.userHash)).toEqual({
+      systemPrompt: 'base',
+      tools: {},
+      retrieval: {},
+      rules: [],
+    })
+  })
 
-  it("retains an unobserved fix after the window", async () => {
-    const fixture = await appliedFixture(
-      new Date(Date.now() - 1_000).toISOString(),
-    );
+  it('retains an unobserved fix after the window', async () => {
+    const fixture = await appliedFixture(new Date(Date.now() - 1_000).toISOString())
     expect(
       await markUnobserved({
         repository: fixture.repository,
         incidentId: fixture.incidentId,
         now: new Date(),
       }),
-    ).toBe("UNOBSERVED");
+    ).toBe('UNOBSERVED')
     expect(
-      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash))
-        .systemPrompt,
-    ).toBe("fixed");
-    expect(
-      (await fixture.repository.getIncident(fixture.incidentId)).stateReason,
-    ).toBe("UNOBSERVED_RETAINED");
-  });
-});
+      (await fixture.configStore.resolve(fixture.agentId, fixture.userHash)).systemPrompt,
+    ).toBe('fixed')
+    expect((await fixture.repository.getIncident(fixture.incidentId)).stateReason).toBe(
+      'UNOBSERVED_RETAINED',
+    )
+  })
+})
 
-async function appliedFixture(windowEndsAt: string, scope: "USER" | "GLOBAL" = "USER") {
-  const database = new ReplayDatabase();
-  const repository = new ReplayPipelineRepository(database);
-  const configStore = new StubConfigStore(database);
-  const agentId = randomUUID();
-  const orgId = randomUUID();
-  const incidentId = randomUUID();
-  const candidateId = randomUUID();
-  const userHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+/** The positive suite is the "does not regress anything else" half of the proof. */
+describe('a confirmed fix becomes a regression test', () => {
+  it('promotes the incident assertion into the agent positive suite', async () => {
+    const fixture = await appliedFixture(new Date(Date.now() - 60_000).toISOString())
+    const incident = await fixture.repository.getIncident(fixture.incidentId)
+    const assertion = await fixture.repository.saveAssertion({
+      incident,
+      definition: {
+        kind: 'TOOL_ARG_EQUALS',
+        tool: 'export_records',
+        arg: 'filters',
+        expected: { $ref: 'session.viewFilters' },
+      },
+      identity: 'd'.repeat(64),
+      sourceSessionId: fixture.session.id,
+      polarity: 'negative',
+    })
+    await fixture.repository.updateIncident(fixture.incidentId, incident.state, {
+      assertionId: assertion.id,
+    })
+    expect(await fixture.repository.listPositiveAssertions(fixture.agentId)).toHaveLength(0)
+
+    await evaluateObservedConfirmation({
+      repository: fixture.repository,
+      configStore: fixture.configStore,
+      ledger: new InMemoryLedger(),
+      appServer: new ReplayAppServerClient(),
+      session: fixture.session,
+      signalCount: 0,
+    })
+
+    const positives = await fixture.repository.listPositiveAssertions(fixture.agentId)
+    expect(positives.map(({ id }) => id)).toContain(assertion.id)
+  })
+})
+
+async function appliedFixture(windowEndsAt: string, scope: 'USER' | 'GLOBAL' = 'USER') {
+  const database = new ReplayDatabase()
+  const repository = new ReplayPipelineRepository(database)
+  const configStore = new StubConfigStore(database)
+  const agentId = randomUUID()
+  const orgId = randomUUID()
+  const incidentId = randomUUID()
+  const candidateId = randomUUID()
+  const userHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   configStore.seed(agentId, {
-    systemPrompt: "base",
+    systemPrompt: 'base',
     tools: {},
     retrieval: {},
     rules: [],
-  });
+  })
   const version = await configStore.writeVersion(
     agentId,
-    { systemPrompt: "fixed", tools: {}, retrieval: {}, rules: [] },
+    { systemPrompt: 'fixed', tools: {}, retrieval: {}, rules: [] },
     incidentId,
-  );
-  await configStore.setOverride(
-    agentId,
-    scope === "GLOBAL" ? "" : userHash,
-    version.id,
-    scope,
-  );
+  )
+  await configStore.setOverride(agentId, scope === 'GLOBAL' ? '' : userHash, version.id, scope)
   database.incidents.set(incidentId, {
     id: incidentId,
     orgId,
     agentId,
-    key: "key",
-    fingerprint: "fingerprint",
-    signalKind: "RETRY_REQUEST",
-    title: "Incident",
-    state: "APPLIED",
+    key: 'key',
+    fingerprint: 'fingerprint',
+    signalKind: 'RETRY_REQUEST',
+    title: 'Incident',
+    state: 'APPLIED',
     stateReason: null,
     attempt: 1,
-    verdict: "PREFERENCE",
+    verdict: 'PREFERENCE',
     verdictConfidence: 0.9,
     verdictEvidence: {},
     assertionId: null,
@@ -160,7 +179,7 @@ async function appliedFixture(windowEndsAt: string, scope: "USER" | "GLOBAL" = "
     firstSeen: new Date().toISOString(),
     lastSeen: new Date().toISOString(),
     expiresAt: null,
-  });
+  })
   const outcome = OutcomeSchema.parse({
     id: randomUUID(),
     incidentId,
@@ -168,21 +187,21 @@ async function appliedFixture(windowEndsAt: string, scope: "USER" | "GLOBAL" = "
     scope,
     appliedTo: [userHash],
     appliedVersionId: version.id,
-    status: "PENDING",
+    status: 'PENDING',
     windowEndsAt,
     confirmedAt: null,
     revertedAt: null,
     createdAt: new Date().toISOString(),
-  });
-  database.outcomes.set(outcome.id, outcome);
+  })
+  database.outcomes.set(outcome.id, outcome)
   const session = {
     id: randomUUID(),
     orgId,
     agentId,
     userHash,
-    taskFingerprint: "fingerprint",
+    taskFingerprint: 'fingerprint',
     startedAt: new Date().toISOString(),
     turns: [],
-  };
-  return { repository, configStore, agentId, incidentId, userHash, session };
+  }
+  return { repository, configStore, agentId, incidentId, userHash, session }
 }

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from 'node:crypto'
 
 import {
   AssertionSchema,
@@ -7,36 +7,32 @@ import {
   OutcomeSchema,
   RunSchema,
   StageError,
-} from "@wingman/schema";
+} from '@wingman/schema'
 
-import type { IncidentRecord } from "../domain.js";
-import { PIPELINE_POLICY } from "../policy.js";
-import type { PipelineRepository } from "../repository.js";
-import { assertTransition } from "../state.js";
-import type { ReplayDatabase } from "./database.js";
-import {
-  defined,
-  required,
-  unique,
-  uniqueEvidence,
-} from "./repository-helpers.js";
-import type { ReplayReadRepository } from "./repository-read.js";
+import type { IncidentRecord } from '../domain.js'
+import { PIPELINE_POLICY } from '../policy.js'
+import type { PipelineRepository } from '../repository.js'
+import { assertTransition } from '../state.js'
+import type { ReplayDatabase } from './database.js'
+import { defined, required, unique, uniqueEvidence } from './repository-helpers.js'
+import type { ReplayReadRepository } from './repository-read.js'
 
 export type ReplayWriteRepository = Pick<
   PipelineRepository,
-  | "createOrJoinIncident"
-  | "updateIncident"
-  | "splitIncident"
-  | "saveAssertion"
-  | "saveRun"
-  | "saveCandidate"
-  | "updateCandidate"
-  | "createOutcome"
-  | "updateOutcome"
-  | "expireIncidents"
-  | "retainEvents"
-  | "saveHandoff"
->;
+  | 'createOrJoinIncident'
+  | 'updateIncident'
+  | 'splitIncident'
+  | 'saveAssertion'
+  | 'promoteAssertion'
+  | 'saveRun'
+  | 'saveCandidate'
+  | 'updateCandidate'
+  | 'createOutcome'
+  | 'updateOutcome'
+  | 'expireIncidents'
+  | 'retainEvents'
+  | 'saveHandoff'
+>
 
 export function createReplayWriteRepository(
   database: ReplayDatabase,
@@ -44,12 +40,9 @@ export function createReplayWriteRepository(
 ): ReplayWriteRepository {
   return {
     async createOrJoinIncident(input) {
-      const existing = await read.findIncident(
-        input.session.agentId,
-        input.key,
-      );
+      const existing = await read.findIncident(input.session.agentId, input.key)
       if (existing === null) {
-        const timestamp = input.session.endedAt ?? input.session.startedAt;
+        const timestamp = input.session.endedAt ?? input.session.startedAt
         const incident: IncidentRecord = {
           id: randomUUID(),
           orgId: input.session.orgId,
@@ -58,7 +51,7 @@ export function createReplayWriteRepository(
           fingerprint: input.fingerprint,
           signalKind: input.signalKind,
           title: input.title,
-          state: "OPEN",
+          state: 'OPEN',
           stateReason: null,
           attempt: 1,
           verdict: null,
@@ -71,65 +64,60 @@ export function createReplayWriteRepository(
           firstSeen: timestamp,
           lastSeen: timestamp,
           expiresAt: input.expiresAt,
-        };
-        database.incidents.set(incident.id, incident);
-        return structuredClone(incident);
+        }
+        database.incidents.set(incident.id, incident)
+        return structuredClone(incident)
       }
-      const stored = required(database.incidents, existing.id, "Incident");
-      if (!["OPEN", "CLUSTERED"].includes(stored.state)) {
-        return structuredClone(stored);
+      const stored = required(database.incidents, existing.id, 'Incident')
+      if (!['OPEN', 'CLUSTERED'].includes(stored.state)) {
+        return structuredClone(stored)
       }
-      stored.userHashes = unique([
-        ...stored.userHashes,
-        input.session.userHash,
-      ]);
-      stored.sessionIds = unique([...stored.sessionIds, input.session.id]);
-      stored.evidenceExcerpts = uniqueEvidence([
-        ...stored.evidenceExcerpts,
-        ...input.evidence,
-      ]);
-      stored.lastSeen = input.session.endedAt ?? input.session.startedAt;
-      stored.expiresAt = input.expiresAt;
+      stored.userHashes = unique([...stored.userHashes, input.session.userHash])
+      stored.sessionIds = unique([...stored.sessionIds, input.session.id])
+      stored.evidenceExcerpts = uniqueEvidence([...stored.evidenceExcerpts, ...input.evidence])
+      stored.lastSeen = input.session.endedAt ?? input.session.startedAt
+      stored.expiresAt = input.expiresAt
       if (
-        stored.state === "OPEN" &&
+        stored.state === 'OPEN' &&
         stored.sessionIds.length >= PIPELINE_POLICY.clusterMinimumSessions
       )
-        stored.state = "CLUSTERED";
-      return structuredClone(stored);
+        stored.state = 'CLUSTERED'
+      return structuredClone(stored)
     },
-    updateIncident(id, expectedState, patch) {
-      const incident = required(database.incidents, id, "Incident");
+    // Async so a compare-and-set failure arrives as a rejected promise, matching the Supabase store.
+    async updateIncident(id, expectedState, patch) {
+      const incident = required(database.incidents, id, 'Incident')
       if (incident.state !== expectedState)
-        throw new Error(`Incident state changed: ${incident.state}`);
+        throw new Error(`Incident state changed: ${incident.state}`)
       if (patch.state !== undefined && patch.state !== expectedState)
-        assertTransition(expectedState, patch.state);
-      Object.assign(incident, defined(patch));
-      return Promise.resolve(structuredClone(incident));
+        assertTransition(expectedState, patch.state)
+      Object.assign(incident, defined(patch))
+      return structuredClone(incident)
     },
     async splitIncident(incident, key, identity) {
-      const existing = await read.findIncident(incident.agentId, key);
-      if (existing !== null) return existing;
+      const existing = await read.findIncident(incident.agentId, key)
+      if (existing !== null) return existing
       const split: IncidentRecord = {
         ...structuredClone(incident),
         id: randomUUID(),
         key,
-        state: "CLASSIFIED",
+        state: 'CLASSIFIED',
         stateReason: `ASSERTION_SPLIT:${identity}`,
         assertionId: null,
-      };
-      database.incidents.set(split.id, split);
-      return structuredClone(split);
+      }
+      database.incidents.set(split.id, split)
+      return structuredClone(split)
     },
     saveAssertion(input) {
       const existing = [...database.assertions.values()].find(
         ({ agentId, identity }) =>
           agentId === input.incident.agentId && identity === input.identity,
-      );
+      )
       if (existing !== undefined) {
         if (canonicalJSON(existing.definition) !== canonicalJSON(input.definition)) {
-          throw new StageError("assertion", "STALE_IDEMPOTENT_ROW", false);
+          throw new StageError('assertion', 'STALE_IDEMPOTENT_ROW', false)
         }
-        return Promise.resolve(structuredClone(existing));
+        return Promise.resolve(structuredClone(existing))
       }
       const assertion = AssertionSchema.parse({
         id: randomUUID(),
@@ -140,29 +128,38 @@ export function createReplayWriteRepository(
         sourceSessionId: input.sourceSessionId,
         polarity: input.polarity,
         createdAt: new Date().toISOString(),
-      });
-      database.assertions.set(assertion.id, assertion);
-      return Promise.resolve(structuredClone(assertion));
+      })
+      database.assertions.set(assertion.id, assertion)
+      return Promise.resolve(structuredClone(assertion))
+    },
+    promoteAssertion(id) {
+      const assertion = required(database.assertions, id, 'Assertion')
+      const promoted = { ...assertion, polarity: 'positive' as const }
+      database.assertions.set(id, promoted)
+      return Promise.resolve(structuredClone(promoted))
     },
     saveRun(input) {
-      const key = `${input.assertionId}:${input.phase}:${input.attempt}:${input.candidateId ?? "base"}`;
-      const existing = database.runs.get(key);
+      const key = `${input.assertionId}:${input.phase}:${input.attempt}:${input.candidateId ?? 'base'}`
+      const existing = database.runs.get(key)
       if (existing !== undefined) {
         if (
-          canonicalJSON({ n: existing.n, passCount: existing.passCount, results: existing.results }) !==
-          canonicalJSON({ n: input.n, passCount: input.passCount, results: input.results })
+          canonicalJSON({
+            n: existing.n,
+            passCount: existing.passCount,
+            results: existing.results,
+          }) !== canonicalJSON({ n: input.n, passCount: input.passCount, results: input.results })
         ) {
-          throw new StageError("runner", "STALE_IDEMPOTENT_ROW", false);
+          throw new StageError('runner', 'STALE_IDEMPOTENT_ROW', false)
         }
-        return Promise.resolve(structuredClone(existing));
+        return Promise.resolve(structuredClone(existing))
       }
       const run = RunSchema.parse({
         ...input,
         id: randomUUID(),
         createdAt: new Date().toISOString(),
-      });
-      database.runs.set(key, run);
-      return Promise.resolve(structuredClone(run));
+      })
+      database.runs.set(key, run)
+      return Promise.resolve(structuredClone(run))
     },
     saveCandidate(input) {
       const existing = [...database.candidates.values()].find(
@@ -170,31 +167,31 @@ export function createReplayWriteRepository(
           incidentId === input.incidentId &&
           attempt === input.attempt &&
           iteration === input.iteration,
-      );
+      )
       if (existing !== undefined) {
         if (canonicalJSON(existing.diff) !== canonicalJSON(input.diff)) {
-          throw new StageError("fix", "STALE_IDEMPOTENT_ROW", false);
+          throw new StageError('fix', 'STALE_IDEMPOTENT_ROW', false)
         }
-        return Promise.resolve(structuredClone(existing));
+        return Promise.resolve(structuredClone(existing))
       }
       const candidate = CandidateSchema.parse({
         id: randomUUID(),
         ...input,
         newVersionId: null,
-        state: "PROPOSED",
+        state: 'PROPOSED',
         rejectedReason: null,
         createdAt: new Date().toISOString(),
-      });
-      database.candidates.set(candidate.id, candidate);
-      return Promise.resolve(structuredClone(candidate));
+      })
+      database.candidates.set(candidate.id, candidate)
+      return Promise.resolve(structuredClone(candidate))
     },
     updateCandidate(id, patch) {
       const updated = CandidateSchema.parse({
-        ...required(database.candidates, id, "Candidate"),
+        ...required(database.candidates, id, 'Candidate'),
         ...defined(patch),
-      });
-      database.candidates.set(id, updated);
-      return Promise.resolve(structuredClone(updated));
+      })
+      database.candidates.set(id, updated)
+      return Promise.resolve(structuredClone(updated))
     },
     createOutcome(input) {
       const existing = [...database.outcomes.values()].find(
@@ -202,64 +199,55 @@ export function createReplayWriteRepository(
           incidentId === input.incidentId &&
           candidateId === input.candidateId &&
           scope === input.scope,
-      );
-      if (existing !== undefined)
-        return Promise.resolve(structuredClone(existing));
-      const { versionId, ...fields } = input;
+      )
+      if (existing !== undefined) return Promise.resolve(structuredClone(existing))
+      const { versionId, ...fields } = input
       const outcome = OutcomeSchema.parse({
         id: randomUUID(),
         ...fields,
         appliedVersionId: versionId,
-        status: "PENDING",
+        status: 'PENDING',
         confirmedAt: null,
         revertedAt: null,
         createdAt: new Date().toISOString(),
-      });
-      database.outcomes.set(outcome.id, outcome);
-      return Promise.resolve(structuredClone(outcome));
+      })
+      database.outcomes.set(outcome.id, outcome)
+      return Promise.resolve(structuredClone(outcome))
     },
     updateOutcome(id, patch) {
       const updated = OutcomeSchema.parse({
-        ...required(database.outcomes, id, "Outcome"),
+        ...required(database.outcomes, id, 'Outcome'),
         ...defined(patch),
-      });
-      database.outcomes.set(id, updated);
-      return Promise.resolve(structuredClone(updated));
+      })
+      database.outcomes.set(id, updated)
+      return Promise.resolve(structuredClone(updated))
     },
     expireIncidents(now) {
-      let count = 0;
+      let count = 0
       for (const incident of database.incidents.values()) {
-        const terminal = ["CONFIRMED", "DISCARDED", "EXPIRED"].includes(
-          incident.state,
-        );
-        if (
-          incident.expiresAt !== null &&
-          incident.expiresAt < now.toISOString() &&
-          !terminal
-        ) {
-          incident.state = "EXPIRED";
-          incident.stateReason = "NO_RECURRENCE_14D";
-          count += 1;
+        const terminal = ['CONFIRMED', 'DISCARDED', 'EXPIRED'].includes(incident.state)
+        if (incident.expiresAt !== null && incident.expiresAt < now.toISOString() && !terminal) {
+          incident.state = 'EXPIRED'
+          incident.stateReason = 'NO_RECURRENCE_14D'
+          count += 1
         }
       }
-      return Promise.resolve(count);
+      return Promise.resolve(count)
     },
     retainEvents(before) {
       const ids = [...database.sessions.values()]
         .filter(({ startedAt }) => startedAt < before.toISOString())
-        .map(({ id }) => id);
-      for (const id of ids) database.sessions.delete(id);
-      const removed = new Set(ids);
-      const kept = database.signals.filter(
-        ({ sessionId }) => !removed.has(sessionId),
-      );
-      database.signals.splice(0, database.signals.length, ...kept);
-      return Promise.resolve(ids.length);
+        .map(({ id }) => id)
+      for (const id of ids) database.sessions.delete(id)
+      const removed = new Set(ids)
+      const kept = database.signals.filter(({ sessionId }) => !removed.has(sessionId))
+      database.signals.splice(0, database.signals.length, ...kept)
+      return Promise.resolve(ids.length)
     },
     saveHandoff(record) {
       if (!database.handoffs.has(record.incidentId))
-        database.handoffs.set(record.incidentId, structuredClone(record));
-      return Promise.resolve();
+        database.handoffs.set(record.incidentId, structuredClone(record))
+      return Promise.resolve()
     },
-  };
+  }
 }
