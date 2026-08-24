@@ -1,5 +1,29 @@
 import postgres from 'postgres'
 
+/**
+ * Converts Postgres timestamp text to ISO-8601.
+ *
+ * Postgres renders timestamptz as `2026-08-24 21:50:00.123456+00`: a space
+ * instead of T, microseconds, and a two-digit offset. The wire contract and the
+ * row types are ISO-8601, so returning the raw column failed schema validation
+ * on every timestamp the database produced.
+ */
+export function toIsoInstant(value: string): string {
+  const parts =
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(\.\d+)?(?:([+-]\d{2})(?::?(\d{2}))?|(Z))?$/.exec(
+      value,
+    )
+  if (parts === null) return value
+  const [, date, time, fraction, offsetHours, offsetMinutes, zulu] = parts
+  const milliseconds = fraction === undefined ? '.000' : `.${fraction.slice(1, 4).padEnd(3, '0')}`
+  const offset =
+    zulu !== undefined || offsetHours === undefined
+      ? 'Z'
+      : `${offsetHours}:${offsetMinutes ?? '00'}`
+  const parsed = new Date(`${date}T${time}${milliseconds}${offset}`)
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString()
+}
+
 /** A tagged-template SQL client bound to the Wingman schema. */
 export type Database = postgres.Sql<{ date: string }>
 
@@ -33,7 +57,7 @@ export function createDatabase(options: DatabaseOptions = {}): Database {
         from: [1082, 1114, 1184],
         serialize: (value: Date | string) =>
           typeof value === 'string' ? value : value.toISOString(),
-        parse: (value: string) => value,
+        parse: toIsoInstant,
       },
     },
     // Nothing in Wingman prints notices; swallowing them keeps a library quiet inside a host's logs.

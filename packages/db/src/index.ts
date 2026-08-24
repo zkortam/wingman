@@ -4,6 +4,7 @@ export {
   type Database,
   type DatabaseOptions,
   type Executor,
+  toIsoInstant,
 } from './client.js'
 export { applyMigrations } from './migrate.js'
 export type { Json, Row, Rows, TableName } from './rows.js'
