@@ -1,16 +1,11 @@
-import { readFile, readdir } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import process from 'node:process'
 
-import postgres from 'postgres'
+import { applyMigrations, createDatabase } from '@wingman/db'
 
-// Applies db/migrations in filename order, once each, one transaction per file.
+const directory = resolve(import.meta.dirname, '../db/migrations')
 
-const root = resolve(import.meta.dirname, '..')
-const directory = join(root, 'db/migrations')
-
-const connectionString = process.env.DATABASE_URL
-if (!connectionString) {
+if (!process.env.DATABASE_URL) {
   process.stderr.write(
     'DATABASE_URL is required.\n' +
       'Start the local database with `pnpm db:up`, then:\n' +
@@ -19,37 +14,11 @@ if (!connectionString) {
   process.exit(1)
 }
 
-const sql = postgres(connectionString, { max: 1, onnotice: () => undefined })
-
+const sql = createDatabase({ max: 1 })
 try {
-  await sql`
-    create table if not exists wingman_migrations (
-      filename text primary key,
-      applied_at timestamptz not null default now()
-    )
-  `
-  const applied = new Set(
-    (await sql<{ filename: string }[]>`select filename from wingman_migrations`).map(
-      ({ filename }) => filename,
-    ),
-  )
-  const files = (await readdir(directory)).filter((name) => name.endsWith('.sql')).sort()
-
-  let ran = 0
-  for (const file of files) {
-    if (applied.has(file)) continue
-    const statements = await readFile(join(directory, file), 'utf8')
-    await sql.begin(async (tx) => {
-      await tx.unsafe(statements)
-      await tx`insert into wingman_migrations (filename) values (${file})`
-    })
-    process.stdout.write(`applied ${file}\n`)
-    ran += 1
-  }
+  const ran = await applyMigrations(sql, directory)
   process.stdout.write(
-    ran === 0
-      ? `${String(files.length)} migrations already applied.\n`
-      : `Applied ${String(ran)} of ${String(files.length)} migrations.\n`,
+    ran === 0 ? 'All migrations already applied.\n' : `Applied ${String(ran)} migration(s).\n`,
   )
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
