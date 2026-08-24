@@ -14,7 +14,7 @@ demonstrably fail before the change and pass afterward.
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.base.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
 
-[Architecture](ARCHITECTURE.md) · [Integration guide](INTEGRATIONS.md) ·
+[Architecture](docs/ARCHITECTURE.md) · [Integration guide](docs/INTEGRATIONS.md) ·
 [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) ·
 [Changelog](CHANGELOG.md)
 
@@ -155,7 +155,7 @@ pnpm test         # the repository contract now runs against real SQL too
 ```
 
 The operator demo is available only when `WINGMAN_RUNTIME=demo`; production
-requests to `/demo` return 404. See [DEMO.md](DEMO.md).
+requests to `/demo` return 404. See [DEMO.md](docs/DEMO.md).
 
 ## Integrate an agent host
 
@@ -307,7 +307,7 @@ be guarded before execution.
 
 Wingman preserves OpenTelemetry/OpenInference trace correlation without installing a
 second tracer or copying raw vendor spans. Existing Langfuse and PostHog exporters
-continue independently. See [INTEGRATIONS.md](INTEGRATIONS.md) for the connector and
+continue independently. See [INTEGRATIONS.md](docs/INTEGRATIONS.md) for the connector and
 observability contract.
 
 ## Production deployment
@@ -322,13 +322,13 @@ a pooler such as pgBouncer, RDS Proxy, or Neon.
    is safe to repeat). Migrations are append-only.
 2. Seed one org, agent, and BASE config. `pnpm bootstrap-config` prints the
    INSERT statements and the matching agent-host env. Details:
-   [DATA-MODEL.md](DATA-MODEL.md) §11.
+   [DATA-MODEL.md](docs/DATA-MODEL.md) §11.
 3. Configure the variables in [.env.example](.env.example) with distinct credentials
    for SDK traffic, operators, Inngest, replay, Postgres, model providers, and handoff.
 4. Deploy `apps/web`; it serves the operator UI, authenticated SDK endpoints, and
    `/api/inngest`.
 5. Install the SDK in every agent host and expose the private model-only replay route.
-6. Exercise the deployment checklist in [INTEGRATIONS.md](INTEGRATIONS.md) before
+6. Exercise the deployment checklist in [INTEGRATIONS.md](docs/INTEGRATIONS.md) before
    enabling apply permissions.
 
 Machine endpoints:
@@ -400,11 +400,11 @@ refuses to publish a version that does not match the git tag.
 
 | Document                                 | Purpose                                                       |
 | ---------------------------------------- | ------------------------------------------------------------- |
-| [ARCHITECTURE.md](ARCHITECTURE.md)       | Boundaries, invariants, failure semantics, and lifecycle.     |
-| [INTEGRATIONS.md](INTEGRATIONS.md)       | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
-| [DATA-MODEL.md](DATA-MODEL.md)           | Persistence ownership, state, and migration contract.         |
-| [DEMO.md](DEMO.md)                       | Operator and Amazoff demos, fixtures, cassettes.              |
-| [UI-SPEC.md](UI-SPEC.md)                 | Operator interaction and visual policy.                       |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)  | Boundaries, invariants, failure semantics, and lifecycle.     |
+| [INTEGRATIONS.md](docs/INTEGRATIONS.md)  | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
+| [DATA-MODEL.md](docs/DATA-MODEL.md)      | Persistence ownership, state, and migration contract.         |
+| [DEMO.md](docs/DEMO.md)                  | Operator and Amazoff demos, fixtures, cassettes.              |
+| [UI-SPEC.md](docs/UI-SPEC.md)            | Operator interaction and visual policy.                       |
 | [SECURITY.md](SECURITY.md)               | Vulnerability reporting and deployment responsibilities.      |
 | [CONTRIBUTING.md](CONTRIBUTING.md)       | Development, compatibility, and pull-request requirements.    |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards.                                          |
@@ -414,7 +414,7 @@ refuses to publish a version that does not match the git tag.
 
 Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 The product gate is `pnpm check`. Architecture questions belong in
-[ARCHITECTURE.md](ARCHITECTURE.md), not in a new abstraction.
+[ARCHITECTURE.md](docs/ARCHITECTURE.md), not in a new abstraction.
 
 ## Authors
 
