@@ -1,6 +1,8 @@
 # Changelog
 
-All notable changes to `@wingman/sdk` and `@wingman/schema` are recorded here.
+All notable changes to `@zkortam/wingman-sdk` and `@zkortam/wingman-schema`
+are recorded here. In this repository the workspace names remain `@wingman/sdk`
+and `@wingman/schema`.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the public packages follow [Semantic Versioning](https://semver.org/).
 
@@ -8,7 +10,8 @@ and the public packages follow [Semantic Versioning](https://semver.org/).
 
 ## 0.1.0 — 2026-08-24
 
-First public release of `@wingman/schema` and `@wingman/sdk`.
+First public release, published as `@zkortam/wingman-schema` and
+`@zkortam/wingman-sdk` because the `@wingman` npm organization is already taken.
 
 ### Added
 

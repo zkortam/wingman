@@ -14,11 +14,12 @@ pre-execution control boundary.
 ## How an agent connects
 
 The agent itself does not receive database or pipeline credentials. Its host installs
-`@wingman/sdk` and owns four explicit boundaries:
+`@zkortam/wingman-sdk` (`npm install @zkortam/wingman-sdk`) and owns four explicit
+boundaries:
 
 | Host boundary | SDK operation | Wingman endpoint | Failure behavior |
 |---|---|---|---|
-| Before tool execution | `reviewToolCall` | `POST /v1/reviews/tool-calls` | Configurable open/closed fallback |
+| Before tool execution | `reviewToolCall` | `POST /v1/reviews/tool-calls` | Configurable open/closed fallback. Send `x-wingman-fail-mode: closed` when `review.failMode` is `"closed"`. |
 | After a completed session | `observeSession`, then `flush` | `POST /v1/events` | Queued and contained |
 | Before constructing an agent turn | `config` | `GET /v1/config/:agent/:userHash` | Signed local/base fallback |
 | Model-only verification replay | `createAgentReplayHandler` | Customer-hosted HTTPS route | Pipeline parks; no tool execution |
@@ -142,9 +143,44 @@ An adapter must not monkey-patch a model SDK, install a global tracer, execute a
 or send unredacted vendor traces. If a framework lacks a before-tool hook, Wingman can
 observe it but cannot honestly claim to guard it.
 
+Copy-paste shapes. The host still owns the `switch` and the executor:
+
+```ts
+const middleware = createToolMiddleware(wingman);
+
+// LangChain tool middleware / wrapTool
+const langchain = await middleware.beforeLangChainTool({
+  sessionId, userId, userMessage, recentTurns, context,
+  toolName, toolInput,
+});
+
+// Vercel AI SDK onToolCall / wrapTool
+const vercel = await middleware.beforeVercelTool({
+  sessionId, userId, userMessage, recentTurns, context,
+  toolName, args: toolCall.args,
+});
+
+// OpenAI Agents SDK
+const openai = await middleware.beforeOpenAIAgentTool({
+  sessionId, userId, userMessage, recentTurns, context,
+  toolName: item.name, arguments: item.arguments,
+});
+
+if (langchain.action !== "ALLOW") {
+  // Do not call the tool. RETHINK feeds instruction back; ESCALATE asks a human.
+}
+```
+
+`recentTurns` uses the wire `Turn` shape (`textRedacted`, `toolCalls`, `createdAt`).
+`observeSession` takes the host's raw `text` and scrubs it locally. See
+`demo/amazoff/src/tool-boundary.ts` for a complete intercept-then-execute helper.
+
 ## Deployment checklist
 
-- Use HTTPS for Wingman and replay endpoints; localhost is allowed only for local use.
+- Use HTTPS for Wingman and replay endpoints. Loopback HTTP (`localhost`,
+  `127.0.0.1`, `::1`) is allowed only for local use.
+- Point the agent host at `WINGMAN_URL`. The control plane's own origin is
+  `WINGMAN_API_URL`. On one machine they are the same URL.
 - Give SDK, operator, Inngest, replay, Supabase, OpenAI, and Codex boundaries distinct
   credentials. Never expose service-role or replay credentials to a browser.
 - Preserve a stable UUID for org, agent, session, config version, incident, and

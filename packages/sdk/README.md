@@ -1,11 +1,14 @@
-# @wingman/sdk
+# @zkortam/wingman-sdk
+
+On npm this package is `@zkortam/wingman-sdk`. In this monorepo the workspace
+name remains `@wingman/sdk`.
 
 Wingman reviews proposed tool calls before execution, resolves signed agent
 configuration, and captures locally redacted session evidence. It never executes a
 tool call. The host application keeps the tool boundary and remains authoritative.
 
 ```ts
-import { Wingman } from "@wingman/sdk";
+import { Wingman } from "@zkortam/wingman-sdk";
 
 const wingman = Wingman.init({
   endpoint: process.env.WINGMAN_URL!,
@@ -23,9 +26,15 @@ const review = await wingman.reviewToolCall({
   sessionId,
   userId,
   userMessage,
-  proposedCall,
-  recentTurns,
-  context,
+  proposedCall: { name: proposedCall.name, args: proposedCall.args ?? {} },
+  recentTurns: recentTurns.map((turn, idx) => ({
+    idx,
+    role: turn.role,
+    textRedacted: turn.text,
+    toolCalls: turn.toolCalls ?? [],
+    createdAt: turn.createdAt,
+  })),
+  context: { lastQuery: userMessage },
 });
 
 if (review.action === "ALLOW") {
@@ -37,10 +46,33 @@ if (review.action === "ALLOW") {
 }
 ```
 
+`reviewToolCall` uses the wire `Turn` shape (`textRedacted`). `observeSession`
+takes the host's raw `text` and scrubs it locally before transport. Loopback
+HTTP (`localhost`, `127.0.0.1`, `::1`) is allowed; every other endpoint must
+be HTTPS.
+
+A proposed tool that is not in `baseConfig.tools` is `ESCALATE` with
+`source: POLICY` before any model or network call.
+
 Review failures are fail-open by default so an unavailable sidecar does not take down
 the host agent. Set `review: { failMode: "closed" }` for high-risk environments.
-Queued, sent, failed, and capacity-dropped observations are available through
-`wingman.observationStats()`.
+
+`observeSession` only enqueues. Call `flush()` before the process exits or the
+request ends; nothing is hashed, scrubbed, or POSTed until then. Queued, sent,
+failed, and capacity-dropped counts are on `wingman.observationStats()`.
+
+```ts
+wingman.observeSession({
+  id: sessionId,
+  userId,
+  startedAt,
+  turns: [{ idx: 0, role: "user", text: userMessage, toolCalls: [], createdAt }],
+});
+await wingman.flush();
+```
+
+`orgId` and `defaultAgent` must be UUIDs. Compute operator hashes with
+`hashUserId(orgSalt, userId)` (re-exported from this package).
 
 Config reads use a short bounded cold-path timeout and then fall back to last-known-good
 or compiled base configuration. Cross-region and cold-service deployments can set a
@@ -49,7 +81,7 @@ measured budget such as `config: { timeoutMs: 1000 }`; cached reads remain local
 For fail-before/pass-after verification, expose a private model-only replay route:
 
 ```ts
-import { createAgentReplayHandler } from "@wingman/sdk";
+import { createAgentReplayHandler } from "@zkortam/wingman-sdk";
 
 export const POST = createAgentReplayHandler({
   token: process.env.WINGMAN_RUNNER_TOKEN!,
