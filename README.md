@@ -14,7 +14,10 @@ demonstrably fail before the change and pass afterward.
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
 
 [Architecture](ARCHITECTURE.md) · [Integration guide](INTEGRATIONS.md) ·
-[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
+[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) ·
+[Changelog](CHANGELOG.md)
+
+Built by **Zakaria Kortam** and **Ali Alani**.
 
 </div>
 
@@ -22,6 +25,17 @@ demonstrably fail before the change and pass afterward.
 > Wingman is pre-1.0. The SDK and schema packages are release-ready and verified as
 > packed, clean-consumer installations, but they are not yet published to npm. The
 > repository workspace is currently the supported installation source.
+
+## Who this is for
+
+Teams that ship tool-using agents and cannot wait for a thumbs-down. If you
+already intercept tool calls (MCP client, LangChain tool middleware, Vercel AI
+SDK `onToolCall`, OpenAI Agents hooks), Wingman is a library you drop in front
+of the executor. If your framework cannot intercept tools, you can still
+observe sessions — you cannot honestly claim a pre-execution guard.
+
+Wingman is not a tracer, a prompt playground, or a sandbox. Hosts still
+authorize tools and approve destructive actions.
 
 ## What Wingman does
 
@@ -44,7 +58,8 @@ evidence pipeline after the session.
 
 - Wingman never executes customer tools. The host remains the only executor.
 - Nothing is applied without fail-before and pass-after evidence.
-- Replays are model-only and report `toolExecutions: 0`.
+- Replays are model-only. The callback is not given an executor, and a nonzero
+  `toolExecutions` count is rejected.
 - Configuration is signed, schema-validated, writable-path constrained, and byte-capped.
 - Configuration outages resolve through last-known-good and compiled-base fallbacks.
 - Pipeline stages are bounded and idempotent; exhausted work parks instead of looping.
@@ -81,6 +96,20 @@ The synchronous control plane and asynchronous evidence plane are deliberately
 separate. Observability is valuable evidence, but it is not a reliable pre-execution
 guard.
 
+## Install from this repository
+
+The SDK is not on npm yet. From a clone:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @wingman/schema build
+pnpm --filter @wingman/sdk build
+pnpm package:check
+```
+
+Point a consumer at the packed tarballs `pnpm pack` writes, or depend on the
+workspace packages in this monorepo. Do not deep-import `services/*`.
+
 ## Repository quick start
 
 Requirements: Node.js 22 or newer and pnpm 10.
@@ -99,8 +128,8 @@ pnpm demo:reset
 pnpm demo:up
 ```
 
-The demo is available only when `WINGMAN_RUNTIME=demo`; production requests to
-`/demo` return 404. See [DEMO.md](DEMO.md) for deterministic fixture behavior.
+The operator demo is available only when `WINGMAN_RUNTIME=demo`; production
+requests to `/demo` return 404. See [DEMO.md](DEMO.md).
 
 ## Integrate an agent host
 
@@ -218,10 +247,12 @@ The callback receives no tool executor. The service connects using
 ## MCP and agent frameworks
 
 MCP clients can translate an intercepted JSON-RPC `tools/call` request through
-`reviewMcpToolCall` before forwarding it to the MCP server. A2A, AG-UI, LangChain,
-Vercel AI SDK, OpenAI Agents, and proprietary gateways use the same rule: integrate at
-their before-tool middleware or hook. A framework without that hook can be observed,
-but cannot honestly be guarded before execution.
+`reviewMcpToolCall` before forwarding it to the MCP server. Invalid MCP envelopes
+follow the host `review.failMode`. LangChain, Vercel AI SDK, and OpenAI Agents hosts
+can use `createToolMiddleware(wingman)` as a dependency-free before-tool translation.
+A2A, AG-UI, and proprietary gateways use the same rule: integrate at their before-tool
+middleware or hook. A framework without that hook can be observed, but cannot honestly
+be guarded before execution.
 
 Wingman preserves OpenTelemetry/OpenInference trace correlation without installing a
 second tracer or copying raw vendor spans. Existing Langfuse and PostHog exporters
@@ -307,9 +338,22 @@ dependency advisories.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Boundaries, invariants, failure semantics, and lifecycle. |
 | [INTEGRATIONS.md](INTEGRATIONS.md) | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
 | [DATA-MODEL.md](DATA-MODEL.md) | Persistence ownership, state, and migration contract. |
+| [DEMO.md](DEMO.md) | Operator and Amazoff demos, fixtures, cassettes. |
 | [UI-SPEC.md](UI-SPEC.md) | Operator interaction and visual policy. |
 | [SECURITY.md](SECURITY.md) | Vulnerability reporting and deployment responsibilities. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development, compatibility, and pull-request requirements. |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards. |
+| [CHANGELOG.md](CHANGELOG.md) | Public package history. |
+
+## Contributing
+
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+The product gate is `pnpm check`. Architecture questions belong in
+[ARCHITECTURE.md](ARCHITECTURE.md), not in a new abstraction.
+
+## Authors
+
+Wingman is built by **Zakaria Kortam** and **Ali Alani**.
 
 ## License
 

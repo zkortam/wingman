@@ -32,9 +32,22 @@ describe('operator and config routes', () => {
   it('exposes the SDK event receiver and rejects malformed bodies', async () => {
     const accepted = await ingestEvent(new Request('http://local/v1/events', {
       method: 'POST',
-      body: JSON.stringify({ id: 'integration-event' }),
+      body: JSON.stringify({
+        id: 'f561f9b9-2abf-4bb7-a5cd-3b6ad76002b6',
+        orgId: '5e8e68e1-a768-4342-b4f4-d9a1f8ceaa26',
+        agentId: '4ee0d899-d63d-4bc2-b47a-25aa25c6078b',
+        userHash: 'a'.repeat(32),
+        startedAt: '2026-08-23T00:00:00.000Z',
+        turns: [{ idx: 0, role: 'user', textRedacted: 'Export these', toolCalls: [], createdAt: '2026-08-23T00:00:00.000Z' }],
+        redaction: { mode: 'allowlist', fields: ['turns'], piiScrubbed: true, userIdHashed: true },
+      }),
     }))
     expect(accepted.status).toBe(202)
+    const incomplete = await ingestEvent(new Request('http://local/v1/events', {
+      method: 'POST',
+      body: JSON.stringify({ id: 'integration-event' }),
+    }))
+    expect(incomplete.status).toBe(400)
     const malformed = await ingestEvent(new Request('http://local/v1/events', { method: 'POST', body: '{' }))
     expect(malformed.status).toBe(400)
   })
@@ -82,7 +95,7 @@ describe('operator and config routes', () => {
     expect(demoRuntime.incident('OC-1042')?.state).toBe('DISCARDED')
     const reopened = await reopen(new Request('http://local', { method: 'POST' }), params({ id: 'OC-1042' }))
     expect(reopened.status).toBe(204)
-    expect(demoRuntime.incident('OC-1042')?.state).toBe('CANDIDATE')
+    expect(demoRuntime.incident('OC-1042')?.state).toBe('CLUSTERED')
   })
 
   it('serves an isolated version and reverts it through the config route', async () => {

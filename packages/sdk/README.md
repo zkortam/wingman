@@ -59,12 +59,19 @@ export const POST = createAgentReplayHandler({
 ```
 
 The callback has no execution hook. It returns proposed tool calls, optional text, and
-a stable cassette key; the handler validates the wire format and fixes the reported
-tool execution count at zero.
+a stable cassette key. The handler validates the wire format and rejects any result
+that reports tool executions.
 
 MCP clients can pass an intercepted JSON-RPC `tools/call` request to
-`wingman.reviewMcpToolCall`. Existing OpenTelemetry, OpenInference, Langfuse, and
-PostHog tracing can remain installed; add `telemetry` trace correlation to the observed
-session instead of installing a second global tracer or copying raw vendor spans.
+`wingman.reviewMcpToolCall`. Invalid MCP envelopes fail closed or open according to
+`review.failMode`. LangChain, Vercel AI SDK, and OpenAI Agents hosts can use
+`createToolMiddleware(wingman)` as a dependency-free translation into `reviewToolCall`.
+Existing OpenTelemetry, OpenInference, Langfuse, and PostHog tracing can remain
+installed; add `telemetry` trace correlation to the observed session instead of
+installing a second global tracer or copying raw vendor spans.
+
+A replay callback that reports `toolExecutions !== 0` is rejected. The handler still
+stamps a successful response at zero executions because the callback is not given an
+executor.
 
 Node.js 22 or newer. Licensed under MIT.

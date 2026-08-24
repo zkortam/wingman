@@ -1,4 +1,5 @@
 import { createProductionIngestService, type IngestService } from '@wingman/ingest'
+import { SessionInputSchema } from '@wingman/schema'
 import { NextResponse } from 'next/server'
 
 import { isSdkAuthorized, jsonError, readJsonObject } from '../../../../src/server/http'
@@ -10,6 +11,7 @@ export async function POST(request: Request) {
   const payload = await readJsonObject(request)
   if (payload === null) return jsonError(400, 'Invalid event payload')
   if (process.env.WINGMAN_RUNTIME === 'demo') {
+    if (!SessionInputSchema.safeParse(payload).success) return jsonError(400, 'Invalid event payload')
     return NextResponse.json({ status: 202 }, { status: 202 })
   }
   try {

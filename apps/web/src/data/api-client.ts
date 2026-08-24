@@ -39,4 +39,7 @@ export const apiClient = {
   }),
   resolveConfig: (agent: string, userHash: string): Promise<{ config: unknown; version: number; signature: string }> =>
     request(`/v1/config/${encodeURIComponent(agent)}/${encodeURIComponent(userHash)}`),
+  confirm: (id: string): Promise<void> =>
+    request(`/v1/incidents/${encodeURIComponent(id)}/confirm`, { method: 'POST' }),
+  gatePrecision: (): Promise<{ precision: number; n: number }> => request('/v1/metrics/gate'),
 }

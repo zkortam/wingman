@@ -40,7 +40,11 @@ const DemoPane = ({ kind, userHash, client }: { kind: 'REPORTER' | 'CONTROL'; us
       : 'Exported all 50 opportunities.'
     setState((value) => ({ ...value, messages: [...value.messages, { role: 'user', text: message }, { role: 'assistant', text: response }] }))
     if (kind === 'REPORTER' && state.version === 'v2') {
-      window.dispatchEvent(new Event('outcome-confirmed'))
+      void fetch('/v1/incidents/OC-1042/confirm', { method: 'POST' })
+        .catch(() => undefined)
+        .finally(() => {
+          window.dispatchEvent(new Event('outcome-confirmed'))
+        })
     }
   }
 

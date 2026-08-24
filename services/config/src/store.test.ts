@@ -49,6 +49,13 @@ describe('WingmanConfigStore', () => {
     })
   })
 
+  it('refuses to write a version that mutates a non-writable path', async () => {
+    const { store } = make()
+    await expect(
+      store.writeVersion(AGENT_ID, { ...base, systemPrompt: 'nope' }, INCIDENT_ID),
+    ).rejects.toThrow('PATH_NOT_WRITABLE')
+  })
+
   it('creates immutable versions and reverts by revoking a pointer', async () => {
     const { repository, store } = make()
     const version = await store.writeVersion(AGENT_ID, changed, INCIDENT_ID)

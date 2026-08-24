@@ -252,6 +252,55 @@ export interface Database {
         },
         [Rel<"pipeline_handoffs_incident_id_fkey", "incident_id", "incidents">]
       >;
+      pipeline_ledger: Table<
+        {
+          id: string;
+          incident_id: string;
+          fingerprint: string;
+          diff: Json;
+          outcome: string;
+          created_at: string;
+        },
+        [Rel<"pipeline_ledger_incident_id_fkey", "incident_id", "incidents">]
+      >;
+      preference_rules: Table<
+        {
+          id: string;
+          org_id: string;
+          agent_id: string;
+          user_hash: string;
+          rule: string;
+          source_session_id: string;
+          source_turn_idx: number;
+          state: string;
+          created_at: string;
+          revoked_at: string | null;
+        },
+        [
+          Rel<"preference_rules_org_id_fkey", "org_id", "orgs">,
+          Rel<"preference_rules_agent_id_fkey", "agent_id", "agents">,
+        ]
+      >;
+      capability_requests: Table<
+        {
+          id: string;
+          org_id: string;
+          agent_id: string;
+          key: string;
+          title: string;
+          implied_tool: string | null;
+          user_hashes: string[];
+          session_ids: string[];
+          evidence_excerpts: Json;
+          state: string;
+          first_seen: string;
+          last_seen: string;
+        },
+        [
+          Rel<"capability_requests_org_id_fkey", "org_id", "orgs">,
+          Rel<"capability_requests_agent_id_fkey", "agent_id", "agents">,
+        ]
+      >;
     };
     Views: Record<string, never>;
     Functions: {

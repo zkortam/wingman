@@ -14,6 +14,11 @@ const client = {
   handoff: vi.fn(async () => ({ payload: '{}' })),
   reopen: vi.fn(async () => undefined),
   revert: vi.fn(async () => undefined),
+  getIncident: vi.fn(async (id: string) => {
+    const incident = demoIncident(id)
+    if (!incident) throw new Error('Missing fixture')
+    return incident
+  }),
 }
 
 describe('IncidentProof', () => {
@@ -115,10 +120,12 @@ describe('IncidentProof', () => {
   it('persists a reopen through the command client', async () => {
     const incident = demoIncident('OC-1038')
     if (!incident) throw new Error('Missing fixture')
+    const reopened = { ...incident, state: 'CLUSTERED' as const, stateReason: 'OPERATOR_REOPENED' }
     const reopen = vi.fn(async () => undefined)
-    render(<IncidentProof client={{ ...client, reopen }} initialIncident={incident} />)
+    const getIncident = vi.fn(async () => reopened)
+    render(<IncidentProof client={{ ...client, reopen, getIncident }} initialIncident={incident} />)
     await userEvent.click(screen.getByRole('button', { name: 'Reopen' }))
     expect(reopen).toHaveBeenCalledWith('OC-1038')
-    expect(await screen.findByText('Ready to apply')).toBeTruthy()
+    expect(await screen.findByText('Collecting evidence')).toBeTruthy()
   })
 })

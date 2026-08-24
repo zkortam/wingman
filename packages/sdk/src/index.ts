@@ -13,8 +13,9 @@ import {
 } from './review.js'
 import { prepareSession, type SessionObservationInput } from './session.js'
 import { FileConfigStorage, type ConfigStorage } from './storage.js'
+import { withTimeout } from './timeout.js'
 
-interface InitOptions {
+export interface InitOptions {
   endpoint: string
   apiKey: string
   orgId: string
@@ -104,14 +105,7 @@ export class WingmanClient {
   }
 
   reviewMcpToolCall(input: ReviewMcpToolCallInput) {
-    const { request, ...review } = input
-    return this.#reviewer.review({
-      ...review,
-      proposedCall: {
-        name: request.params.name,
-        args: request.params.arguments ?? {},
-      },
-    })
+    return this.#reviewer.reviewMcp(input)
   }
 
   async flush(): Promise<void> {
@@ -138,7 +132,7 @@ export class WingmanClient {
       headers: { authorization: `Bearer ${this.#options.apiKey}`, 'content-type': 'application/json' },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(OBSERVATION_TIMEOUT_MS),
-    }), OBSERVATION_TIMEOUT_MS)
+    }), OBSERVATION_TIMEOUT_MS, 'Observation timed out')
     if (!response.ok) throw new Error(`Observation transport returned ${String(response.status)}`)
   }
 }
@@ -153,10 +147,12 @@ export const Wingman = {
 export const Outcome = Wingman
 export { WingmanClient as OutcomeClient }
 export { createAgentReplayHandler } from './replay.js'
+export { createToolMiddleware } from './adapters.js'
+export type { ToolReviewHost } from './adapters.js'
+export { isMcpToolsCallRequest } from './review.js'
 export type { ReplayDecision, ReplayInput } from './replay.js'
 export type {
   ConfigStorage,
-  InitOptions,
   ObservationQueueStats,
   ReviewMcpToolCallInput,
   ReviewToolCallInput,
@@ -196,19 +192,5 @@ const validateOptions = (options: InitOptions): void => {
   }
   if (options.redact.fields.some((field) => field.trim().length === 0)) {
     throw new Error('redaction fields must not be empty')
-  }
-}
-
-const withTimeout = async <T>(work: Promise<T>, timeoutMs: number): Promise<T> => {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      work,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Observation timed out')), timeoutMs)
-      }),
-    ])
-  } finally {
-    if (timer !== undefined) clearTimeout(timer)
   }
 }

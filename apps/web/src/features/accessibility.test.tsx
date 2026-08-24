@@ -19,6 +19,11 @@ const incidentClient = {
   handoff: vi.fn(async () => ({ payload: '{}' })),
   reopen: vi.fn(async () => undefined),
   revert: vi.fn(async () => undefined),
+  getIncident: vi.fn(async (id: string) => {
+    const incident = demoIncident(id)
+    if (!incident) throw new Error('Missing fixture')
+    return incident
+  }),
 }
 
 const demoClient = {
@@ -31,7 +36,7 @@ const audit = async (): Promise<void> => {
 }
 
 const productScreens: Array<[string, () => Promise<ReactNode>]> = [
-  ['Inbox', () => InboxPage()],
+  ['Inbox', () => InboxPage({})],
   ['Outcomes', () => OutcomesPage()],
   ['Config', () => ConfigPage()],
   ['Settings', async () => <SettingsPage />],

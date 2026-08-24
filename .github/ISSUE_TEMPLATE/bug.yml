@@ -1,0 +1,36 @@
+name: Bug
+description: Something does not match a documented guarantee.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Do not include raw prompts, traces, or credentials.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: Which documented guarantee or test should have held?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: What happened instead? Include commands and the first error.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Smallest steps. Prefer a failing colocated test.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Commit SHA, tag, or `path-b` / `main`.
+    validations:
+      required: true

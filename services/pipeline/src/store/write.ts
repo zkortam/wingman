@@ -15,6 +15,7 @@ import {
 } from "./mappers.js";
 import { single } from "./read-helpers.js";
 import {
+  assertSamePayload,
   findRun,
   toCandidateUpdate,
   toIncidentUpdate,
@@ -112,8 +113,11 @@ export function createWriteStore(
         .eq("identity", input.identity)
         .maybeSingle();
       if (result.error) throw result.error;
-      if (result.data !== null)
-        return mapAssertion(result.data as Row<"assertions">);
+      if (result.data !== null) {
+        const existing = mapAssertion(result.data as Row<"assertions">);
+        assertSamePayload("assertion", existing.definition, input.definition);
+        return existing;
+      }
       const { kind, ...params } = input.definition;
       const row = await single<Row<"assertions">>(
         client
@@ -135,7 +139,15 @@ export function createWriteStore(
 
     async saveRun(input) {
       const existing = await findRun(client, input);
-      if (existing !== null) return mapRun(existing);
+      if (existing !== null) {
+        const mapped = mapRun(existing);
+        assertSamePayload(
+          "runner",
+          { n: mapped.n, passCount: mapped.passCount, results: mapped.results },
+          { n: input.n, passCount: input.passCount, results: input.results },
+        );
+        return mapped;
+      }
       const row = await single<Row<"runs">>(
         client
           .from("runs")
@@ -166,8 +178,11 @@ export function createWriteStore(
         .eq("iteration", input.iteration)
         .maybeSingle();
       if (result.error) throw result.error;
-      if (result.data !== null)
-        return mapCandidate(result.data as Row<"candidates">);
+      if (result.data !== null) {
+        const existing = mapCandidate(result.data as Row<"candidates">);
+        assertSamePayload("fix", existing.diff, input.diff);
+        return existing;
+      }
       const row = await single<Row<"candidates">>(
         client
           .from("candidates")

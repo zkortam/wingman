@@ -125,11 +125,21 @@ class DemoRuntime {
     this.#mutate((state) => {
       const incident = state.incidents[id]
       if (!incident) throw new Error('Unknown incident')
-      incident.state = 'CANDIDATE'
-      incident.stateReason = null
+      incident.state = 'CLUSTERED'
+      incident.stateReason = 'OPERATOR_REOPENED'
       incident.confirmation = null
       incident.appliedAt = null
       incident.confirmedAt = null
+    })
+  }
+
+  confirm(id: string): void {
+    this.#mutate((state) => {
+      const incident = state.incidents[id]
+      if (!incident || incident.state !== 'APPLIED') throw new Error('Incident is not awaiting confirmation')
+      incident.state = 'CONFIRMED'
+      incident.confirmedAt = new Date().toISOString()
+      incident.confirmation = { status: 'CONFIRMED', detail: 'Confirmed by the next matching task, just now' }
     })
   }
 
@@ -142,10 +152,10 @@ class DemoRuntime {
     return { config, version, signature }
   }
 
-  versions(): Array<{ id: string; version: number; incidentId: string | null }> {
+  versions(): Array<{ id: string; version: number; incidentId: string | null; config: AgentConfig }> {
     return [
-      { id: 'v1', version: 1, incidentId: null },
-      { id: 'v2', version: 2, incidentId: 'OC-1042' },
+      { id: 'v1', version: 1, incidentId: null, config: baseConfig },
+      { id: 'v2', version: 2, incidentId: 'OC-1042', config: fixedConfig },
     ]
   }
 

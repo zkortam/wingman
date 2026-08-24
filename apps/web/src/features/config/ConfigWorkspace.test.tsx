@@ -5,8 +5,28 @@ import { ConfigWorkspace } from './ConfigWorkspace'
 
 const client = { revert: vi.fn(async () => undefined) }
 const versions = [
-  { id: 'version-1', version: 1, incidentId: null },
-  { id: 'version-2', version: 2, incidentId: 'OC-1042' },
+  {
+    id: 'version-1',
+    version: 1,
+    incidentId: null,
+    config: {
+      systemPrompt: 'Ops Copilot',
+      tools: { export_records: { description: 'Exports records from the current object.' } },
+      retrieval: {},
+      rules: [],
+    },
+  },
+  {
+    id: 'version-2',
+    version: 2,
+    incidentId: 'OC-1042',
+    config: {
+      systemPrompt: 'Ops Copilot',
+      tools: { export_records: { description: "Exports records. Pass the caller's active view filters in filters." } },
+      retrieval: {},
+      rules: [],
+    },
+  },
 ]
 const identity = { agentId: 'agent-production', userHash: 'hashed-production-user' }
 

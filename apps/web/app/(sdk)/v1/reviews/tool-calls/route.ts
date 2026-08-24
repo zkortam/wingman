@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   const parsed = ToolCallReviewRequestSchema.safeParse(body)
   if (!parsed.success) return jsonError(400, 'Invalid review payload')
   try {
-    return NextResponse.json(await reviews.review(parsed.data))
+    const failMode = request.headers.get('x-wingman-fail-mode') === 'closed' ? 'closed' : 'open'
+    return NextResponse.json(await reviews.review(parsed.data, failMode))
   } catch {
     return jsonError(503, 'Review unavailable')
   }

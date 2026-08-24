@@ -29,4 +29,17 @@ describe('createAgentReplayHandler', () => {
       toolCalls: [], text: 'safe', cassetteKey: 'host:0', toolExecutions: 0,
     })
   })
+
+  it('rejects a callback that reports tool execution instead of hiding it', async () => {
+    const handler = createAgentReplayHandler({
+      token: 'runner-secret',
+      run: async () => ({ toolCalls: [], text: null, cassetteKey: 'host:1', toolExecutions: 1 }) as never,
+    })
+    const response = await handler(new Request('https://host/replay', {
+      method: 'POST',
+      headers: { authorization: 'Bearer runner-secret', 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    }))
+    expect(response.status).toBe(503)
+  })
 })

@@ -44,15 +44,24 @@ export function createPipelineCommands(input: {
       const reopenable = ["DISCARDED", "PARKED", "EXPIRED", "HUMAN_REVIEW"];
       if (!reopenable.includes(incident.state))
         throw new Error(`Cannot reopen incident in ${incident.state}`);
-      await input.repository.updateIncident(incidentId, incident.state, {
-        state: "CLUSTERED",
-        stateReason: "OPERATOR_REOPENED",
-        attempt: incident.attempt + 1,
-        verdict: null,
-        verdictConfidence: null,
-        verdictEvidence: null,
-        assertionId: null,
-      });
+      const reopened = await input.repository.updateIncident(
+        incidentId,
+        incident.state,
+        {
+          state: "CLUSTERED",
+          stateReason: "OPERATOR_REOPENED",
+          attempt: incident.attempt + 1,
+          verdict: null,
+          verdictConfidence: null,
+          verdictEvidence: null,
+          assertionId: null,
+        },
+      );
+      await input.events.publish(
+        "incident.clustered",
+        { data: { incidentId: reopened.id } },
+        `reopen:${reopened.id}:${reopened.attempt}`,
+      );
     },
     async handoff(incidentId) {
       const saved = await input.repository.getHandoff(incidentId);

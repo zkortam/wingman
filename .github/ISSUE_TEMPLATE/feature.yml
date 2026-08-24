@@ -1,0 +1,28 @@
+name: Feature
+description: A bounded change that helps a host, operator, or contributor.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who is blocked today, and what do they do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The smallest change that unblocks them. Name the package.
+    validations:
+      required: true
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: Invariants
+      options:
+        - label: This does not let Wingman execute a customer tool
+        - label: This does not apply a config change without fail-before / pass-after
+        - label: This does not import pipeline from config, or demo/fixtures from production packages
+    validations:
+      required: true

@@ -2,7 +2,7 @@ import type { AssertionDefinition, IncidentDetail, IncidentSummary, JsonValue } 
 
 import type { IncidentDetailView, IncidentSummaryView, SignalKind } from '../domain/incidents'
 
-const SIGNALS = new Set<SignalKind>(['RETRY_REQUEST', 'RESTATED_CONSTRAINT', 'ABANDON_RESTART'])
+const SIGNALS = new Set<SignalKind>(['RETRY_REQUEST', 'RESTATED_CONSTRAINT', 'ABANDON_RESTART', 'PREFERENCE_STATED'])
 
 export const presentIncidentSummary = (incident: IncidentSummary): IncidentSummaryView => ({
   id: incident.id,

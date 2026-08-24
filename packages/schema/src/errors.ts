@@ -10,6 +10,7 @@ export const ParkReasonSchema = z.enum([
   "NOT_ISOLATABLE",
   "POLICY_CONFLICT",
   "CAP_EXCEEDED",
+  "STALE_IDEMPOTENT_ROW",
 ]);
 export type ParkReason = z.infer<typeof ParkReasonSchema>;
 

@@ -1,7 +1,17 @@
 {
   "name": "@wingman/sdk",
   "version": "0.1.0",
-  "description": "Tool-boundary review, safe configuration, and privacy-first telemetry for AI agents.",
+  "description": "Tool-boundary review, signed configuration, and locally redacted session evidence for AI agents. Never executes a tool.",
+  "keywords": [
+    "ai-agents",
+    "tool-calling",
+    "mcp",
+    "guardrails",
+    "llm",
+    "agent-safety",
+    "openai-agents",
+    "langchain"
+  ],
   "type": "module",
   "license": "MIT",
   "repository": {

@@ -1,7 +1,7 @@
 import { SupabaseConfigStore } from '@wingman/config'
 import { createServiceClient } from '@wingman/db'
 import { createProductionIngestService, InngestEventPublisher } from '@wingman/ingest'
-import { canonicalJSON, type AgentConfig, type EventName, type EventPublisher, type Events } from '@wingman/schema'
+import { canonicalJSON, type AgentConfig, type EventName, type EventPublisher, type EventSchedule, type Events } from '@wingman/schema'
 
 import { createPipelineCommands } from './commands.js'
 import { revertAppliedOutcome } from './confirmation.js'
@@ -9,7 +9,7 @@ import { createPipelineEngine } from './engine.js'
 import { CodexFixAgent } from './fix/agent.js'
 import type { AppServerClient } from './fix/app-server.js'
 import { WebSocketAppServerClient } from './fix/app-server.js'
-import { NoopLedger } from './ledger/index.js'
+import { SupabaseLedger } from './ledger/supabase.js'
 import { createPipelineReader } from './reader.js'
 import { createSupabasePipelineRepository } from './store/index.js'
 import { OpenAIModelClient } from './adapters/openai.js'
@@ -32,7 +32,7 @@ export const createProductionPipelineControlPlane = (input: {
     input.appServerEndpoint ?? process.env.CODEX_APP_SERVER_ENDPOINT ?? '',
     input.appServerToken ?? process.env.CODEX_APP_SERVER_TOKEN ?? '',
   )
-  const ledger = new NoopLedger()
+  const ledger = new SupabaseLedger(createServiceClient())
   return {
     reader: createPipelineReader(repository),
     commands: createPipelineCommands({
@@ -83,7 +83,7 @@ export const createProductionPipelineFunctions = (input: {
     input.appServerEndpoint ?? process.env.CODEX_APP_SERVER_ENDPOINT ?? '',
     input.appServerToken ?? process.env.CODEX_APP_SERVER_TOKEN ?? '',
   )
-  const ledger = new NoopLedger()
+  const ledger = new SupabaseLedger(createServiceClient())
   const commands = createPipelineCommands({ repository, configStore, events, ledger, appServer })
   const engine = createPipelineEngine({
     repository,
@@ -100,8 +100,13 @@ export const createProductionPipelineFunctions = (input: {
 }
 
 const lazyEvents = (eventKey: string): EventPublisher => ({
-  publish<Name extends EventName>(name: Name, event: Events[Name], idempotencyKey: string) {
-    return new InngestEventPublisher(eventKey).publish(name, event, idempotencyKey)
+  publish<Name extends EventName>(
+    name: Name,
+    event: Events[Name],
+    idempotencyKey: string,
+    schedule?: EventSchedule,
+  ) {
+    return new InngestEventPublisher(eventKey).publish(name, event, idempotencyKey, schedule)
   },
 })
 

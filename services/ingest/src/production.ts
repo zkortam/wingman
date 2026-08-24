@@ -1,5 +1,5 @@
 import { createServiceClient } from '@wingman/db'
-import type { EventName, EventPublisher, Events } from '@wingman/schema'
+import type { EventName, EventPublisher, EventSchedule, Events } from '@wingman/schema'
 import { Inngest } from 'inngest'
 
 import { createIngestService, type IngestService } from './service.js'
@@ -14,8 +14,18 @@ export class InngestEventPublisher implements EventPublisher {
     this.#client = new Inngest({ id: 'wingman-ingest', eventKey })
   }
 
-  async publish<Name extends EventName>(name: Name, event: Events[Name], idempotencyKey: string): Promise<void> {
-    await this.#client.send({ id: idempotencyKey, name, data: event.data })
+  async publish<Name extends EventName>(
+    name: Name,
+    event: Events[Name],
+    idempotencyKey: string,
+    schedule?: EventSchedule,
+  ): Promise<void> {
+    await this.#client.send({
+      id: idempotencyKey,
+      name,
+      data: event.data,
+      ...(schedule ? { ts: Date.parse(schedule.runAt) } : {}),
+    })
   }
 }
 

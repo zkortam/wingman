@@ -96,6 +96,26 @@ describe("WingmanClient.reviewToolCall", () => {
     });
   });
 
+  it("does not execute when a fail-closed host receives a remote FAIL_OPEN allow", async () => {
+    const client = new WingmanClient({
+      ...options,
+      review: { failMode: "closed" as const },
+      fetcher: vi.fn(async () =>
+        Response.json({
+          action: "ALLOW",
+          reason: "Review was unavailable.",
+          instruction: null,
+          confidence: 0,
+          source: "FAIL_OPEN",
+        }),
+      ),
+    });
+    await expect(client.reviewToolCall(request)).resolves.toMatchObject({
+      action: "ESCALATE",
+      source: "FAIL_CLOSED",
+    });
+  });
+
   it("supports an in-process reviewer without exposing raw identity", async () => {
     const reviewer = vi.fn(async (wireRequest) => {
       expect(JSON.stringify(wireRequest)).not.toContain(request.userId);
@@ -174,5 +194,18 @@ describe("WingmanClient.reviewToolCall", () => {
         params: { name: 'reschedule_delivery', arguments: { date: '2026-09-01' } },
       },
     })).resolves.toMatchObject({ action: 'ALLOW', source: 'LOCAL' })
+  })
+
+  it('escalates a malformed MCP envelope without calling the model', async () => {
+    const reviewer = vi.fn()
+    const client = new WingmanClient({
+      ...options,
+      review: { failMode: 'closed' as const, reviewer },
+    })
+    await expect(client.reviewMcpToolCall({
+      ...request,
+      request: { jsonrpc: '1.0', id: 1, method: 'tools/list', params: { name: 'x' } } as never,
+    })).resolves.toMatchObject({ action: 'ESCALATE', source: 'FAIL_CLOSED' })
+    expect(reviewer).not.toHaveBeenCalled()
   })
 });

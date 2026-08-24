@@ -1,4 +1,5 @@
 import type { Database, Json, ServiceClient } from "@wingman/db";
+import { canonicalJSON, StageError } from "@wingman/schema";
 
 import type { IncidentRecord } from "../domain.js";
 import type {
@@ -65,6 +66,16 @@ export async function findRun(
   const result = await query.maybeSingle();
   if (result.error) throw result.error;
   return result.data as Row<"runs"> | null;
+}
+
+export function assertSamePayload(
+  stage: string,
+  existing: unknown,
+  next: unknown,
+): void {
+  if (canonicalJSON(existing) !== canonicalJSON(next)) {
+    throw new StageError(stage, "STALE_IDEMPOTENT_ROW", false);
+  }
 }
 
 export function unique(values: string[]): string[] {

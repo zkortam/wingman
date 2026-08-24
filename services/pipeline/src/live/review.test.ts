@@ -51,6 +51,17 @@ describe("reviewProposedToolCall", () => {
     expect(model.generate).not.toHaveBeenCalled();
   });
 
+  it("fails closed when the host asks for it and the model is unavailable", async () => {
+    const model: ModelClient = {
+      generate: vi.fn(async () => {
+        throw new Error("offline");
+      }),
+    };
+    await expect(
+      reviewProposedToolCall({ model, config, request, failMode: "closed" }),
+    ).resolves.toMatchObject({ action: "ESCALATE", source: "FAIL_CLOSED" });
+  });
+
   it("fails open when analysis is unavailable or invalid", async () => {
     const model: ModelClient = {
       generate: vi.fn(async () => {

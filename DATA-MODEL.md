@@ -139,7 +139,7 @@ create table signals (
   id          uuid primary key default gen_random_uuid(),
   session_id  uuid not null references sessions(id) on delete cascade,
   turn_idx    int  not null,
-  kind        text not null check (kind in ('RETRY_REQUEST','RESTATED_CONSTRAINT','ABANDON_RESTART')),
+  kind        text not null check (kind in ('RETRY_REQUEST','RESTATED_CONSTRAINT','ABANDON_RESTART','PREFERENCE_STATED')),
   confidence  real not null check (confidence between 0 and 1),
   baseline    real,                                           -- + this user's own rate for this kind
   evidence    jsonb not null default '{}',
@@ -164,7 +164,7 @@ create table incidents (
                                       'APPLIED','CONFIRMED','DISCARDED','PARKED','REVERTED',
                                       'HUMAN_REVIEW','EXPIRED')),
   state_reason       text,                                    -- + why it parked. shown in the UI.
-  verdict            text check (verdict in ('VARIANCE','PREFERENCE','CONFIG_DEFECT','CODE_DEFECT')),
+  verdict            text check (verdict in ('VARIANCE','PREFERENCE','CONFIG_DEFECT','CODE_DEFECT','UNSUPPORTED')),
   verdict_confidence real,
   verdict_evidence   jsonb,                                   -- + the ranked evidence the gate used
   assertion_id       uuid,                                    -- the true identity, once asserted

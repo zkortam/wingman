@@ -34,8 +34,17 @@ export const createAgentReplayHandler = (options: {
         ...(parsed.data.context === undefined ? {} : { context: parsed.data.context }),
         ...(parsed.data.sample === undefined ? {} : { sample: parsed.data.sample }),
       }
+      const raw = await options.run(input)
+      if (
+        raw &&
+        typeof raw === 'object' &&
+        'toolExecutions' in raw &&
+        (raw as { toolExecutions?: unknown }).toolExecutions !== 0
+      ) {
+        return Response.json({ error: 'Replay executed tools' }, { status: 503 })
+      }
       const decision = AgentReplayResponseSchema.parse({
-        ...await options.run(input),
+        ...raw,
         toolExecutions: 0,
       })
       return Response.json(decision)

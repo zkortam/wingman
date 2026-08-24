@@ -15,7 +15,11 @@ export const IncidentTable = ({ incidents }: { incidents: IncidentSummaryView[] 
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
       if (event.key === 'j') setSelected((value) => Math.min(value + 1, incidents.length - 1))
       if (event.key === 'k') setSelected((value) => Math.max(value - 1, 0))
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter' || event.key === 'a') {
+        const incident = incidents[selected]
+        if (incident) router.push(`/incidents/${incident.id}`)
+      }
+      if (event.key === 'x') {
         const incident = incidents[selected]
         if (incident) router.push(`/incidents/${incident.id}`)
       }
