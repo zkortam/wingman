@@ -1,20 +1,38 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import process from "node:process";
 
 const PUBLIC_SCHEMA = "@zkortam/wingman-schema";
 const PUBLIC_SDK = "@zkortam/wingman-sdk";
 
-const remap = (file, mutate) => {
-  const pkg = JSON.parse(readFileSync(file, "utf8"));
-  mutate(pkg);
+const readPackage = (file) => JSON.parse(readFileSync(file, "utf8"));
+
+const writePackage = (file, pkg) => {
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
 };
 
-remap("packages/schema/package.json", (pkg) => {
+const applyPublicManifest = (file, mutate) => {
+  const original = readFileSync(file, "utf8");
+  const pkg = JSON.parse(original);
+  mutate(pkg);
+  const published = pkg.publishConfig ?? {};
+  if (published.exports) pkg.exports = published.exports;
+  if (published.main) pkg.main = published.main;
+  if (published.types) pkg.types = published.types;
+  pkg.exports = {
+    ...(pkg.exports && typeof pkg.exports === "object" ? pkg.exports : {}),
+    "./package.json": "./package.json",
+  };
+  pkg.publishConfig = { access: "public" };
+  writePackage(file, pkg);
+  return original;
+};
+
+const schemaOriginal = applyPublicManifest("packages/schema/package.json", (pkg) => {
   pkg.name = PUBLIC_SCHEMA;
 });
 
-remap("packages/sdk/package.json", (pkg) => {
+const sdkOriginal = applyPublicManifest("packages/sdk/package.json", (pkg) => {
   pkg.name = PUBLIC_SDK;
   const current = pkg.dependencies["@wingman/schema"];
   delete pkg.dependencies["@wingman/schema"];
@@ -23,13 +41,21 @@ remap("packages/sdk/package.json", (pkg) => {
     : current;
 });
 
-const npmPublish = (cwd) => {
-  execFileSync(
-    "npm",
-    ["publish", "--access", "public", "--ignore-scripts", "--provenance"],
-    { cwd, stdio: "inherit", env: process.env },
-  );
-};
+const args = ["publish", "--access", "public", "--ignore-scripts"];
+if (process.env.GITHUB_ACTIONS) args.push("--provenance");
 
-npmPublish("packages/schema");
-npmPublish("packages/sdk");
+try {
+  execFileSync("npm", args, {
+    cwd: "packages/schema",
+    stdio: "inherit",
+    env: process.env,
+  });
+  execFileSync("npm", args, {
+    cwd: "packages/sdk",
+    stdio: "inherit",
+    env: process.env,
+  });
+} finally {
+  writeFileSync("packages/schema/package.json", schemaOriginal);
+  writeFileSync("packages/sdk/package.json", sdkOriginal);
+}

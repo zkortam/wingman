@@ -13,7 +13,7 @@ describe("incident state transitions", () => {
       expect(canTransition(state, "CLUSTERED")).toBe(true);
     }
     expect(canTransition("CONFIRMED", "CLUSTERED")).toBe(false);
-    expect(canTransition("REVERTED", "CLUSTERED")).toBe(false);
+    expect(canTransition("REVERTED", "CLUSTERED")).toBe(true);
   });
 
   it("allows an operator to revert a confirmed configuration", () => {

@@ -26,8 +26,8 @@ interface RespondInput {
 }
 
 /**
- * Amazoff's support agent. It resolves its own config from Wingman on every turn, which
- * is what allows a fix to take effect mid-conversation without a redeploy.
+ * Amazoff's support agent. The host supplies the current signed config on every turn,
+ * which is what allows a Wingman fix to take effect mid-conversation without a redeploy.
  */
 export class AmazoffAgent {
   readonly #orders: OrderBook;

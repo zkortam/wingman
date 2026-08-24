@@ -14,6 +14,9 @@ describe('web composition root', () => {
     await commands.apply('OC-1042', 'USER')
     expect((await config.resolve(DEMO_AGENT, DEMO_REPORTER_HASH)).version).toBe(2)
     expect((await reader.listOutcomes()).map((outcome) => outcome.id)).toContain('OC-1042')
+    await commands.confirm('OC-1042')
+    expect(demoRuntime.incident('OC-1042')?.state).toBe('CONFIRMED')
+    await expect(reader.gatePrecision()).resolves.toEqual({ precision: 1, n: 6 })
   })
 
   it('never falls back to demo data in production', async () => {

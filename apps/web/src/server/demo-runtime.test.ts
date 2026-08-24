@@ -30,6 +30,18 @@ describe('demoRuntime', () => {
     expect(demoRuntime.config(DEMO_AGENT, DEMO_CONTROL_HASH).version).toBe(2)
   })
 
+  it('confirms only after apply and records the confirmation window', () => {
+    demoRuntime.reset()
+    expect(() => demoRuntime.confirm('unknown')).toThrow('not found')
+    expect(() => demoRuntime.confirm('OC-1042')).toThrow('not awaiting confirmation')
+    demoRuntime.apply('OC-1042', 'USER')
+    demoRuntime.confirm('OC-1042')
+    const incident = demoRuntime.incident('OC-1042')
+    expect(incident?.state).toBe('CONFIRMED')
+    expect(incident?.confirmation?.status).toBe('CONFIRMED')
+    expect(incident?.confirmedAt).toBeTruthy()
+  })
+
   it('resets global state and persists reopen transitions', () => {
     demoRuntime.reset()
     demoRuntime.apply('OC-1042', 'GLOBAL')

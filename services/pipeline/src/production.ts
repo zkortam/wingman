@@ -1,7 +1,7 @@
 import { SupabaseConfigStore } from '@wingman/config'
 import { createServiceClient } from '@wingman/db'
 import { createProductionIngestService, InngestEventPublisher } from '@wingman/ingest'
-import { canonicalJSON, type AgentConfig, type EventName, type EventPublisher, type EventSchedule, type Events } from '@wingman/schema'
+import { AgentConfigSchema, canonicalJSON, type AgentConfig, type EventName, type EventPublisher, type EventSchedule, type Events } from '@wingman/schema'
 
 import { createPipelineCommands } from './commands.js'
 import { revertAppliedOutcome } from './confirmation.js'
@@ -15,6 +15,7 @@ import { createSupabasePipelineRepository } from './store/index.js'
 import { OpenAIModelClient } from './adapters/openai.js'
 import { HttpAgentRunner } from './adapters/http-runner.js'
 import { createPipelineFunctions } from './functions/index.js'
+import { runExpirySweep, runRetentionSweep } from './operations.js'
 
 export const createProductionPipelineControlPlane = (input: {
   fallbackConfigs?: ReadonlyMap<string, AgentConfig>
@@ -24,7 +25,7 @@ export const createProductionPipelineControlPlane = (input: {
 } = {}) => {
   const repository = createSupabasePipelineRepository(createServiceClient())
   const configStore = new SupabaseConfigStore({
-    fallbackConfigs: input.fallbackConfigs ?? new Map(),
+    fallbackConfigs: input.fallbackConfigs ?? compiledFallbacks(),
     canonicalize: canonicalJSON,
   })
   const events = lazyEvents(input.inngestEventKey ?? process.env.INNGEST_EVENT_KEY ?? '')
@@ -75,7 +76,7 @@ export const createProductionPipelineFunctions = (input: {
   const eventKey = input.inngestEventKey ?? process.env.INNGEST_EVENT_KEY ?? ''
   const repository = createSupabasePipelineRepository(createServiceClient())
   const configStore = new SupabaseConfigStore({
-    fallbackConfigs: input.fallbackConfigs ?? new Map(),
+    fallbackConfigs: input.fallbackConfigs ?? compiledFallbacks(),
     canonicalize: canonicalJSON,
   })
   const events = lazyEvents(eventKey)
@@ -97,6 +98,24 @@ export const createProductionPipelineFunctions = (input: {
     events,
   })
   return createPipelineFunctions({ engine, commands, repository })
+}
+
+export const createProductionPipelineMaintenance = () => {
+  const repository = createSupabasePipelineRepository(createServiceClient())
+  return {
+    expirySweep: () => runExpirySweep(repository),
+    retentionSweep: () => runRetentionSweep(repository),
+  }
+}
+
+const compiledFallbacks = (): Map<string, AgentConfig> => {
+  const raw = process.env.WINGMAN_BASE_CONFIG?.trim()
+  if (!raw) return new Map()
+  try {
+    return new Map([['*', AgentConfigSchema.parse(JSON.parse(raw) as unknown)]])
+  } catch {
+    return new Map()
+  }
 }
 
 const lazyEvents = (eventKey: string): EventPublisher => ({

@@ -55,7 +55,9 @@ Branch from `main`. Use the PR template. Explain:
 3. The command you ran (`pnpm check` is the product gate)
 
 CI runs `pnpm audit --audit-level high` and `pnpm check` on every pull request
-and on `main`.
+and on `main`. `main` is protected: no force-push, no deletion, pull requests
+only, and the **Product gate** check must pass on a branch that is up to date
+with `main`.
 
 ## Good first issues
 
