@@ -64,7 +64,8 @@ describe('initial migration invariants', () => {
     expect(incidentJoinMigration).toContain('on conflict (agent_id, key) do update')
     expect(incidentJoinMigration).toContain('incidents.session_ids || excluded.session_ids')
     expect(incidentJoinMigration).toContain('from public')
-    expect(incidentJoinMigration).toContain('to service_role')
+    // Applied only when the role exists; service_role is Supabase-only.
+    expect(incidentJoinMigration).toContain("rolname = 'service_role'")
   })
 
   it('aligns signal and verdict checks and persists the ledger', () => {
