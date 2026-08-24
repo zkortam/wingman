@@ -23,11 +23,10 @@ Built by **Zakaria Kortam** and **Ali Alani**.
 </div>
 
 > [!IMPORTANT]
-> Wingman is pre-1.0. Release [`v0.1.0`](https://github.com/zkortam/wingman/releases/tag/v0.1.0)
-> is on npm as [`@zkortam/wingman-sdk`](https://www.npmjs.com/package/@zkortam/wingman-sdk).
-> The `@wingman` npm organization is already taken, so the published names live
-> under `@zkortam`. In this repository the workspace packages remain
-> `@wingman/sdk` and `@wingman/schema`.
+> Wingman is pre-1.0. Install [`@zkortam/wingman-sdk`](https://www.npmjs.com/package/@zkortam/wingman-sdk)
+> (`@wingman` is already an npm organization). Use **0.1.1 or newer** — 0.1.0
+> exported source files that are not in the tarball. In this repository the
+> workspace packages remain `@wingman/sdk` and `@wingman/schema`.
 
 ## Who this is for
 
@@ -185,8 +184,14 @@ const decision = await wingman.reviewToolCall({
   sessionId,
   userId,
   userMessage: latestUserMessage,
-  proposedCall,
-  recentTurns,
+  proposedCall: { name: proposedCall.name, args: proposedCall.args ?? {} },
+  recentTurns: recentTurns.map((turn, idx) => ({
+    idx,
+    role: turn.role,
+    textRedacted: turn.text,
+    toolCalls: turn.toolCalls ?? [],
+    createdAt: turn.createdAt,
+  })),
   context,
 });
 

@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEMO_AGENT, DEMO_CONTROL_HASH, DEMO_REPORTER_HASH } from '../domain/demo'
 import { POST as apply } from '../../app/(api)/v1/incidents/[id]/apply/route'
+import { POST as confirm } from '../../app/(api)/v1/incidents/[id]/confirm/route'
 import { POST as dismiss } from '../../app/(api)/v1/incidents/[id]/dismiss/route'
 import { POST as handoff } from '../../app/(api)/v1/incidents/[id]/handoff/route'
 import { POST as reopen } from '../../app/(api)/v1/incidents/[id]/reopen/route'
+import { GET as gate } from '../../app/(api)/v1/metrics/gate/route'
 import { POST as revert } from '../../app/(api)/v1/config/[agent]/revert/route'
 import { GET as versions } from '../../app/(api)/v1/config/[agent]/versions/route'
 import { GET as incidents } from '../../app/(api)/v1/incidents/route'
@@ -172,5 +174,66 @@ describe('operator and config routes', () => {
       reopenResponse.status,
       revertResponse.status,
     ]).toEqual([503, 503, 503, 503, 503])
+    await expect(confirm(new Request('http://local', { method: 'POST' }), params({ id: 'OC-1042' })))
+      .resolves.toMatchObject({ status: 503 })
+    await expect(gate()).resolves.toMatchObject({ status: 503 })
+  })
+
+  it('confirms an applied incident and refuses a second confirmation', async () => {
+    demoRuntime.reset()
+    const applied = await apply(new Request('http://local', {
+      method: 'POST',
+      body: JSON.stringify({ scope: 'USER' }),
+    }), params({ id: 'OC-1042' }))
+    expect(applied.status).toBe(200)
+    const confirmed = await confirm(new Request('http://local', { method: 'POST' }), params({ id: 'OC-1042' }))
+    expect(confirmed.status).toBe(204)
+    expect(demoRuntime.incident('OC-1042')?.state).toBe('CONFIRMED')
+    const again = await confirm(new Request('http://local', { method: 'POST' }), params({ id: 'OC-1042' }))
+    expect(again.status).toBe(409)
+    const missing = await confirm(new Request('http://local', { method: 'POST' }), params({ id: 'unknown' }))
+    expect(missing.status).toBe(404)
+  })
+
+  it('reports demo gate precision and escalates an undeclared tool without a model', async () => {
+    const precision = await gate()
+    expect(precision.status).toBe(200)
+    expect(await precision.json()).toEqual({ precision: 1, n: 6 })
+
+    const unknown = await reviewToolCall(new Request('http://local/v1/reviews/tool-calls', {
+      method: 'POST',
+      body: JSON.stringify({
+        agentId: '4ee0d899-d63d-4bc2-b47a-25aa25c6078b',
+        sessionId: 'f561f9b9-2abf-4bb7-a5cd-3b6ad76002b6',
+        userHash: 'a'.repeat(32),
+        userMessage: 'Drop the production database.',
+        proposedCall: { name: 'delete_database', args: {} },
+        recentTurns: [],
+        context: {},
+      }),
+    }))
+    expect(unknown.status).toBe(200)
+    expect(await unknown.json()).toMatchObject({ action: 'ESCALATE', source: 'POLICY' })
+  })
+
+  it('rejects unauthenticated SDK traffic in production', async () => {
+    vi.stubEnv('WINGMAN_RUNTIME', 'production')
+    vi.stubEnv('WINGMAN_API_KEY', 'sdk-secret')
+    const unauthorized = await reviewToolCall(new Request('http://local/v1/reviews/tool-calls', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }))
+    expect(unauthorized.status).toBe(401)
+    const events = await ingestEvent(new Request('http://local/v1/events', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }))
+    expect(events.status).toBe(401)
+    const authorizedInvalid = await reviewToolCall(new Request('http://local/v1/reviews/tool-calls', {
+      method: 'POST',
+      headers: { authorization: 'Bearer sdk-secret' },
+      body: JSON.stringify({}),
+    }))
+    expect(authorizedInvalid.status).toBe(400)
   })
 })

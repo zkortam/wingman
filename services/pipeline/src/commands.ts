@@ -41,7 +41,13 @@ export function createPipelineCommands(input: {
     },
     async reopen(incidentId) {
       const incident = await input.repository.getIncident(incidentId);
-      const reopenable = ["DISCARDED", "PARKED", "EXPIRED", "HUMAN_REVIEW"];
+      const reopenable = [
+        "DISCARDED",
+        "PARKED",
+        "EXPIRED",
+        "HUMAN_REVIEW",
+        "REVERTED",
+      ];
       if (!reopenable.includes(incident.state))
         throw new Error(`Cannot reopen incident in ${incident.state}`);
       const reopened = await input.repository.updateIncident(

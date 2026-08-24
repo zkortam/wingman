@@ -1,7 +1,7 @@
 import { Inngest } from 'inngest'
 import { z } from 'zod'
 
-import { createProductionPipelineFunctions } from './production.js'
+import { createProductionPipelineFunctions, createProductionPipelineMaintenance } from './production.js'
 
 const IdEventSchema = z.object({ data: z.object({ sessionId: z.string().uuid() }) })
 const IncidentEventSchema = z.object({ data: z.object({ incidentId: z.string().uuid() }) })
@@ -9,9 +9,14 @@ const IncidentEventSchema = z.object({ data: z.object({ incidentId: z.string().u
 export const pipelineInngest = new Inngest({ id: 'wingman-pipeline' })
 
 let runtime: ReturnType<typeof createProductionPipelineFunctions> | undefined
+let maintenance: ReturnType<typeof createProductionPipelineMaintenance> | undefined
 const functions = () => {
   runtime ??= createProductionPipelineFunctions()
   return runtime
+}
+const sweeps = () => {
+  maintenance ??= createProductionPipelineMaintenance()
+  return maintenance
 }
 
 const observed = pipelineInngest.createFunction(
@@ -40,12 +45,12 @@ const confirmation = pipelineInngest.createFunction(
 
 const expiry = pipelineInngest.createFunction(
   { id: 'expire-stale-incidents', retries: 3, triggers: [{ cron: '15 * * * *' }] },
-  ({ step }) => step.run('expire-incidents', () => functions().expirySweep()),
+  ({ step }) => step.run('expire-incidents', () => sweeps().expirySweep()),
 )
 
 const retention = pipelineInngest.createFunction(
   { id: 'retain-redacted-events', retries: 3, triggers: [{ cron: '30 3 * * *' }] },
-  ({ step }) => step.run('delete-expired-events', () => functions().retentionSweep()),
+  ({ step }) => step.run('delete-expired-events', () => sweeps().retentionSweep()),
 )
 
 export const pipelineInngestFunctions = [observed, clustered, confirmation, expiry, retention]

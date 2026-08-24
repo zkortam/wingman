@@ -192,7 +192,7 @@ export function createPipelineEngine(input: {
             return { incidentId: tracked.id, state: "PARKED" };
           }
         }
-        return { incidentId: null, state: "PARKED" };
+        throw error instanceof Error ? error : new Error(String(error));
       }
     },
 

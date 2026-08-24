@@ -366,7 +366,7 @@ Both engineers implement these. They must agree byte for byte, so all four live 
 ```ts
 hmacSHA256(orgSalt, userId).hex().slice(0, 32)
 ```
-Per-org salt, not global — a hash cannot be correlated across customers. **We never store an identity.** The salt lives in `orgs.user_salt` and never leaves the server; the SDK computes the hash locally with a salt fetched once at init, so raw user ids never reach us.
+Per-org salt, not global — a hash cannot be correlated across customers. **We never store an identity.** The salt is copied into the agent host at install as `WINGMAN_ORG_SALT` (the same UTF-8 bytes stored in `orgs.user_salt`). The SDK hashes locally, so raw user ids never reach Wingman. There is no salt-fetch API.
 
 ### `taskFingerprint(session)`
 Deliberately crude. Clustering is recall-oriented; precision comes from the gate and from the assertion.
@@ -429,8 +429,9 @@ Rejection at any layer parks the incident. It never retries with a smaller diff 
 
 ## 10. Retention
 
+Retention is `runRetentionSweep` in `services/pipeline/src/operations.ts`, invoked by the daily Inngest cron in `services/pipeline/src/inngest.ts`. It deletes sessions, turns, and signals older than 30 days while leaving copied incident evidence on the ledger.
+
 ```ts
-// services/pipeline/src/functions/99-retention.ts — daily Inngest cron
 delete from turns    where session_id in (select id from sessions where ingested_at < now() - interval '30 days')
 delete from signals  where session_id in (…)
 delete from sessions where ingested_at < now() - interval '30 days'
@@ -442,7 +443,21 @@ Sweep order matters: children first, or the cascade does the work but the delete
 
 ---
 
-## 11. Deliberate scope boundaries
+## 11. Bootstrap one org and one agent
+
+Apply migrations in filename order (`supabase db push`, `psql`, or the SQL editor). Then insert one org, one agent, and a BASE `config_versions` row whose `signature` is `signConfig(signingKey, agentId, 1, config)` from `@wingman/schema`.
+
+Store `user_salt` and `signing_key` as the UTF-8 bytes of the same strings the agent host puts in `WINGMAN_ORG_SALT` and `WINGMAN_SIGNING_KEY`. HMAC keys are those strings, not decoded hex. `convert_to('your-salt', 'UTF8')` on the Postgres side matches `createHmac('sha256', process.env.WINGMAN_ORG_SALT)`.
+
+```bash
+pnpm bootstrap-config
+```
+
+prints the INSERT statements and the agent-host env block. Copy `WINGMAN_OPERATOR_USER_HASH` from `hashUserId(orgSalt, operatorUserId)` (exported by `@wingman/sdk`).
+
+---
+
+## 12. Deliberate scope boundaries
 
 | Not modelled | Why | When it arrives |
 |---|---|---|

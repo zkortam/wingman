@@ -18,7 +18,9 @@ const demo = () => {
 
 let productionControl: ReturnType<typeof createProductionPipelineControlPlane> | undefined
 const control = () => {
-  productionControl ??= createProductionPipelineControlPlane()
+  productionControl ??= createProductionPipelineControlPlane({
+    fallbackConfigs: compiledFallbacks(),
+  })
   return productionControl
 }
 

@@ -208,4 +208,39 @@ describe("WingmanClient.reviewToolCall", () => {
     })).resolves.toMatchObject({ action: 'ESCALATE', source: 'FAIL_CLOSED' })
     expect(reviewer).not.toHaveBeenCalled()
   })
+
+  it('escalates a tool absent from compiled config without calling the model', async () => {
+    const fetcher = vi.fn()
+    const reviewer = vi.fn()
+    const client = new WingmanClient({
+      ...options,
+      fetcher,
+      review: { reviewer },
+    })
+    await expect(client.reviewToolCall({
+      ...request,
+      proposedCall: { name: 'delete_database', args: {} },
+    })).resolves.toMatchObject({ action: 'ESCALATE', source: 'POLICY' })
+    expect(fetcher).not.toHaveBeenCalled()
+    expect(reviewer).not.toHaveBeenCalled()
+  })
+
+  it('treats MCP arguments that are not an object as an invalid envelope', async () => {
+    const reviewer = vi.fn()
+    const client = new WingmanClient({
+      ...options,
+      review: { failMode: 'closed' as const, reviewer },
+    })
+    await expect(client.reviewMcpToolCall({
+      ...request,
+      request: {
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: { name: 'reschedule_delivery', arguments: 'friday' },
+      } as never,
+    })).resolves.toMatchObject({ action: 'ESCALATE', source: 'FAIL_CLOSED' })
+    expect(reviewer).not.toHaveBeenCalled()
+  })
 });
+

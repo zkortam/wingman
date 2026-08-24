@@ -1,6 +1,6 @@
 {
   "name": "@wingman/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tool-boundary review, signed configuration, and locally redacted session evidence for AI agents. Never executes a tool.",
   "keywords": [
     "ai-agents",

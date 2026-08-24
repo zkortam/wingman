@@ -22,14 +22,17 @@ export async function processIncident(
     incidentId: input.incident.id,
     stage: "gate",
     run: async () => {
-      const base = await input.configStore.base(input.incident.agentId);
+      const live = await input.configStore.resolve(
+        input.incident.agentId,
+        input.session.userHash,
+      );
       const gate = await runGate({
         model: input.model,
         incident: input.incident,
-        config: base,
+        config: live,
         session: input.session,
       });
-      return { base, gate };
+      return { live, gate };
     },
     outcome: ({ gate }) =>
       gate.requiresHumanReview ? "HUMAN_REVIEW" : gate.decision.verdict,

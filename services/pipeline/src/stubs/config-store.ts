@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 
 import {
   AgentConfigSchema,
-  applyDiff,
   signConfig,
   type AgentConfig,
   type ConfigDiff,
@@ -113,7 +112,6 @@ export class StubConfigStore implements ConfigStore {
       maxDiffBytes: policy.maxDiffBytes,
       writablePaths: policy.writablePaths,
     });
-    applyDiff(await this.base(agentId), diff);
   }
 }
 
