@@ -24,7 +24,11 @@ export function createIngestService(input: {
       const session = verifyRedaction(payload)
       const turns = await buildStoredTurns(session, input.embeddings)
       await input.store.writeSession(session, taskFingerprint(session), turns)
-      await input.events.publish('session.observed', { data: { sessionId: session.id } }, session.id)
+      await input.events.publish(
+        'session.observed',
+        { data: { sessionId: session.id } },
+        session.id,
+      )
       return { status: 202, sessionId: session.id }
     },
     writeSignals(signals) {
@@ -33,15 +37,21 @@ export function createIngestService(input: {
   }
 }
 
-async function buildStoredTurns(session: SessionInput, embeddings: EmbeddingClient): Promise<StoredTurn[]> {
+async function buildStoredTurns(
+  session: SessionInput,
+  embeddings: EmbeddingClient,
+): Promise<StoredTurn[]> {
   const userTurns = session.turns.filter(
     (turn): turn is typeof turn & { textRedacted: string } =>
       turn.role === 'user' && turn.textRedacted !== null && turn.textRedacted.length > 0,
   )
-  const vectors = userTurns.length === 0 ? [] : await embeddings.embed({
-    texts: userTurns.map(({ textRedacted }) => textRedacted),
-    dimensions: 1536,
-  })
+  const vectors =
+    userTurns.length === 0
+      ? []
+      : await embeddings.embed({
+          texts: userTurns.map(({ textRedacted }) => textRedacted),
+          dimensions: 1536,
+        })
   if (vectors.length !== userTurns.length || vectors.some(({ length }) => length !== 1536)) {
     throw new Error('Embedding client returned an invalid batch')
   }

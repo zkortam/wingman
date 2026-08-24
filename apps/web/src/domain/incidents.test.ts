@@ -21,7 +21,9 @@ describe('incidentPresentation', () => {
 
   it('only offers apply on a verified candidate', () => {
     for (const state of INCIDENT_STATES) {
-      expect(incidentPresentation(detail(state)).actions.includes('apply')).toBe(state === 'CANDIDATE')
+      expect(incidentPresentation(detail(state)).actions.includes('apply')).toBe(
+        state === 'CANDIDATE',
+      )
     }
   })
 

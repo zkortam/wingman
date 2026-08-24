@@ -85,7 +85,11 @@ const variants: IncidentDetailView[] = [
     sessions: 11,
     firstSeen: ago(9),
     state: 'DISCARDED',
-    verdict: { kind: 'VARIANCE', confidence: 0.71, evidence: ['The unchanged config passed two of five identical assertions.'] },
+    verdict: {
+      kind: 'VARIANCE',
+      confidence: 0.71,
+      evidence: ['The unchanged config passed two of five identical assertions.'],
+    },
     before: { n: 5, passCount: 2 },
     change: undefined,
     after: undefined,
@@ -100,7 +104,11 @@ const variants: IncidentDetailView[] = [
     firstSeen: ago(27),
     state: 'APPLIED',
     appliedAt: ago(1),
-    verdict: { kind: 'PREFERENCE', confidence: 0.91, evidence: ['The user restated the same date constraint twice.'] },
+    verdict: {
+      kind: 'PREFERENCE',
+      confidence: 0.91,
+      evidence: ['The user restated the same date constraint twice.'],
+    },
     confirmation: { status: 'PENDING', detail: 'Confirmation window ends in 21h' },
   },
   {
@@ -112,7 +120,11 @@ const variants: IncidentDetailView[] = [
     firstSeen: ago(31),
     state: 'HUMAN_REVIEW',
     stateReason: 'Tool behavior requires a code change in the customer environment.',
-    verdict: { kind: 'CODE_DEFECT', confidence: 0.93, evidence: ['The tool executes before the required confirmation boundary.'] },
+    verdict: {
+      kind: 'CODE_DEFECT',
+      confidence: 0.93,
+      evidence: ['The tool executes before the required confirmation boundary.'],
+    },
     change: undefined,
     after: undefined,
     scope: undefined,
@@ -128,7 +140,10 @@ const variants: IncidentDetailView[] = [
     state: 'CONFIRMED',
     appliedAt: ago(3),
     confirmedAt: ago(2.7),
-    confirmation: { status: 'CONFIRMED', detail: 'Confirmed by the next matching task, 18m after apply' },
+    confirmation: {
+      status: 'CONFIRMED',
+      detail: 'Confirmed by the next matching task, 18m after apply',
+    },
   },
   {
     ...candidate,
@@ -146,6 +161,13 @@ const variants: IncidentDetailView[] = [
 ]
 
 export const demoIncidents = (): IncidentDetailView[] => structuredClone(variants)
-export const demoIncident = (id: string): IncidentDetailView | undefined => demoIncidents().find((incident) => incident.id === id)
+export const demoIncident = (id: string): IncidentDetailView | undefined =>
+  demoIncidents().find((incident) => incident.id === id)
 export const demoIncidentSummaries = (): IncidentSummaryView[] =>
-  demoIncidents().map(({ id, title, users, firstSeen, state }) => ({ id, title, users, firstSeen, state }))
+  demoIncidents().map(({ id, title, users, firstSeen, state }) => ({
+    id,
+    title,
+    users,
+    firstSeen,
+    state,
+  }))

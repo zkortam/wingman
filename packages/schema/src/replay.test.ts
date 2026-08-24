@@ -10,9 +10,16 @@ describe('agent replay wire contract', () => {
       interceptToolCalls: true,
     }
     expect(AgentReplayRequestSchema.safeParse(base).success).toBe(true)
-    expect(AgentReplayRequestSchema.safeParse({ ...base, interceptToolCalls: false }).success).toBe(false)
-    expect(AgentReplayResponseSchema.safeParse({
-      toolCalls: [], text: null, cassetteKey: 'run:0', toolExecutions: 1,
-    }).success).toBe(false)
+    expect(AgentReplayRequestSchema.safeParse({ ...base, interceptToolCalls: false }).success).toBe(
+      false,
+    )
+    expect(
+      AgentReplayResponseSchema.safeParse({
+        toolCalls: [],
+        text: null,
+        cassetteKey: 'run:0',
+        toolExecutions: 1,
+      }).success,
+    ).toBe(false)
   })
 })

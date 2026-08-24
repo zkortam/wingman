@@ -43,7 +43,7 @@ const integrationStatuses = (): IntegrationStatus[] => [
   },
   {
     label: 'Database',
-    configured: present('SUPABASE_URL') && present('SUPABASE_SERVICE_ROLE_KEY'),
+    configured: present('DATABASE_URL'),
     detail: 'Persists evidence, incidents, immutable config versions, and outcomes.',
   },
   {

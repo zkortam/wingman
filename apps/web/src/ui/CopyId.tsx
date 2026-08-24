@@ -16,5 +16,9 @@ export const CopyId = ({ id }: { id: string }) => {
     setCopied(true)
   }
 
-  return <button className="copy-id" data-copied={copied} onClick={copy} type="button">{id}</button>
+  return (
+    <button className="copy-id" data-copied={copied} onClick={copy} type="button">
+      {id}
+    </button>
+  )
 }

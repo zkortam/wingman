@@ -24,22 +24,31 @@ describe('HttpAgentRunner', () => {
       token: 'runner-secret',
       fetcher,
     })
-    await expect(runner.runTurn({
-      config,
-      messages: [],
-      intercept: () => 'INTERCEPT',
-      sample: 2,
-    })).resolves.toMatchObject({ cassetteKey: 'remote:2', toolExecutions: 0 })
+    await expect(
+      runner.runTurn({
+        config,
+        messages: [],
+        intercept: () => 'INTERCEPT',
+        sample: 2,
+      }),
+    ).resolves.toMatchObject({ cassetteKey: 'remote:2', toolExecutions: 0 })
   })
 
   it('rejects any remote claim that tools were executed', async () => {
     const runner = new HttpAgentRunner({
       endpoint: 'https://runner.example/replay',
       token: 'runner-secret',
-      fetcher: vi.fn(async () => Response.json({
-        toolCalls: [], text: null, cassetteKey: 'unsafe', toolExecutions: 1,
-      })),
+      fetcher: vi.fn(async () =>
+        Response.json({
+          toolCalls: [],
+          text: null,
+          cassetteKey: 'unsafe',
+          toolExecutions: 1,
+        }),
+      ),
     })
-    await expect(runner.runTurn({ config, messages: [], intercept: () => 'INTERCEPT' })).rejects.toThrow()
+    await expect(
+      runner.runTurn({ config, messages: [], intercept: () => 'INTERCEPT' }),
+    ).rejects.toThrow()
   })
 })

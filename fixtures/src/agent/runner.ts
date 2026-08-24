@@ -20,7 +20,8 @@ const isVarianceFixture = (messages: Turn[]): boolean => {
 
 const exportDecision = (config: AgentConfig, messages: Turn[], sample: number): ToolCall => {
   const resolved = runtimeConfig(config)
-  const description = resolved.tools.find((tool) => tool.name === 'export_records')?.description ?? ''
+  const description =
+    resolved.tools.find((tool) => tool.name === 'export_records')?.description ?? ''
   const shouldPreserveFilters = /active view|preserve|visible view/i.test(description)
   const varianceAllowsFilters = isVarianceFixture(messages) && (sample === 2 || sample === 4)
   const filters = shouldPreserveFilters || varianceAllowsFilters ? activeFilters(messages) : {}

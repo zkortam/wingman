@@ -1,0 +1,21 @@
+# .editorconfig asks every editor for LF. Without this file, Git for Windows
+# (core.autocrlf=true by default) rewrites every checked-out file to CRLF, so a
+# Windows contributor's first save produces a whole-file diff and the SDK tarball
+# ships different bytes than the Linux build. Normalize in the repository.
+* text=auto eol=lf
+
+# Generated and lock files: keep them stable and out of diffs.
+pnpm-lock.yaml       linguist-generated=true -diff
+packages/db/src/types.gen.ts linguist-generated=true
+
+# Never let Git touch the bytes of binary content.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.pdf   binary
+*.tgz   binary

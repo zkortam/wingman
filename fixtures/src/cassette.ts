@@ -28,7 +28,9 @@ const normalize = (value: unknown): unknown => {
 }
 
 export const cassetteKey = (request: unknown): string =>
-  createHash('sha256').update(JSON.stringify(normalize(request))).digest('hex')
+  createHash('sha256')
+    .update(JSON.stringify(normalize(request)))
+    .digest('hex')
 
 export class CassetteStore {
   readonly #directory: string
@@ -55,7 +57,8 @@ export class CassetteStore {
     const key = cassetteKey(request)
     if (this.#mode === 'replay') {
       const cassette = await this.#read(key)
-      if (!(sample in cassette.responses)) throw new Error(`Missing cassette sample ${sample}: ${key}`)
+      if (!(sample in cassette.responses))
+        throw new Error(`Missing cassette sample ${sample}: ${key}`)
       return cassette.responses[sample] as T
     }
 

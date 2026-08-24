@@ -56,7 +56,15 @@ revoke all on function wingman_join_incident(
   uuid, uuid, text, text, text, text, text, uuid, jsonb,
   timestamptz, timestamptz, int
 ) from public;
-grant execute on function wingman_join_incident(
-  uuid, uuid, text, text, text, text, text, uuid, jsonb,
-  timestamptz, timestamptz, int
-) to service_role;
+-- service_role only exists on Supabase. On a direct connection the owner already
+-- has execute, so the grant is applied only when the role is present.
+do $grant$
+begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'grant execute on function wingman_join_incident(
+      uuid, uuid, text, text, text, text, text, uuid, jsonb,
+      timestamptz, timestamptz, int
+    ) to service_role';
+  end if;
+end
+$grant$;
