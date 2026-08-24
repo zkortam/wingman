@@ -15,7 +15,7 @@ demonstrably fail before the change and pass afterward.
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
 
 [Architecture](docs/ARCHITECTURE.md) · [Integration guide](docs/INTEGRATIONS.md) ·
-[Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) ·
+[Security](.github/SECURITY.md) · [Contributing](.github/CONTRIBUTING.md) ·
 [Changelog](CHANGELOG.md)
 
 Built by **Zakaria Kortam** and **Ali Alani**.
@@ -398,21 +398,21 @@ refuses to publish a version that does not match the git tag.
 
 ## Documentation
 
-| Document                                 | Purpose                                                       |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)  | Boundaries, invariants, failure semantics, and lifecycle.     |
-| [INTEGRATIONS.md](docs/INTEGRATIONS.md)  | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
-| [DATA-MODEL.md](docs/DATA-MODEL.md)      | Persistence ownership, state, and migration contract.         |
-| [DEMO.md](docs/DEMO.md)                  | Operator and Amazoff demos, fixtures, cassettes.              |
-| [UI-SPEC.md](docs/UI-SPEC.md)            | Operator interaction and visual policy.                       |
-| [SECURITY.md](SECURITY.md)               | Vulnerability reporting and deployment responsibilities.      |
-| [CONTRIBUTING.md](CONTRIBUTING.md)       | Development, compatibility, and pull-request requirements.    |
-| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards.                                          |
-| [CHANGELOG.md](CHANGELOG.md)             | Public package history.                                       |
+| Document                                         | Purpose                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)          | Boundaries, invariants, failure semantics, and lifecycle.     |
+| [INTEGRATIONS.md](docs/INTEGRATIONS.md)          | SDK, MCP, A2A, observability, replay, and vendor coexistence. |
+| [DATA-MODEL.md](docs/DATA-MODEL.md)              | Persistence ownership, state, and migration contract.         |
+| [DEMO.md](docs/DEMO.md)                          | Operator and Amazoff demos, fixtures, cassettes.              |
+| [UI-SPEC.md](docs/UI-SPEC.md)                    | Operator interaction and visual policy.                       |
+| [SECURITY.md](.github/SECURITY.md)               | Vulnerability reporting and deployment responsibilities.      |
+| [CONTRIBUTING.md](.github/CONTRIBUTING.md)       | Development, compatibility, and pull-request requirements.    |
+| [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) | Community standards.                                          |
+| [CHANGELOG.md](CHANGELOG.md)                     | Public package history.                                       |
 
 ## Contributing
 
-Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 The product gate is `pnpm check`. Architecture questions belong in
 [ARCHITECTURE.md](docs/ARCHITECTURE.md), not in a new abstraction.
 

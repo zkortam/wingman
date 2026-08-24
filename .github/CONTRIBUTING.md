@@ -1,7 +1,7 @@
 # Contributing
 
 Wingman is useful when an agent host can intercept a tool call and prove a
-config change. Read [ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing
+config change. Read [ARCHITECTURE.md](../docs/ARCHITECTURE.md) before changing
 boundaries, ports, or failure modes.
 
 ## Setup
@@ -81,7 +81,7 @@ These are bounded and do not require changing frozen ports:
 
 - A new thin adapter test in `packages/sdk/src/adapters.test.ts`
 - Detection lexicon coverage in `services/pipeline/src/detect/`
-- Operator empty-state copy that matches [UI-SPEC.md](docs/UI-SPEC.md)
+- Operator empty-state copy that matches [UI-SPEC.md](../docs/UI-SPEC.md)
 - A missing colocated test for a module that already has production code
 
 ## Compatibility
