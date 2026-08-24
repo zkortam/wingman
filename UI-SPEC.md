@@ -1,6 +1,7 @@
 # UI Specification
 
-**Owner: Engineer B.** Screens 1 and 2 ship in the hackathon; 3–5 are specified so they can be built without another design pass.
+This is the operator-product visual contract. Every screen follows the same keyboard,
+accessibility, state, and evidence-presentation rules.
 
 > **This is an inbox, not a dashboard.** One object (Incident), one action (approve or dismiss). If a screen does not help someone decide about a specific incident, it does not ship.
 
@@ -194,7 +195,7 @@ SCOPE         7 affected users        [ Apply ]   [ Dismiss ]
 
 ### 6.1 Every incident state renders
 
-This is the section that gets skipped and then costs an hour on demo day. **A parked or discarded incident is a first-class view, not an error page.**
+**A parked or discarded incident is a first-class view, not an error page.**
 
 | State | Above the fold | Blocks shown | Actions |
 |---|---|---|---|
@@ -212,7 +213,8 @@ This is the section that gets skipped and then costs an hour on demo day. **A pa
 | `EXPIRED` | `Expired — no recurrence in 14 days`, `--text-faint` | all, dimmed | `[ Reopen ]` |
 | `CODE_DEFECT` | `Handed off to Codex` | + the handoff payload, collapsed | `[ Copy payload ]` `[ Resend ]` |
 
-**The `DISCARDED` view is not a dead end — it is a sales asset.** Showing the system correctly refusing to act is more convincing to a technical judge than showing it act. Design it like you mean it.
+**The `DISCARDED` view is not a dead end.** It proves the system can correctly refuse
+to act when evidence is insufficient. Design it as carefully as an applied outcome.
 
 ### 6.2 Block details
 
@@ -356,7 +358,7 @@ No styling beyond this. Two panes, a header line each, monospace transcripts. It
 | 2 | Inbox against `fixtures/incidents/seed.json` | proves the reader contract before A's pipeline exists |
 | 3 | Incident — `CANDIDATE` state only | the demo path |
 | 4 | `Diff`, `Evidence`, `Verdict`, `Assertion` | the proof blocks |
-| 5 | Incident — `DISCARDED` and `HUMAN_REVIEW` | the refusal story, the best moment for technical judges |
+| 5 | Incident — `DISCARDED` and `HUMAN_REVIEW` | refusal and escalation behavior |
 | 6 | Demo windows | beat 10 |
 | 7 | Incident — remaining states | after the demo path is safe |
 | 8 | Outcomes, Config, Settings | first on the cut list |

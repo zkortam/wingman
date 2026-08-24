@@ -1,4 +1,6 @@
 export { applyVerifiedCandidate } from "./apply.js";
+export { OpenAIModelClient } from './adapters/openai.js'
+export { HttpAgentRunner } from './adapters/http-runner.js'
 export { generateAssertion } from "./assertion/generate.js";
 export {
   clusterIdentity,
@@ -9,6 +11,7 @@ export { createPipelineCommands } from "./commands.js";
 export {
   evaluateObservedConfirmation,
   markUnobserved,
+  revertAppliedOutcome,
 } from "./confirmation.js";
 export {
   detectLiveSignals,
@@ -18,6 +21,7 @@ export {
 export { createPipelineEngine, type PipelineEngine } from "./engine.js";
 export { classifyTurn, type ClassifyInput } from "./live/classify.js";
 export { formExpectation, type FormExpectationInput } from "./live/expect.js";
+export { reviewProposedToolCall } from "./live/review.js";
 export {
   correctiveRule,
   isCorrective,
@@ -43,7 +47,12 @@ export {
   type MemoryAdapter,
 } from "./ledger/index.js";
 export { runExpirySweep, runRetentionSweep } from "./operations.js";
+export { pipelineInngest, pipelineInngestFunctions } from './inngest.js'
 export { PIPELINE_MODELS, PIPELINE_POLICY } from "./policy.js";
+export {
+  createProductionPipelineControlPlane,
+  createProductionPipelineFunctions,
+} from './production.js'
 export { createPipelineReader } from "./reader.js";
 export type { PipelineRepository } from "./repository.js";
 export {

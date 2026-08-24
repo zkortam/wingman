@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { AgentConfigSchema } from '@wingman/schema'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEMO_AGENT, DEMO_CONTROL_HASH, DEMO_REPORTER_HASH } from '../domain/demo'
 import { POST as apply } from '../../app/(api)/v1/incidents/[id]/apply/route'
@@ -6,12 +7,18 @@ import { POST as dismiss } from '../../app/(api)/v1/incidents/[id]/dismiss/route
 import { POST as handoff } from '../../app/(api)/v1/incidents/[id]/handoff/route'
 import { POST as reopen } from '../../app/(api)/v1/incidents/[id]/reopen/route'
 import { POST as revert } from '../../app/(api)/v1/config/[agent]/revert/route'
+import { GET as versions } from '../../app/(api)/v1/config/[agent]/versions/route'
+import { GET as incidents } from '../../app/(api)/v1/incidents/route'
+import { GET as outcomes } from '../../app/(api)/v1/outcomes/route'
 import { GET as resolveConfig } from '../../app/(read)/v1/config/[agent]/[userHash]/route'
+import { POST as ingestEvent } from '../../app/(sdk)/v1/events/route'
+import { POST as reviewToolCall } from '../../app/(sdk)/v1/reviews/tool-calls/route'
 import { demoRuntime } from './demo-runtime'
 
 const params = <T extends Record<string, string>>(value: T): { params: Promise<T> } => ({ params: Promise.resolve(value) })
 
-describe('Path B routes', () => {
+describe('operator and config routes', () => {
+  beforeEach(() => vi.stubEnv('WINGMAN_RUNTIME', 'demo'))
   it('validates scope before an apply reaches the command port', async () => {
     const response = await apply(new Request('http://local/v1/incidents/OC-1042/apply', {
       method: 'POST',
@@ -20,6 +27,35 @@ describe('Path B routes', () => {
     expect(response.status).toBe(400)
     const malformed = await apply(new Request('http://local', { method: 'POST', body: '{' }), params({ id: 'OC-1042' }))
     expect(malformed.status).toBe(400)
+  })
+
+  it('exposes the SDK event receiver and rejects malformed bodies', async () => {
+    const accepted = await ingestEvent(new Request('http://local/v1/events', {
+      method: 'POST',
+      body: JSON.stringify({ id: 'integration-event' }),
+    }))
+    expect(accepted.status).toBe(202)
+    const malformed = await ingestEvent(new Request('http://local/v1/events', { method: 'POST', body: '{' }))
+    expect(malformed.status).toBe(400)
+  })
+
+  it('validates and serves the SDK tool-review boundary', async () => {
+    const response = await reviewToolCall(new Request('http://local/v1/reviews/tool-calls', {
+      method: 'POST',
+      body: JSON.stringify({
+        agentId: '4ee0d899-d63d-4bc2-b47a-25aa25c6078b',
+        sessionId: 'f561f9b9-2abf-4bb7-a5cd-3b6ad76002b6',
+        userHash: 'a'.repeat(32),
+        userMessage: 'Export the current filtered view.',
+        proposedCall: { name: 'export_records', args: { filters: { stage: 'Negotiation' } } },
+        recentTurns: [],
+        context: {},
+      }),
+    }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ action: 'ALLOW' })
+    const invalid = await reviewToolCall(new Request('http://local', { method: 'POST', body: '{}' }))
+    expect(invalid.status).toBe(400)
   })
 
   it('requires an explicit dismissal reason', async () => {
@@ -59,15 +95,69 @@ describe('Path B routes', () => {
 
     const reporter = await resolveConfig(new Request('http://local'), params({ agent: DEMO_AGENT, userHash: DEMO_REPORTER_HASH }))
     const control = await resolveConfig(new Request('http://local'), params({ agent: DEMO_AGENT, userHash: DEMO_CONTROL_HASH }))
-    expect((await reporter.json() as { version: number }).version).toBe(2)
+    const reporterPayload = await reporter.json() as { config: unknown; version: number }
+    expect(reporterPayload.version).toBe(2)
+    expect(AgentConfigSchema.safeParse(reporterPayload.config).success).toBe(true)
     expect((await control.json() as { version: number }).version).toBe(1)
 
     const reverted = await revert(new Request('http://local/v1/config/ops-copilot/revert', {
       method: 'POST',
-      body: JSON.stringify({ userHash: DEMO_REPORTER_HASH }),
-    }))
+      body: JSON.stringify({ userHash: DEMO_REPORTER_HASH, incidentId: 'OC-1042' }),
+    }), params({ agent: DEMO_AGENT }))
     expect(reverted.status).toBe(200)
+    expect(demoRuntime.incident('OC-1042')?.state).toBe('REVERTED')
     const after = await resolveConfig(new Request('http://local'), params({ agent: DEMO_AGENT, userHash: DEMO_REPORTER_HASH }))
     expect((await after.json() as { version: number }).version).toBe(1)
+  })
+
+  it('contains production config outages so SDK clients can use local fallback', async () => {
+    vi.stubEnv('WINGMAN_RUNTIME', 'production')
+    vi.stubEnv('WINGMAN_API_KEY', 'sdk-secret')
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
+    const response = await resolveConfig(
+      new Request('http://local', { headers: { authorization: 'Bearer sdk-secret' } }),
+      params({ agent: '4ee0d899-d63d-4bc2-b47a-25aa25c6078b', userHash: 'a'.repeat(32) }),
+    )
+    expect(response.status).toBe(503)
+  })
+
+  it('contains production control-plane outages behind stable 503 responses', async () => {
+    vi.stubEnv('WINGMAN_RUNTIME', 'production')
+    vi.stubEnv('SUPABASE_URL', '')
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
+
+    await expect(incidents()).resolves.toMatchObject({ status: 503 })
+    await expect(outcomes()).resolves.toMatchObject({ status: 503 })
+    await expect(versions(new Request('http://local'), params({ agent: DEMO_AGENT })))
+      .resolves.toMatchObject({ status: 503 })
+
+    const applyResponse = await apply(new Request('http://local', {
+      method: 'POST',
+      body: JSON.stringify({ scope: 'USER' }),
+    }), params({ id: 'OC-1042' }))
+    const dismissResponse = await dismiss(new Request('http://local', {
+      method: 'POST',
+      body: JSON.stringify({ reason: 'Operator decision' }),
+    }), params({ id: 'OC-1042' }))
+    const handoffResponse = await handoff(
+      new Request('http://local', { method: 'POST' }),
+      params({ id: 'OC-1029' }),
+    )
+    const reopenResponse = await reopen(
+      new Request('http://local', { method: 'POST' }),
+      params({ id: 'OC-1042' }),
+    )
+    const revertResponse = await revert(new Request('http://local', {
+      method: 'POST',
+      body: JSON.stringify({ userHash: DEMO_REPORTER_HASH, incidentId: 'OC-1042' }),
+    }), params({ agent: DEMO_AGENT }))
+    expect([
+      applyResponse.status,
+      dismissResponse.status,
+      handoffResponse.status,
+      reopenResponse.status,
+      revertResponse.status,
+    ]).toEqual([503, 503, 503, 503, 503])
   })
 })

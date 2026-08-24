@@ -243,9 +243,36 @@ export interface Database {
           Rel<"outcomes_applied_version_id_fkey", "applied_version_id", "config_versions">,
         ]
       >;
+      pipeline_handoffs: Table<
+        {
+          incident_id: string;
+          payload: Json;
+          remote_thread_id: string | null;
+          created_at: string;
+        },
+        [Rel<"pipeline_handoffs_incident_id_fkey", "incident_id", "incidents">]
+      >;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      wingman_join_incident: {
+        Args: {
+          p_org_id: string;
+          p_agent_id: string;
+          p_key: string;
+          p_fingerprint: string;
+          p_signal_kind: string;
+          p_title: string;
+          p_user_hash: string;
+          p_session_id: string;
+          p_evidence: Json;
+          p_seen_at: string;
+          p_expires_at: string;
+          p_cluster_minimum: number;
+        };
+        Returns: Database["public"]["Tables"]["incidents"]["Row"];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

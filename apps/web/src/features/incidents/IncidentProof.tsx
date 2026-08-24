@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { apiClient } from '../../data/api-client'
 import { incidentPresentation, type IncidentDetailView } from '../../domain/incidents'
-import { DEMO_AGENT, DEMO_REPORTER_HASH } from '../../domain/demo'
 import { Assertion } from '../../ui/Assertion'
 import { Confirm } from '../../ui/Confirm'
 import { CopyId } from '../../ui/CopyId'
@@ -27,10 +26,12 @@ interface IncidentProofProps {
   initialIncident: IncidentDetailView
   previousId?: string | undefined
   nextId?: string | undefined
+  agentId?: string | undefined
+  userHash?: string | undefined
   client?: Pick<typeof apiClient, 'apply' | 'dismiss' | 'handoff' | 'reopen' | 'revert'> | undefined
 }
 
-export const IncidentProof = ({ initialIncident, previousId, nextId, client = apiClient }: IncidentProofProps) => {
+export const IncidentProof = ({ initialIncident, previousId, nextId, agentId, userHash, client = apiClient }: IncidentProofProps) => {
   const router = useRouter()
   const [incident, setIncident] = useState(initialIncident)
   const [confirm, setConfirm] = useState<'global' | 'revert' | null>(null)
@@ -77,7 +78,8 @@ export const IncidentProof = ({ initialIncident, previousId, nextId, client = ap
     if (busy) return
     setBusy(true)
     try {
-      await client.revert(DEMO_AGENT, DEMO_REPORTER_HASH)
+      if (!agentId || !userHash) throw new Error('Operator identity is required')
+      await client.revert(agentId, userHash, incident.id)
       setIncident((value) => ({ ...value, state: 'REVERTED' }))
       setToast('Override reverted')
     } catch {

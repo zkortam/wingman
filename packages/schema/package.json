@@ -1,13 +1,23 @@
 {
   "name": "@wingman/schema",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Runtime-validated contracts for Wingman agent integrations.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zkortam/wingman.git",
+    "directory": "packages/schema"
+  },
+  "homepage": "https://github.com/zkortam/wingman#readme",
+  "bugs": "https://github.com/zkortam/wingman/issues",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
     "./contracts": "./src/ports.contract.ts"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
@@ -16,5 +26,32 @@
   },
   "devDependencies": {
     "vitest": "4.1.9"
+  },
+  "peerDependencies": {
+    "vitest": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./contracts": {
+        "types": "./dist/ports.contract.d.ts",
+        "import": "./dist/ports.contract.js"
+      }
+    }
   }
 }

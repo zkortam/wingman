@@ -3,18 +3,21 @@ import { closeSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import type { AgentConfig } from '@wingman/schema'
+
 import { demoIncident, demoIncidents, demoIncidentSummaries } from '../data/demo-incidents'
 import { DEMO_REPORTER_HASH } from '../domain/demo'
 import type { IncidentDetailView, IncidentState, IncidentSummaryView } from '../domain/incidents'
 
-const baseConfig = {
+const baseConfig: AgentConfig = {
   systemPrompt: "You are Ops Copilot, Ledgerline's RevOps assistant.",
-  tools: [{ name: 'export_records', description: 'Exports records from the current object.' }],
+  tools: { export_records: { description: 'Exports records from the current object.' } },
+  retrieval: {},
   rules: [],
 }
-const fixedConfig = {
+const fixedConfig: AgentConfig = {
   ...baseConfig,
-  tools: [{ name: 'export_records', description: "Exports records. Pass the caller's active view filters in filters so the export matches the visible view." }],
+  tools: { export_records: { description: "Exports records. Pass the caller's active view filters in filters so the export matches the visible view." } },
 }
 
 const normalize = (value: unknown): unknown => {

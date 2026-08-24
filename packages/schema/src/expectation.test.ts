@@ -113,7 +113,7 @@ describe("isExpectationMet", () => {
     ).toBe(true);
   });
 
-  // The demo's first turn: asked to return, the agent cancels instead.
+  // The user asks to return, but the agent chooses a destructive alternative.
   it("is missed when the agent calls a different tool", () => {
     expect(
       isExpectationMet(

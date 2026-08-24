@@ -11,7 +11,7 @@ export interface ConfigStorage {
 export class FileConfigStorage implements ConfigStorage {
   readonly #directory: string
 
-  constructor(directory = join(tmpdir(), 'outcome-config')) {
+  constructor(directory = join(tmpdir(), 'wingman-config')) {
     this.#directory = directory
   }
 

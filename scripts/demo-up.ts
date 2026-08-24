@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 
 const address = process.env.WINGMAN_DEMO_URL ?? 'http://127.0.0.1:3000/demo'
 const server = spawn('pnpm', ['--filter', '@wingman/web', 'dev', '--hostname', '127.0.0.1'], {
-  env: { ...process.env, WINGMAN_DEMO_RUN_ID: randomUUID() },
+  env: { ...process.env, WINGMAN_DEMO_RUN_ID: randomUUID(), WINGMAN_RUNTIME: 'demo' },
   stdio: ['inherit', 'pipe', 'inherit'],
 })
 

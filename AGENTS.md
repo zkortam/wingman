@@ -1,9 +1,10 @@
 # AGENTS.md
 
 ## Commands
-pnpm check        # typecheck + lint + import boundaries + tests + pipeline fixtures. Run before every commit.
-pnpm demo:reset   # rebuild the demo environment (< 30s)
+pnpm check        # full product gate. Run before every commit.
+pnpm demo:reset   # rebuild the integration environment (< 30s)
 pnpm demo:up      # start agent + platform + web
+pnpm package:check # pack and import the public SDK as a clean consumer
 
 ## Invariants
 - Nothing is applied that did not demonstrably fail first and pass after.
@@ -29,7 +30,8 @@ contract suites in packages/schema/src/ports.contract.ts.
 
 Database: DATA-MODEL.md. One writer per table; apps/web writes nothing.
 Visual: UI-SPEC.md. One accent color, no shadows, no gradients, keyboard first.
-Fixtures and demo: DEMO.md. Never regenerate cassettes on demo day.
+Fixtures and integration environment: DEMO.md. Committed cassettes are immutable test evidence.
+The public SDK never imports a service or executes a tool call.
 
 ## Outcome-verified behaviors
 (auto-appended by the ledger, do not hand-edit below this line)

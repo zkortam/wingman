@@ -1,23 +1,16 @@
-import type { AgentConfig, Scope } from '@wingman/schema'
+import type { AgentConfig, ConfigVersion, Scope } from '@wingman/schema'
 
 export interface StoredAgent {
   id: string
   baseConfig: AgentConfig
+  baseVersion: number
   activeVersionId: string | null
   writablePaths: string[]
   maxDiffBytes: number
   signingKey: string
 }
 
-export interface StoredVersion {
-  id: string
-  agentId: string
-  version: number
-  config: AgentConfig
-  incidentId: string | null
-  signature: string
-  createdAt: string
-}
+export type StoredVersion = ConfigVersion
 
 export interface StoredOverride {
   agentId: string
@@ -35,6 +28,7 @@ export interface ConfigRepository {
   insertVersion(version: StoredVersion): Promise<void>
   setUserOverride(override: StoredOverride): Promise<void>
   setGlobalVersion(agentId: string, versionId: string): Promise<void>
+  clearGlobalVersion(agentId: string): Promise<void>
   revokeUserOverride(agentId: string, userHash: string): Promise<void>
 }
 
@@ -99,6 +93,13 @@ export class InMemoryConfigRepository implements ConfigRepository {
     const agent = this.#agents.get(agentId)
     if (!agent) throw new Error(`Unknown agent: ${agentId}`)
     agent.activeVersionId = versionId
+  }
+
+  async clearGlobalVersion(agentId: string): Promise<void> {
+    this.#assertAvailable()
+    const agent = this.#agents.get(agentId)
+    if (!agent) throw new Error(`Unknown agent: ${agentId}`)
+    agent.activeVersionId = null
   }
 
   async revokeUserOverride(agentId: string, userHash: string): Promise<void> {

@@ -1,7 +1,6 @@
 import type { ServiceClient } from "@wingman/db";
 import type { Json } from "@wingman/db";
 
-import type { HandoffRecord } from "../domain.js";
 import { PIPELINE_POLICY } from "../policy.js";
 import type { PipelineRepository } from "../repository.js";
 import { assertTransition } from "../state.js";
@@ -20,8 +19,6 @@ import {
   toCandidateUpdate,
   toIncidentUpdate,
   toOutcomeUpdate,
-  unique,
-  uniqueEvidence,
 } from "./write-helpers.js";
 
 type WriteStore = Pick<
@@ -42,65 +39,26 @@ type WriteStore = Pick<
 
 export function createWriteStore(
   client: ServiceClient,
-  handoffs: Map<string, HandoffRecord>,
   read: Pick<PipelineRepository, "findIncident" | "getIncident">,
 ): WriteStore {
   return {
     ...createMaintenanceStore(client),
     async createOrJoinIncident(input) {
-      const existing = await read.findIncident(
-        input.session.agentId,
-        input.key,
-      );
-      if (existing === null) {
-        const row = await single<Row<"incidents">>(
-          client
-            .from("incidents")
-            .insert({
-              org_id: input.session.orgId,
-              agent_id: input.session.agentId,
-              key: input.key,
-              fingerprint: input.fingerprint,
-              signal_kind: input.signalKind,
-              title: input.title,
-              state: "OPEN",
-              user_hashes: [input.session.userHash],
-              session_ids: [input.session.id],
-              evidence_excerpts: input.evidence,
-              expires_at: input.expiresAt,
-            })
-            .select("*")
-            .single(),
-        );
-        return mapIncident(row);
-      }
-
-      const userHashes = unique([
-        ...existing.userHashes,
-        input.session.userHash,
-      ]);
-      const sessionIds = unique([...existing.sessionIds, input.session.id]);
-      const evidence = uniqueEvidence([
-        ...existing.evidenceExcerpts,
-        ...input.evidence,
-      ]);
-      const shouldCluster =
-        existing.state === "OPEN" &&
-        sessionIds.length >= PIPELINE_POLICY.clusterMinimumSessions;
       const row = await single<Row<"incidents">>(
-        client
-          .from("incidents")
-          .update({
-            user_hashes: userHashes,
-            session_ids: sessionIds,
-            evidence_excerpts: evidence,
-            last_seen: input.session.endedAt ?? input.session.startedAt,
-            expires_at: input.expiresAt,
-            state: shouldCluster ? "CLUSTERED" : existing.state,
-          })
-          .eq("id", existing.id)
-          .select("*")
-          .single(),
+        client.rpc("wingman_join_incident", {
+          p_org_id: input.session.orgId,
+          p_agent_id: input.session.agentId,
+          p_key: input.key,
+          p_fingerprint: input.fingerprint,
+          p_signal_kind: input.signalKind,
+          p_title: input.title,
+          p_user_hash: input.session.userHash,
+          p_session_id: input.session.id,
+          p_evidence: input.evidence as Json,
+          p_seen_at: input.session.endedAt ?? input.session.startedAt,
+          p_expires_at: input.expiresAt,
+          p_cluster_minimum: PIPELINE_POLICY.clusterMinimumSessions,
+        }).single(),
       );
       return mapIncident(row);
     },
@@ -279,9 +237,13 @@ export function createWriteStore(
       return mapOutcome(row);
     },
 
-    saveHandoff(record) {
-      handoffs.set(record.incidentId, record);
-      return Promise.resolve();
+    async saveHandoff(record) {
+      const { error } = await client.from('pipeline_handoffs').upsert({
+        incident_id: record.incidentId,
+        payload: record.payload,
+        remote_thread_id: record.remoteThreadId,
+      }, { onConflict: 'incident_id', ignoreDuplicates: true })
+      if (error) throw error
     },
   };
 }

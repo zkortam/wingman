@@ -13,128 +13,34 @@ import {
   type ToolSelection,
 } from "@demo/amazoff";
 
-import { expectedIntent, wantsRepairedReschedule } from "./intents.js";
-import { codexAvailable, codexJson } from "./codex.js";
+import { wantsRepairedReschedule } from "./intents.js";
+import { codexJson } from "./codex.js";
+import {
+  baselines,
+  expectationModel,
+  expectedTool,
+  now,
+  selectionSchema,
+  smallTalk,
+  useCodex,
+  type ChatMessage,
+  type Watch,
+  type WingmanEvent,
+} from "./session-support.js";
 import {
   classifyTurn,
   detectLiveSignals,
   formExpectation,
   repairForExpectation,
 } from "@wingman/pipeline";
-import {
-  SignalKindSchema,
-  type AgentConfig,
-  type Expectation,
-  type LiveClassification,
-  type ModelClient,
-  type SignalKind,
-  type ToolCall,
+import type {
+  AgentConfig,
+  Expectation,
+  LiveClassification,
+  ToolCall,
 } from "@wingman/schema";
 
-/**
- * Runs Amazoff and Wingman side by side in one process so the demo needs no
- * infrastructure. This stands in for Wingman's service; Amazoff itself still only ever
- * talks to the SDK surface.
- */
-export interface ChatMessage {
-  role: "customer" | "agent";
-  text: string;
-  tool: string | null;
-  /** Set on the message Wingman caused to be replaced. */
-  superseded?: boolean;
-  /** The model's own explanation, shown inside the reasoning dropdown. */
-  reason?: string | null;
-  /** True when this reply is the retry Wingman just forced. */
-  rescued?: boolean;
-  /** The tool the agent used before Wingman retried, for the reasoning dropdown. */
-  replacedTool?: string | null;
-}
-
-export interface WingmanEvent {
-  at: string;
-  lane: LiveClassification["lane"];
-  headline: string;
-  detail: string;
-  ruleAdded: string | null;
-}
-
-export interface Watch {
-  expected: string | null;
-  actual: string | null;
-  matched: boolean | null;
-}
-
-const BASELINES = Object.fromEntries(
-  SignalKindSchema.options.map((kind) => [kind, 0]),
-) as Record<SignalKind, number>;
-
-const keywordModel: ModelClient = {
-  generate: (request) => {
-    const text = JSON.stringify((request as { messages: unknown[] }).messages);
-    const asked = text.slice(text.lastIndexOf("Customer request"));
-    const tool = expectedIntent(asked);
-    return tool === null
-      ? Promise.resolve({ definition: null, confidence: 0 })
-      : Promise.resolve({
-          definition: { kind: "TOOL_CALLED", tool },
-          confidence: 0.9,
-        });
-  },
-};
-
-const EXPECTATION_SCHEMA = {
-  type: "object",
-  properties: {
-    tool: { type: ["string", "null"] },
-    confidence: { type: "number" },
-  },
-  required: ["tool", "confidence"],
-  additionalProperties: false,
-};
-
-const SELECTION_SCHEMA = {
-  type: "object",
-  properties: {
-    tool: { type: ["string", "null"] },
-    reason: { type: "string" },
-  },
-  required: ["tool", "reason"],
-  additionalProperties: false,
-};
-
-/**
- * Wingman's expectation, asked of the real model.
- *
- * It is told to name the capability the request needs even when Amazoff has no such
- * tool, because that is the only thing that later separates a defect from a genuine
- * capability gap.
- */
-const codexExpectationModel: ModelClient = {
-  generate: async (request) => {
-    const messages = (request as { messages: { content: string }[] }).messages
-      .map(({ content }) => content)
-      .join("\n\n");
-    const answer = await codexJson<{ tool: string | null; confidence: number }>(
-      `${messages}\n\nName the single tool this request needs. If the agent has no suitable tool, invent a descriptive snake_case name for the missing capability rather than forcing it onto an unrelated tool. Use null only for small talk with no action behind it.`,
-      EXPECTATION_SCHEMA,
-    );
-    if (answer === null) return null;
-    return answer.tool === null
-      ? { definition: null, confidence: 0 }
-      : {
-          definition: { kind: "TOOL_CALLED", tool: answer.tool },
-          confidence: answer.confidence,
-        };
-  },
-};
-
-/** Mirrors the agent's own small-talk test, so both sides skip the model together. */
-const SMALL_TALK =
-  /^\s*(hi|hey|hello|yo|sup|thanks|thank you|ty|ok|okay|cool|good (morning|afternoon|evening))[\s!.,?]*$/i;
-
-const useCodex = process.env.WINGMAN_MODEL !== "keyword" && codexAvailable();
-const expectationModel = useCodex ? codexExpectationModel : keywordModel;
-
+/** Runs the isolated Amazoff integration host and Wingman side by side. */
 export class DemoSession {
   readonly id = randomUUID();
   readonly agentId = randomUUID();
@@ -184,11 +90,7 @@ export class DemoSession {
     this.#watch = { expected: null, actual: null, matched: null };
   }
 
-  /**
-   * Turns are processed one at a time. A model call takes seconds, so a second message
-   * arriving mid-flight would otherwise interleave its writes with the first and leave
-   * Wingman judging the wrong turn.
-   */
+  /** Serializes model calls so concurrent messages cannot corrupt turn order. */
   async send(utterance: string): Promise<void> {
     const queued = this.#queue.then(() => this.#send(utterance));
     this.#queue = queued.catch(() => undefined);
@@ -203,7 +105,7 @@ export class DemoSession {
     // read before the agent speaks again.
     const signals = detectLiveSignals({
       session: this.#observed(),
-      baselines: BASELINES,
+      baselines,
       matchingRestart: false,
     });
 
@@ -233,7 +135,7 @@ export class DemoSession {
 
     // Greetings carry no request, so there is nothing to form an expectation about and
     // no reason to make the customer wait on a model call.
-    const formed = SMALL_TALK.test(utterance)
+    const formed = smallTalk.test(utterance)
       ? null
       : await formExpectation(expectationModel, {
           sessionId: this.id,
@@ -296,7 +198,7 @@ export class DemoSession {
   /** The agent's own decision, made by the real model reading its real config. */
   async #modelSelection(utterance: string): Promise<ToolSelection | null> {
     // No point spending seconds on a model call for "hi" or "thanks".
-    if (SMALL_TALK.test(utterance)) return null;
+    if (smallTalk.test(utterance)) return null;
     // After a live fix, do not ask the model again — it already followed the bad rule
     // once. A paraphrase like "make it aug 24" would otherwise hit that rule a second time.
     const already = this.#repairedSelection(utterance);
@@ -308,7 +210,7 @@ export class DemoSession {
     if (!useCodex) return configured;
     const answer = await codexJson<{ tool: string | null; reason: string }>(
       renderPrompt(utterance, this.#config),
-      SELECTION_SCHEMA,
+      selectionSchema,
     );
     if (answer === null || answer.tool === null) {
       return resolveSelection(null, configured);
@@ -351,7 +253,7 @@ export class DemoSession {
       this.#lastToolCalls = reply.toolCalls;
       this.#lastText = reply.text;
     }
-    if (!SMALL_TALK.test(utterance)) {
+    if (!smallTalk.test(utterance)) {
       const expected = this.#expectation ? expectedTool(this.#expectation) : null;
       const actual = reply.toolCalls[0]?.name ?? null;
       this.#watch = {
@@ -394,13 +296,4 @@ export class DemoSession {
   }
 }
 
-function expectedTool(expectation: Expectation): string | null {
-  const { definition } = expectation;
-  return definition.kind === "OUTPUT_MATCHES_RULE" ? null : definition.tool;
-}
-
-function now(): string {
-  return new Date().toISOString();
-}
-
-export type { Order };
+export type { ChatMessage, Order, Watch, WingmanEvent };

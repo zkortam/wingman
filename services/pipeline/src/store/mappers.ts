@@ -10,6 +10,7 @@ import {
   RunResultSchema,
   RunSchema,
   SignalKindSchema,
+  TelemetryCorrelationSchema,
   ToolCallSchema,
   VerdictSchema,
   type Assertion,
@@ -32,6 +33,7 @@ const ContextSchema = z
     lastQuery: z.string().optional(),
     userRules: z.array(z.string()).optional(),
     generationCancelled: z.boolean().optional(),
+    telemetry: z.unknown().optional(),
   })
   .passthrough();
 
@@ -54,6 +56,9 @@ export function mapSession(
     lastQuery: context.lastQuery,
     userRules: context.userRules,
     generationCancelled: context.generationCancelled,
+    telemetry: context.telemetry === undefined
+      ? undefined
+      : TelemetryCorrelationSchema.parse(context.telemetry),
     startedAt: row.started_at,
     endedAt: row.ended_at,
     turns: turns.map((turn) => ({

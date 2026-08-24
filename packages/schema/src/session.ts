@@ -45,6 +45,17 @@ export const RedactionProofSchema = z
   .strict();
 export type RedactionProof = z.infer<typeof RedactionProofSchema>;
 
+export const TelemetryCorrelationSchema = z.object({
+  convention: z.string().min(1).max(64),
+  traceId: z.string().regex(/^[a-f0-9]{32}$/).optional(),
+  spanId: z.string().regex(/^[a-f0-9]{16}$/).optional(),
+  externalTraceId: z.string().min(1).max(256).optional(),
+}).strict().refine(
+  ({ traceId, externalTraceId }) => traceId !== undefined || externalTraceId !== undefined,
+  { message: 'Telemetry correlation requires a trace identifier' },
+)
+export type TelemetryCorrelation = z.infer<typeof TelemetryCorrelationSchema>
+
 export const SessionInputSchema = z
   .object({
     id: z.string().uuid(),
@@ -59,6 +70,7 @@ export const SessionInputSchema = z
     lastQuery: z.string().optional(),
     userRules: z.array(z.string()).optional(),
     generationCancelled: z.boolean().optional(),
+    telemetry: TelemetryCorrelationSchema.optional(),
     startedAt: z.string().datetime(),
     endedAt: z.string().datetime().nullable().optional(),
     turns: z.array(TurnSchema).min(1),

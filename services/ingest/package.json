@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@wingman/db": "workspace:*",
-    "@wingman/schema": "workspace:*"
+    "@wingman/schema": "workspace:*",
+    "inngest": "^4.18.1"
   },
   "devDependencies": {
     "vitest": "4.1.9"

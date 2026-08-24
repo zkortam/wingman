@@ -1,8 +1,8 @@
 # Data Model
 
-**Owner: Engineer A.** Append-only after the T+0:25 freeze — a new migration file, never an edit to `0001_init.sql`.
+Migrations are append-only after release: add a new migration file; never edit a migration that may already be deployed.
 
-This file is the full DDL, the write-ownership map, the state machine, and the four derivations (user hash, task fingerprint, incident key, config signature) that both engineers must implement identically. `MASTERPLANHACKATHON.md` §8 is the sketch; this is the buildable version. Every addition to that sketch is marked **`+`** with its reason.
+This file defines the DDL, write ownership, state machine, and the four derivations (user hash, task fingerprint, incident key, config signature) that every implementation must produce identically.
 
 ---
 
@@ -12,7 +12,7 @@ This file is the full DDL, the write-ownership map, the state machine, and the f
 |---|---|---|---|
 | **Config** | `orgs`, `agents`, `config_versions`, `config_overrides` | forever | **highest.** The read path. Must survive everything else being down. |
 | **Events** | `sessions`, `turns`, `signals` | **30 days**, hard-deleted | normal |
-| **Ledger** | `incidents`, `assertions`, `runs`, `candidates`, `outcomes` | **forever** | normal |
+| **Ledger** | `incidents`, `assertions`, `runs`, `candidates`, `outcomes`, `pipeline_handoffs` | **forever** | normal |
 
 The ledger outlives the events it was derived from. An incident from March still reads as a complete proof in September even though its sessions were deleted in April — which is why `incidents.session_ids` is an array of ids and the evidence excerpts are copied onto the incident, not joined at read time.
 
@@ -20,15 +20,13 @@ The ledger outlives the events it was derived from. An incident from March still
 
 ## 2. Write ownership
 
-**One writer per table.** This is what makes it impossible for A and B to collide.
+**One writer per table.** This prevents competing state transitions and keeps idempotency auditable.
 
 | Tables | Sole writer | Readers |
 |---|---|---|
-| `orgs`, `agents`, `config_versions`, `config_overrides` | `services/config` (**B**) | pipeline, web, sdk |
-| `sessions`, `turns`, `signals` | `services/ingest` (**A**) | pipeline, web |
-| `incidents`, `assertions`, `runs`, `candidates`, `outcomes` | `services/pipeline` (**A**) | web |
-
-`apps/web` writes nothing, ever. If a route handler wants a Supabase client, a port is missing — see `ARCHITECTURE.md` §3.
+| `orgs`, `agents`, `config_versions`, `config_overrides` | `services/config` | pipeline, sdk delivery |
+| `sessions`, `turns`, `signals` | `services/ingest` | pipeline |
+| `incidents`, `assertions`, `runs`, `candidates`, `outcomes`, `pipeline_handoffs` | `services/pipeline` | operators through ports |
 
 ---
 
@@ -118,7 +116,7 @@ create table sessions (
   org_id            uuid not null references orgs(id) on delete cascade,
   agent_id          uuid not null references agents(id) on delete cascade,
   user_hash         text not null,
-  persona_id        text,                                     -- + fixtures only, null in production
+  persona_id        text,                                     -- optional host-defined segment
   config_version_id uuid references config_versions(id),      -- what they actually ran against
   task_fingerprint  text,                                     -- + §7
   started_at        timestamptz not null,
@@ -286,18 +284,18 @@ begin
                            'incidents','assertions','runs','candidates','outcomes']
   loop execute format('alter table %I enable row level security', t); end loop;
 end $$;
--- No permissive policies in the MVP. Every server path uses the service role;
--- the browser never talks to Postgres directly, it goes through PipelineReader.
+-- No permissive policies. Every server path uses the service role;
+-- untrusted clients never talk to Postgres directly.
 -- RLS is on so that the day someone adds an anon client, it denies by default rather than leaking.
 ```
 
-That is the honest position and it is worth stating out loud to a judge: RLS is enabled and deny-all, access is server-side only, and multi-tenant policies are a post-hackathon task on the explicit do-not-build list.
+RLS is enabled and deny-all. Access is server-side only. Any future direct client must ship explicit tenant policies and policy tests before it can be enabled.
 
 ---
 
 ## 5. Config resolution — why `active_version_id` exists
 
-`MASTERPLANHACKATHON.md` §8 puts `scope` on `config_overrides`, which implies a GLOBAL apply writes one override row per user. That does not scale and it makes revert an N-row operation. One refinement:
+Putting `scope` only on `config_overrides` would imply a GLOBAL apply writes one override row per user. That does not scale and makes revert an N-row operation. The model instead uses one pointer per global apply:
 
 ```
 GLOBAL apply  →  update agents.active_version_id           (one row, one pointer)
@@ -421,7 +419,7 @@ The SDK rejects an unsigned or mismatched version and falls back to base. `orgs.
 
 Enforced in **three** places, deliberately redundant:
 
-1. **The SDK, client-side** — `Outcome.init({ writable })`. Rejected before anything leaves their process.
+1. **The SDK, client-side** — `Wingman.init({ writable })`. Rejected before anything leaves their process.
 2. **The fix agent** — the diff generator is only shown allowlisted paths, so it cannot propose an illegal one.
 3. **`config.mutations.writeVersion`** — validates every diff path against `writable_paths` and against `max_diff_bytes` before writing. Exceeding the byte cap forces human approval regardless of scope.
 
@@ -444,31 +442,13 @@ Sweep order matters: children first, or the cascade does the work but the delete
 
 ---
 
-## 11. Seeding and `demo:reset`
-
-```
-1. supabase db reset                     drop + re-run migrations
-2. insert org, agent, base config        from fixtures/agent/config.base.json
-3. apply defect mutation                 OC-001 by default: writes a v2 with the bad tool description
-4. load fixtures/agent/seed.sql          50 opportunities, 3 with status=New
-5. replay fixtures/sessions/seeded.jsonl through the real POST /v1/events
-6. wait for the pipeline to settle       inngest dev, ~10s
-7. assert: 1 incident, 12 user_hashes, state=CANDIDATE
-```
-
-Step 5 is the point of the whole exercise: **the seeded cohort is real data through the real pipeline**, not fixture rows inserted into `incidents`. The inbox says "12 users affected" because twelve synthetic users actually failed.
-
-Budget: **under 30 seconds, three times consecutively.** If it drifts over, that is a bug with the same priority as a broken test.
-
----
-
-## 12. What we deliberately did not model
+## 11. Deliberate scope boundaries
 
 | Not modelled | Why | When it arrives |
 |---|---|---|
-| Users, teams, memberships | Auth is on the do-not-build list for the MVP | with Supabase Auth, post-hackathon |
-| Multi-tenancy policies | RLS is deny-all; access is server-side only | before the first design partner |
+| Users, teams, memberships | Identity belongs to the deployment's control plane | when a deployment exposes a multi-user operator API |
+| Direct-client tenant policies | RLS is deny-all; access is server-side only | before any direct database client is enabled |
 | Soft deletes on ledger rows | The ledger is the audit trail. It does not delete. | never |
-| `ORG` and `SESSION` scopes | Complexity budget: 2 scopes | when a design partner blocks on it |
+| `ORG` and `SESSION` scopes | USER and GLOBAL have clear, reversible semantics | when a production requirement justifies another scope |
 | Assertion versioning | An edited assertion is a new assertion, by identity | never |
 | A `config_diffs` table | The diff lives on `candidates`; versions store full configs | never — full configs make revert trivial |

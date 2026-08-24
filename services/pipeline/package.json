@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@openai/codex-sdk": "^0.149.0",
+    "@wingman/config": "workspace:*",
     "@wingman/db": "workspace:*",
     "@wingman/ingest": "workspace:*",
     "@wingman/schema": "workspace:*",

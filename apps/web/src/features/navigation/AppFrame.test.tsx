@@ -10,12 +10,12 @@ describe('AppFrame', () => {
   it('keeps the demo harness free of application chrome', () => {
     pathname = '/demo'
     render(<AppFrame><div>demo</div></AppFrame>)
-    expect(screen.queryByText('Outcome')).toBeNull()
+    expect(screen.queryByText('Wingman')).toBeNull()
   })
 
   it('provides navigation for product screens', () => {
     pathname = '/inbox'
     render(<AppFrame><div>inbox</div></AppFrame>)
-    expect(screen.getByText('Outcome')).toBeTruthy()
+    expect(screen.getByText('Wingman')).toBeTruthy()
   })
 })

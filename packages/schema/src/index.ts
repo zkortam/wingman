@@ -12,4 +12,6 @@ export * from "./json.js";
 export * from "./live.js";
 export type * from "./ports.js";
 export * from "./preference.js";
+export * from "./review.js";
+export * from './replay.js'
 export * from "./session.js";

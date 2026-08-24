@@ -34,5 +34,5 @@ export const LiveIncidentTable = ({ initialIncidents, client = apiClient }: Live
 
   return incidents.length > 0
     ? <IncidentTable incidents={incidents} />
-    : <Empty action={{ href: '/settings', label: 'View integration guide' }} fact="No incidents yet. Outcome needs about 500 sessions a month to find anything." />
+    : <Empty action={{ href: '/settings', label: 'View integration guide' }} fact="No incidents yet. Wingman needs enough recurring sessions to distinguish defects from isolated variance." />
 }

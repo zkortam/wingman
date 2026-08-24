@@ -32,10 +32,10 @@ export const apiClient = {
   handoff: (id: string): Promise<{ payload: string }> => request(`/v1/incidents/${encodeURIComponent(id)}/handoff`, { method: 'POST' }),
   listVersions: (agent: string): Promise<Array<{ id: string; version: number; incidentId: string | null }>> =>
     request(`/v1/config/${encodeURIComponent(agent)}/versions`),
-  revert: (agent: string, userHash: string): Promise<void> => request(`/v1/config/${encodeURIComponent(agent)}/revert`, {
+  revert: (agent: string, userHash: string, incidentId?: string): Promise<void> => request(`/v1/config/${encodeURIComponent(agent)}/revert`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ userHash }),
+    body: JSON.stringify({ userHash, incidentId }),
   }),
   resolveConfig: (agent: string, userHash: string): Promise<{ config: unknown; version: number; signature: string }> =>
     request(`/v1/config/${encodeURIComponent(agent)}/${encodeURIComponent(userHash)}`),

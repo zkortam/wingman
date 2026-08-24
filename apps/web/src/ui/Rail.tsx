@@ -59,7 +59,7 @@ export const Rail = () => {
 
   return (
     <aside className="rail">
-      <div className="rail-brand">Outcome</div>
+      <div className="rail-brand">Wingman</div>
       <nav className="rail-nav" aria-label="Primary navigation">
         {links.map((link) => (
           <Link

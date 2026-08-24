@@ -1,6 +1,7 @@
 import type { ServiceClient } from "@wingman/db";
+import { HandoffPayloadSchema } from '@wingman/schema'
 
-import type { HandoffRecord, PipelineSnapshot } from "../domain.js";
+import type { PipelineSnapshot } from "../domain.js";
 import type { PipelineRepository } from "../repository.js";
 import { sessionFingerprint } from "../cluster/index.js";
 import { createHistoryStore } from "./history.js";
@@ -44,7 +45,6 @@ type ReadStore = Pick<
 
 export function createReadStore(
   client: ServiceClient,
-  handoffs: Map<string, HandoffRecord>,
 ): ReadStore {
   async function getSession(sessionId: string) {
     const session = await single<Row<"sessions">>(
@@ -62,6 +62,20 @@ export function createReadStore(
         client.from("incidents").select("*").eq("id", id).single(),
       ),
     );
+  }
+
+  async function getHandoff(incidentId: string) {
+    const result = await client
+      .from('pipeline_handoffs')
+      .select('incident_id,payload,remote_thread_id')
+      .eq('incident_id', incidentId)
+      .maybeSingle()
+    if (result.error) throw result.error
+    return result.data === null ? null : {
+      incidentId: result.data.incident_id,
+      payload: HandoffPayloadSchema.parse(result.data.payload),
+      remoteThreadId: result.data.remote_thread_id,
+    }
   }
 
   async function getSnapshot(incidentId: string): Promise<PipelineSnapshot> {
@@ -106,7 +120,7 @@ export function createReadStore(
         null,
       positiveSuite: runs.filter(({ phase }) => phase === "POSITIVE_SUITE"),
       outcome: lastOutcome === undefined ? null : mapOutcome(lastOutcome),
-      handoff: handoffs.get(incidentId) ?? null,
+      handoff: await getHandoff(incidentId),
     };
   }
 
@@ -235,9 +249,7 @@ export function createReadStore(
         )
       ).map(mapOutcome);
     },
-    getHandoff(incidentId) {
-      return Promise.resolve(handoffs.get(incidentId) ?? null);
-    },
+    getHandoff,
     async getWritableConfigPolicy(agentId) {
       const row = await single<
         Pick<

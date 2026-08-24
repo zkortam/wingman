@@ -10,7 +10,7 @@ import { DemoAgentRunner } from './agent/runner'
 const readDefect = async (id: string): Promise<{ expected: { verdict: string } }> =>
   JSON.parse(await readFile(resolve(import.meta.dirname, `../defects/${id}.json`), 'utf8')) as { expected: { verdict: string } }
 
-describe('Path B pipeline fixtures', () => {
+describe('pipeline replay fixtures', () => {
   it('pins all four fixture verdicts without per-run tuning', async () => {
     const expected = new Map([
       ['OC-001', 'CONFIG_DEFECT'],

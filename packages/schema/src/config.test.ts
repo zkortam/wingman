@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { applyDiff, ConfigDiffSchema } from "./config.js";
+import {
+  applyDiff,
+  ConfigDiffSchema,
+  isConfigPathWritable,
+} from "./config.js";
 
 const base = {
   systemPrompt: "a\n\u0000b",
@@ -50,5 +54,24 @@ describe("ConfigDiff", () => {
         changes: [{ path: "systemPrompt", before: "stale", after: "new" }],
       }),
     ).toThrow(/changed/);
+  });
+
+  it("matches writable paths with explicit wildcard semantics", () => {
+    expect(
+      isConfigPathWritable(
+        "tools.export_records.description",
+        "tools.*.description",
+      ),
+    ).toBe(true);
+    expect(
+      isConfigPathWritable(
+        "tools.export_records.description.extra",
+        "tools.*.description",
+      ),
+    ).toBe(false);
+    expect(isConfigPathWritable("retrieval.reranker.model", "retrieval.*")).toBe(
+      true,
+    );
+    expect(isConfigPathWritable("retrieval", "retrieval.*")).toBe(false);
   });
 });

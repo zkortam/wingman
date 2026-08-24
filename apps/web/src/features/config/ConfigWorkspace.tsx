@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { apiClient } from '../../data/api-client'
-import { DEMO_AGENT, DEMO_REPORTER_HASH } from '../../domain/demo'
 import { Confirm } from '../../ui/Confirm'
 import { Diff } from '../../ui/Diff'
 import { Toast } from '../../ui/Toast'
@@ -18,10 +17,12 @@ interface ConfigVersionView {
 interface ConfigWorkspaceProps {
   versions: ConfigVersionView[]
   initialOverrideActive: boolean
+  agentId: string
+  userHash: string
   client?: Pick<typeof apiClient, 'revert'>
 }
 
-export const ConfigWorkspace = ({ versions, initialOverrideActive, client = apiClient }: ConfigWorkspaceProps) => {
+export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, userHash, client = apiClient }: ConfigWorkspaceProps) => {
   const [left, setLeft] = useState(versions[0]?.id ?? '')
   const [right, setRight] = useState(versions[1]?.id ?? versions[0]?.id ?? '')
   const [overrideActive, setOverrideActive] = useState(initialOverrideActive)
@@ -33,7 +34,7 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, client = apiC
     if (busy) return
     setBusy(true)
     try {
-      await client.revert(DEMO_AGENT, DEMO_REPORTER_HASH)
+      await client.revert(agentId, userHash)
       setOverrideActive(false)
       setToast('Override reverted')
     } catch {
@@ -86,7 +87,7 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, client = apiC
           <p className="muted">Overrides that prove out get promoted to global. A number that only grows means promotion is not happening.</p>
           {overrideActive ? (
             <div className="override-row">
-              <span className="mono">{DEMO_REPORTER_HASH} | v2</span>
+              <span className="mono">{userHash} | v2</span>
               <span>Last resolved just now</span>
               <button className="danger-button" onClick={() => setConfirming(true)} type="button">Revert</button>
             </div>

@@ -89,6 +89,29 @@ export function configDiffBytes(diff: ConfigDiff): number {
     .byteLength;
 }
 
+/** Matches customer writable-path declarations without granting sibling fields. */
+export function isConfigPathWritable(path: string, allowed: string): boolean {
+  const pathParts = parsePath(path);
+  const allowedParts = allowed.split(".");
+  if (
+    pathParts.length === 0 ||
+    allowedParts.length === 0 ||
+    allowedParts.some((part) => part.length === 0)
+  )
+    return false;
+  const trailingWildcard = allowedParts.at(-1) === "*";
+  if (
+    trailingWildcard
+      ? pathParts.length < allowedParts.length
+      : pathParts.length !== allowedParts.length
+  )
+    return false;
+  return allowedParts.every(
+    (part, index) =>
+      part === "*" || part === pathParts[index],
+  );
+}
+
 function parsePath(path: string): string[] {
   const parts = path.split(".");
   if (

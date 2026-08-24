@@ -14,8 +14,8 @@ export const INCIDENT_STATES = [
 ] as const
 
 export type IncidentState = (typeof INCIDENT_STATES)[number]
-export type VerdictKind = 'VARIANCE' | 'PREFERENCE' | 'CONFIG_DEFECT' | 'CODE_DEFECT'
-export type SignalKind = 'RETRY_REQUEST' | 'RESTATED_CONSTRAINT' | 'ABANDON_RESTART'
+export type VerdictKind = Verdict
+export type SignalKind = SchemaSignalKind
 
 export interface IncidentSummaryView {
   id: string
@@ -161,3 +161,4 @@ export const formatRelativeDate = (iso: string, now = new Date()): string => {
   if (days < 7) return `${days}d ago`
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(iso))
 }
+import type { SignalKind as SchemaSignalKind, Verdict } from '@wingman/schema'

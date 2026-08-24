@@ -5,6 +5,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/pipeline.test.ts'],
-    name: 'pipeline',
+    name: 'pipeline-fixtures',
   },
 })

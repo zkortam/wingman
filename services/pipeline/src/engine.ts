@@ -46,7 +46,8 @@ export function createPipelineEngine(input: {
 
   return {
     async observeSession(sessionId) {
-      const session = await input.repository.getSession(sessionId);
+      try {
+        const session = await input.repository.getSession(sessionId);
       const detectStarted = performance.now();
       const baselines = await input.repository.getBaselines(
         session,
@@ -168,6 +169,9 @@ export function createPipelineEngine(input: {
           },
         );
         return { incidentId: parked.id, state: parked.state };
+      }
+      } catch {
+        return { incidentId: null, state: "PARKED" };
       }
     },
   };
