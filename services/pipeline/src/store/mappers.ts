@@ -1,4 +1,4 @@
-import type { Database } from "@outcome/db";
+import type { Database } from "@wingman/db";
 import {
   AssertionDefinitionSchema,
   AssertionSchema,
@@ -16,7 +16,7 @@ import {
   type Candidate,
   type Outcome,
   type Run,
-} from "@outcome/schema";
+} from "@wingman/schema";
 import { z } from "zod";
 
 import type { IncidentRecord, ObservedSession } from "../domain.js";

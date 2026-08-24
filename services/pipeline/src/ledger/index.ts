@@ -1,4 +1,4 @@
-import type { ConfigDiff, Ledger } from "@outcome/schema";
+import type { ConfigDiff, Ledger } from "@wingman/schema";
 
 export class NoopLedger implements Ledger {
   record(): Promise<void> {

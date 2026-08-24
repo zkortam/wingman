@@ -1,4 +1,4 @@
-import type { PipelineCommands } from "@outcome/schema";
+import type { PipelineCommands } from "@wingman/schema";
 
 import type { PipelineEngine } from "../engine.js";
 import { runExpirySweep, runRetentionSweep } from "../operations.js";

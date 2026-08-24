@@ -1,0 +1,29 @@
+{
+  "name": "@wingman/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wingman/config": "workspace:*",
+    "@wingman/schema": "workspace:*",
+    "next": "16.3.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "axe-core": "4.12.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.3",
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "jsdom": "27.4.0",
+    "vitest": "4.1.9"
+  }
+}

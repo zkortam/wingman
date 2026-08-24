@@ -2,7 +2,7 @@ import {
   SessionInputSchema,
   type JsonValue,
   type SessionInput,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 const RAW_IDENTITY_KEYS = new Set([
   "email",

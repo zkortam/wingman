@@ -1,5 +1,5 @@
-import type { IngestStore, StoredTurn } from "@outcome/ingest";
-import type { SessionInput, Signal } from "@outcome/schema";
+import type { IngestStore, StoredTurn } from "@wingman/ingest";
+import type { SessionInput, Signal } from "@wingman/schema";
 
 import { ReplayDatabase } from "./database.js";
 

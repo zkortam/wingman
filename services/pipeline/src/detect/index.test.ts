@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import type { ObservedSession } from "../domain.js";
-import { detectSignals } from "./index.js";
+import { detectLiveSignals, detectSignals, type Baselines } from "./index.js";
+
+const NO_BASELINE: Baselines = {
+  RETRY_REQUEST: 0,
+  RESTATED_CONSTRAINT: 0,
+  ABANDON_RESTART: 0,
+  PREFERENCE_STATED: 0,
+};
+
+const withFinalTurn = (text: string): ObservedSession => ({
+  ...session,
+  turns: [
+    ...session.turns.slice(0, -1),
+    { ...session.turns[2], idx: 2, textRedacted: text },
+  ] as ObservedSession["turns"],
+});
 
 const session: ObservedSession = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -46,6 +61,7 @@ describe("detectSignals", () => {
         RETRY_REQUEST: 0,
         RESTATED_CONSTRAINT: 0,
         ABANDON_RESTART: 0,
+        PREFERENCE_STATED: 0,
       },
       matchingRestart: false,
     });
@@ -64,6 +80,7 @@ describe("detectSignals", () => {
           RETRY_REQUEST: 0.6,
           RESTATED_CONSTRAINT: 0.6,
           ABANDON_RESTART: 0,
+          PREFERENCE_STATED: 0,
         },
         matchingRestart: false,
       }),
@@ -77,9 +94,54 @@ describe("detectSignals", () => {
         RETRY_REQUEST: 0,
         RESTATED_CONSTRAINT: 0,
         ABANDON_RESTART: 0,
+        PREFERENCE_STATED: 0,
       },
       matchingRestart: true,
     });
     expect(signals.some(({ kind }) => kind === "ABANDON_RESTART")).toBe(true);
+  });
+});
+
+describe("detectLiveSignals", () => {
+  // The reason the two functions exist. A stated preference is a single cue, so the
+  // batch conjunction discards it and the personalization lane would never fire.
+  it("keeps a lone preference the batch path discards", () => {
+    const preferenceOnly = withFinalTurn(
+      "Just do it, stop asking me to confirm every step.",
+    );
+    expect(
+      detectSignals({
+        session: preferenceOnly,
+        baselines: NO_BASELINE,
+        matchingRestart: false,
+      }),
+    ).toEqual([]);
+    expect(
+      detectLiveSignals({
+        session: preferenceOnly,
+        baselines: NO_BASELINE,
+        matchingRestart: false,
+      }).map(({ kind }) => kind),
+    ).toEqual(["PREFERENCE_STATED"]);
+  });
+
+  it("still applies the baseline and the confidence floor", () => {
+    expect(
+      detectLiveSignals({
+        session,
+        baselines: { ...NO_BASELINE, RETRY_REQUEST: 0.6, RESTATED_CONSTRAINT: 0.6 },
+        matchingRestart: false,
+      }),
+    ).toEqual([]);
+  });
+
+  it("reports a lone correction so the classifier can pair it with the expectation", () => {
+    expect(
+      detectLiveSignals({
+        session: withFinalTurn("No, I said return, not cancel."),
+        baselines: NO_BASELINE,
+        matchingRestart: false,
+      }).map(({ kind }) => kind),
+    ).toEqual(["RETRY_REQUEST"]);
   });
 });

@@ -1,0 +1,61 @@
+.demo-shell {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.demo-pane + .demo-pane {
+  border-left: 1px solid var(--border-strong);
+}
+
+.demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  background: var(--bg-subtle);
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.demo-version[data-changed="true"] {
+  color: var(--pass);
+}
+
+.demo-transcript {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.demo-message {
+  max-width: 76%;
+  border-left: 2px solid var(--border-strong);
+  padding-left: 12px;
+}
+
+.demo-message[data-role="assistant"] {
+  margin-left: 40px;
+  color: var(--text-muted);
+}
+
+.demo-composer {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 24px;
+}
+
+.demo-composer input {
+  flex: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text);
+}

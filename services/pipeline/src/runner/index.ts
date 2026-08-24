@@ -7,7 +7,7 @@ import {
   type AgentConfig,
   type RunResult,
   type Turn,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { PIPELINE_POLICY } from "../policy.js";
 
@@ -32,6 +32,7 @@ export async function runAssertion(input: {
       input.runner.runTurn({
         config: input.config,
         messages: input.messages,
+        context: input.context.session,
         intercept: () => "INTERCEPT",
         sample,
       }),

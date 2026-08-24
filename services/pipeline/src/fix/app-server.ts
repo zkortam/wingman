@@ -1,4 +1,4 @@
-import { StageError, type HandoffPayload } from "@outcome/schema";
+import { StageError, type HandoffPayload } from "@wingman/schema";
 import WebSocket from "ws";
 import { z } from "zod";
 

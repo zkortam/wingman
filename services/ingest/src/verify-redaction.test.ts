@@ -46,7 +46,9 @@ describe("verifyRedaction", () => {
       verifyRedaction({ ...payload(), userId: "raw-user" }),
     ).toThrow();
     const nested = payload();
-    nested.turns[0]!.toolCalls = [
+    const [firstTurn] = nested.turns;
+    if (firstTurn === undefined) throw new Error("fixture needs one turn");
+    firstTurn.toolCalls = [
       { id: "call", name: "search", args: { email: "raw@example.com" } },
     ];
     expect(() => verifyRedaction(nested)).toThrow(RedactionVerificationError);

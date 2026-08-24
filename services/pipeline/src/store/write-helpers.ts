@@ -1,4 +1,4 @@
-import type { Database, Json, ServiceClient } from "@outcome/db";
+import type { Database, Json, ServiceClient } from "@wingman/db";
 
 import type { IncidentRecord } from "../domain.js";
 import type {
@@ -7,6 +7,7 @@ import type {
   RunInput,
 } from "../repository.js";
 import type { Row } from "./mappers.js";
+import { databaseError } from "./read-helpers.js";
 
 type DatabaseUpdate<Name extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][Name]["Update"];
@@ -87,5 +88,5 @@ export async function checked(
   request: PromiseLike<{ error: unknown }>,
 ): Promise<void> {
   const { error } = await request;
-  if (error) throw error;
+  if (error) throw databaseError(error);
 }

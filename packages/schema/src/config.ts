@@ -9,12 +9,15 @@ const ToolConfigSchema = z
   })
   .strict();
 
+export const RuleSchema = z.string();
+export type Rule = z.infer<typeof RuleSchema>;
+
 export const AgentConfigSchema = z
   .object({
     systemPrompt: z.string(),
     tools: z.record(ToolConfigSchema),
     retrieval: JsonObjectSchema,
-    rules: z.array(z.string()),
+    rules: z.array(RuleSchema),
   })
   .strict();
 

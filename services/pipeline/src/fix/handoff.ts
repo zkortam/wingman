@@ -1,4 +1,4 @@
-import { HandoffPayloadSchema, type Assertion } from "@outcome/schema";
+import { HandoffPayloadSchema, type Assertion } from "@wingman/schema";
 
 import type { IncidentRecord } from "../domain.js";
 import type { PipelineRepository } from "../repository.js";

@@ -4,7 +4,7 @@ import type {
   Outcome,
   Run,
   Signal,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type {
   HandoffRecord,

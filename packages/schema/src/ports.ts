@@ -7,18 +7,25 @@ import type {
   IncidentSummary,
   Outcome,
 } from "./incident.js";
-import type { Turn, ToolCall } from "./session.js";
+import type { SessionContext, Turn, ToolCall } from "./session.js";
 
 export interface AgentRunner {
   runTurn(input: {
     config: AgentConfig;
     messages: Turn[];
+    /** Host presentation state the agent had at decision time. Assertions resolve
+     *  `$ref: session.*` against this, so the runner must see the same values. */
+    context?: SessionContext;
     intercept?: (call: ToolCall) => "INTERCEPT" | "EXECUTE";
+    /** Sample index 0..n-1. Selects responses[i] from the cassette, which is what
+     *  preserves genuine variance through the gate. The cassette key must not vary
+     *  with it — one key, five recorded responses. */
     sample?: number;
   }): Promise<{
     toolCalls: ToolCall[];
     text: string | null;
     cassetteKey: string;
+    /** Must be 0 whenever intercept returned 'INTERCEPT'. Postgres CHECKs it. */
     toolExecutions: number;
   }>;
 }

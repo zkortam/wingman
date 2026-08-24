@@ -1,5 +1,5 @@
-import type { ServiceClient } from "@outcome/db";
-import { type SignalKind, SignalKindSchema } from "@outcome/schema";
+import type { ServiceClient } from "@wingman/db";
+import { type SignalKind, SignalKindSchema } from "@wingman/schema";
 
 import type { Baselines } from "../detect/index.js";
 import type { PipelineRepository } from "../repository.js";
@@ -95,8 +95,7 @@ async function signalRates(
   client: ServiceClient,
   sessionIds: string[],
 ): Promise<Record<SignalKind, number>> {
-  if (sessionIds.length === 0)
-    return { RETRY_REQUEST: 0, RESTATED_CONSTRAINT: 0, ABANDON_RESTART: 0 };
+  if (sessionIds.length === 0) return zeroRates();
   const signals = await rows<Pick<Row<"signals">, "session_id" | "kind">>(
     client
       .from("signals")
@@ -112,5 +111,11 @@ async function signalRates(
           .map(({ session_id }) => session_id),
       ).size / sessionIds.length,
     ]),
+  ) as Record<SignalKind, number>;
+}
+
+function zeroRates(): Record<SignalKind, number> {
+  return Object.fromEntries(
+    SIGNAL_KINDS.map((kind) => [kind, 0]),
   ) as Record<SignalKind, number>;
 }

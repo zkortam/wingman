@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - services/*
+  - apps/*
+  - fixtures
+  - demo/*
+
+onlyBuiltDependencies:
+  - esbuild

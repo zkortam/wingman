@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { EmbeddingClient } from "@outcome/schema";
+import type { EmbeddingClient } from "@wingman/schema";
 
 export class ReplayEmbeddingClient implements EmbeddingClient {
   embed(input: { texts: string[]; dimensions: 1536 }): Promise<number[][]> {
