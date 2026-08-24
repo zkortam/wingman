@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { canonicalJSON, type SessionInput } from "@outcome/schema";
-import { createIngestService } from "@outcome/ingest";
+import { canonicalJSON, type SessionInput } from "@wingman/schema";
+import { createIngestService } from "@wingman/ingest";
 import { describe, expect, it } from "vitest";
 
 import { createPipelineEngine } from "./engine.js";
@@ -16,6 +16,11 @@ import { ReplayIngestStore } from "./stubs/ingest-store.js";
 import { ReplayModelClient } from "./stubs/model.js";
 import { ReplayPipelineRepository } from "./stubs/repository.js";
 import { StubRunner } from "./stubs/runner.js";
+
+function incidentId(id: string | null): string {
+  if (id === null) throw new Error("Expected the stage to open an incident");
+  return id;
+}
 
 describe("full replay outcome loop", () => {
   it("auto-applies a verified USER preference, confirms it, and isolates a control user", async () => {
@@ -137,10 +142,12 @@ describe("full replay outcome loop", () => {
     const applied = await engine.observeSession(second.id);
     expect(applied.state).toBe("APPLIED");
     expect(
-      (await repository.getSnapshot(applied.incidentId!)).before?.passCount,
+      (await repository.getSnapshot(incidentId(applied.incidentId))).before
+        ?.passCount,
     ).toBe(0);
     expect(
-      (await repository.getSnapshot(applied.incidentId!)).after?.passCount,
+      (await repository.getSnapshot(incidentId(applied.incidentId))).after
+        ?.passCount,
     ).toBe(5);
     expect(loggedStages).toEqual(
       expect.arrayContaining([
@@ -177,7 +184,8 @@ describe("full replay outcome loop", () => {
       "NO_SIGNAL",
     );
     expect(
-      (await repository.getSnapshot(applied.incidentId!)).outcome?.status,
+      (await repository.getSnapshot(incidentId(applied.incidentId))).outcome
+        ?.status,
     ).toBe("CONFIRMED");
     expect(loggedStages).toContain("confirm");
     await engine.observeSession(confirmation.id);

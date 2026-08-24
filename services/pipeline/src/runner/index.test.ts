@@ -32,9 +32,16 @@ describe("verification runner", () => {
     });
     expect(result.n).toBe(5);
     expect(result.passCount).toBe(4);
+    // One cassette key holds five recorded responses, so the key is stable and it is
+    // the decisions that must differ. Asserting distinct keys here would pass for a
+    // runner that returns the same decision five times — ARCHITECTURE.md §9.
     expect(
       new Set(result.results.map(({ cassetteKey }) => cassetteKey)).size,
-    ).toBe(5);
+    ).toBe(1);
+    expect(
+      new Set(result.results.map(({ toolCalls }) => JSON.stringify(toolCalls)))
+        .size,
+    ).toBeGreaterThan(1);
     expect(result.toolExecutions).toBe(0);
   });
 

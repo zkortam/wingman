@@ -4,7 +4,7 @@ import {
   type Assertion,
   type ConfigDiff,
   type Run,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 export function fixPrompt(input: {
   writablePaths: string[];

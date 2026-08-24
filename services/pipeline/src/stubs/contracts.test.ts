@@ -7,7 +7,7 @@ import {
   describeLedger,
   describePipelineCommands,
   describePipelineReader,
-} from "@outcome/schema/contracts";
+} from "@wingman/schema/contracts";
 
 import { createPipelineCommands } from "../commands.js";
 import { ReplayAppServerClient } from "../fix/app-server.js";
@@ -20,10 +20,36 @@ import { ReplayEventPublisher } from "./events.js";
 import { ReplayPipelineRepository } from "./repository.js";
 import { StubRunner } from "./runner.js";
 
-describeAgentRunner(
-  "StubRunner",
-  () => new StubRunner(() => ({ toolCalls: [] })),
-);
+describeAgentRunner("StubRunner", () => ({
+  // Samples 2 and 4 preserve the filter, the rest drop it: a genuine 2/5 that the
+  // variance gate must classify as MODEL_VARIANCE rather than a defect.
+  runner: new StubRunner(({ sample }) => ({
+    toolCalls: [
+      {
+        name: "export_records",
+        args: { filters: sample === 2 || sample === 4 ? { stage: "New" } : {} },
+      },
+    ],
+  })),
+  variance: {
+    config: {
+      systemPrompt: "base",
+      tools: { export_records: { description: "Export records" } },
+      retrieval: {},
+      rules: [],
+    },
+    messages: [
+      {
+        idx: 0,
+        role: "user" as const,
+        textRedacted: "Export these",
+        toolCalls: [],
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
+    context: { viewFilters: { stage: "New" } },
+  },
+}));
 describeEmbeddingClient("Replay", () => new ReplayEmbeddingClient());
 describeLedger("InMemory", () => new InMemoryLedger());
 describeConfigStore("Stub", async () => {

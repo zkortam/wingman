@@ -10,48 +10,79 @@ import type {
   PipelineCommands,
   PipelineReader,
 } from "./ports.js";
-import type { Turn } from "./session.js";
+import type { SessionContext, Turn } from "./session.js";
 
-const CONFIG: AgentConfig = {
-  systemPrompt: "Base prompt",
-  tools: { search: { description: "Search records" } },
-  retrieval: {},
-  rules: [],
-};
-
-const MESSAGES: Turn[] = [
-  {
-    idx: 0,
-    role: "user",
-    textRedacted: "Find records",
-    toolCalls: [],
-    createdAt: "2026-01-01T00:00:00.000Z",
-  },
-];
+/** An input for which the agent genuinely decides differently across samples.
+ *  Without one, the N=5 variance gate cannot be exercised at all. */
+export interface VarianceScenario {
+  config: AgentConfig;
+  messages: Turn[];
+  context?: SessionContext;
+}
 
 export function describeAgentRunner(
   name: string,
-  create: () => AgentRunner,
+  setup: () => { runner: AgentRunner; variance: VarianceScenario },
 ): void {
+  const samples = async (
+    runner: AgentRunner,
+    scenario: VarianceScenario,
+  ): Promise<
+    Awaited<ReturnType<AgentRunner["runTurn"]>>[]
+  > =>
+    Promise.all(
+      [0, 1, 2, 3, 4].map((sample) =>
+        runner.runTurn({
+          config: scenario.config,
+          messages: scenario.messages,
+          ...(scenario.context === undefined
+            ? {}
+            : { context: scenario.context }),
+          intercept: () => "INTERCEPT",
+          sample,
+        }),
+      ),
+    );
+
   describe(`${name} AgentRunner contract`, () => {
-    it("intercepts every call and returns deterministic distinct samples", async () => {
-      const runner = create();
-      const decisions = await Promise.all(
-        [0, 1, 2, 3, 4].map((sample) =>
-          runner.runTurn({
-            config: CONFIG,
-            messages: MESSAGES,
-            intercept: () => "INTERCEPT",
-            sample,
-          }),
-        ),
+    it("executes nothing when intercept returns INTERCEPT", async () => {
+      const { runner, variance } = setup();
+      const results = await samples(runner, variance);
+      expect(
+        results.reduce((total, { toolExecutions }) => total + toolExecutions, 0),
+      ).toBe(0);
+    });
+
+    it("returns a stable cassetteKey for identical input", async () => {
+      const { runner, variance } = setup();
+      const results = await samples(runner, variance);
+      expect(new Set(results.map(({ cassetteKey }) => cassetteKey)).size).toBe(
+        1,
       );
-      expect(
-        decisions.every(({ toolExecutions }) => toolExecutions === 0),
-      ).toBe(true);
-      expect(
-        new Set(decisions.map(({ cassetteKey }) => cassetteKey)).size,
-      ).toBe(5);
+    });
+
+    // ARCHITECTURE.md §9: if replay returns the same response five times the gate
+    // is theatre. Identical decisions pin passCount to 0 or 5 and make the 2..4
+    // discard band unreachable, so it is distinctness of the DECISION that matters
+    // here — not of the cassette key, which must stay stable.
+    it("varies its decision across sample 0..4 for a variance key", async () => {
+      const { runner, variance } = setup();
+      const results = await samples(runner, variance);
+      const decisions = new Set(
+        results.map(({ toolCalls, text }) => canonicalJSON({ toolCalls, text })),
+      );
+      expect(decisions.size).toBeGreaterThan(1);
+    });
+
+    it("never throws on a malformed config", async () => {
+      const { runner, variance } = setup();
+      await expect(
+        runner.runTurn({
+          config: {} as unknown as AgentConfig,
+          messages: variance.messages,
+          intercept: () => "INTERCEPT",
+        }),
+      ).resolves.toBeDefined();
     });
   });
 }

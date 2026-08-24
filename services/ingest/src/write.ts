@@ -1,5 +1,5 @@
-import type { ServiceClient } from "@outcome/db";
-import type { SessionInput, Signal, ToolCall } from "@outcome/schema";
+import type { ServiceClient } from "@wingman/db";
+import type { SessionInput, Signal, ToolCall } from "@wingman/schema";
 
 export interface StoredTurn {
   sessionId: string;

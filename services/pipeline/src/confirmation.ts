@@ -1,4 +1,4 @@
-import type { ConfigStore, Ledger, Outcome } from "@outcome/schema";
+import type { ConfigStore, Ledger, Outcome } from "@wingman/schema";
 
 import type { AppServerClient } from "./fix/app-server.js";
 import type { ObservedSession } from "./domain.js";

@@ -4,7 +4,7 @@ import {
   incidentKey,
   type EvidenceExcerpt,
   type Signal,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import type { ObservedSession } from "../domain.js";
 

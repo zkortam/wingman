@@ -1,16 +1,20 @@
 {
-  "name": "@outcome/ingest",
+  "name": "@wingman/ingest",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
   "dependencies": {
-    "@outcome/db": "workspace:*",
-    "@outcome/schema": "workspace:*"
+    "@wingman/db": "workspace:*",
+    "@wingman/schema": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^3.2.0"
+    "vitest": "4.1.9"
   }
 }

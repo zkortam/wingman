@@ -1,4 +1,4 @@
-import type { SignalKind } from "@outcome/schema";
+import type { SignalKind } from "@wingman/schema";
 
 import type { IncidentRecord } from "../domain.js";
 import type { ReplayDatabase } from "./database.js";

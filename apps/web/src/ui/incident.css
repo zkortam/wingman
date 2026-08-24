@@ -1,0 +1,163 @@
+.incident-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.incident-status {
+  display: inline-flex;
+  margin: 0 0 28px 110px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--text-muted);
+  font: 500 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.incident-status[data-tone="accent"] { color: var(--accent); }
+.incident-status[data-tone="pass"] { color: var(--pass); background: var(--pass-soft); }
+.incident-status[data-tone="fail"] { color: var(--fail); background: var(--fail-soft); }
+.incident-status[data-tone="warn"] { color: var(--warn); background: var(--warn-soft); }
+.incident-status[data-tone="faint"] { color: var(--text-faint); }
+
+.proof {
+  border-top: 1px solid var(--border);
+}
+
+.proof-block {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+
+.proof-label {
+  padding-top: 2px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 550;
+  letter-spacing: 0.04em;
+}
+
+.evidence-list {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-session {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 12px;
+}
+
+.evidence-meta {
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.transcript-line {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.transcript-line[data-signaled="true"] {
+  border-left: 2px solid var(--warn);
+  padding-left: 8px;
+}
+
+.transcript-role {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.verdict-heading {
+  margin-bottom: 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.verdict-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-muted);
+}
+
+.assertion-line {
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+}
+
+.assertion-line pre {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font: inherit;
+}
+
+.dots-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dots-svg {
+  display: block;
+  flex: none;
+}
+
+.dots-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.suite-count {
+  color: var(--pass);
+}
+
+.diff-header {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.diff {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.diff-line {
+  display: grid;
+  grid-template-columns: 24px minmax(max-content, 1fr);
+  min-height: 22px;
+  padding-right: 12px;
+}
+
+.diff-line[data-kind="add"] { background: var(--pass-soft); color: var(--pass); }
+.diff-line[data-kind="remove"] { background: var(--fail-soft); color: var(--fail); }
+
+.diff-gutter {
+  padding-left: 8px;
+  user-select: none;
+}
+
+.scope-line,
+.confirmation-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scope-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.refusal-copy,
+.park-reason {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+}

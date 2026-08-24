@@ -4,7 +4,7 @@ import {
   type EventPublisher,
   type SessionInput,
   type Signal,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { verifyRedaction } from "./verify-redaction.js";
 import type { IngestStore, StoredTurn } from "./write.js";

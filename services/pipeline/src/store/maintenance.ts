@@ -1,4 +1,4 @@
-import type { ServiceClient } from "@outcome/db";
+import type { ServiceClient } from "@wingman/db";
 
 import type { PipelineRepository } from "../repository.js";
 import type { Row } from "./mappers.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DiffTooLargeError, PathNotWritableError } from "@outcome/schema";
+import { DiffTooLargeError, PathNotWritableError } from "@wingman/schema";
 
 import { enforceDiffBounds, pathMatches } from "./bounds.js";
 

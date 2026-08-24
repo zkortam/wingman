@@ -4,7 +4,7 @@ import type {
   EmbeddingClient,
   EventPublisher,
   SessionInput,
-} from "@outcome/schema";
+} from "@wingman/schema";
 import { describe, expect, it, vi } from "vitest";
 
 import { createIngestService, type IngestStore } from "./index.js";

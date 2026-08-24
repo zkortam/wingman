@@ -4,7 +4,7 @@ import {
   type EventPublisher,
   type Ledger,
   type PipelineCommands,
-} from "@outcome/schema";
+} from "@wingman/schema";
 
 import { applyVerifiedCandidate } from "./apply.js";
 import { markUnobserved } from "./confirmation.js";

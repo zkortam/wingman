@@ -50,6 +50,6 @@ describe("assertion generation", () => {
         session,
         config: { systemPrompt: "", tools: {}, retrieval: {}, rules: [] },
       }),
-    ).rejects.toMatchObject({ reason: "NOT_ISOLATABLE" });
+    ).rejects.toMatchObject({ reason: "SCHEMA_INVALID" });
   });
 });

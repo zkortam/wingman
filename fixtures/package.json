@@ -1,0 +1,21 @@
+{
+  "name": "@wingman/fixtures",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wingman/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@demo/amazoff": "workspace:*",
+    "@wingman/pipeline": "workspace:*",
+    "vitest": "4.1.9"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "toolCalls": [
+    {
+      "name": "export_records",
+      "args": {
+        "filters": {}
+      }
+    }
+  ],
+  "text": null,
+  "toolExecutions": 0
+}

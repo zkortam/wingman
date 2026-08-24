@@ -1,0 +1,10 @@
+{
+  "key": "35760e994d7c842c08d33b1367454fa50f3379f368b36fcd554f0f47658c9714",
+  "responses": [
+    { "toolCalls": [{ "name": "export_records", "args": { "filters": {}, "format": "csv" } }], "text": null },
+    { "toolCalls": [{ "name": "export_records", "args": { "filters": {}, "format": "csv", "source": "opportunities" } }], "text": null },
+    { "toolCalls": [{ "name": "export_records", "args": { "filters": { "stage": "Negotiation" }, "format": "csv" } }], "text": null },
+    { "toolCalls": [{ "name": "export_records", "args": { "filters": {}, "format": "csv", "includeHeaders": true } }], "text": null },
+    { "toolCalls": [{ "name": "export_records", "args": { "filters": { "stage": "Negotiation" }, "format": "csv", "includeHeaders": true } }], "text": null }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "OC-001",
+  "title": "Export ignores active filters",
+  "layer": "tool_description",
+  "mutation": {
+    "path": "tools.export_records.description",
+    "from": "Export CRM opportunities. Pass the caller's active view filters in filters so the export matches what the user currently sees.",
+    "to": "Exports records from the current object."
+  },
+  "expected": {
+    "signal": "RETRY_REQUEST",
+    "verdict": "CONFIG_DEFECT",
+    "assertion": {
+      "kind": "TOOL_ARG_EQUALS",
+      "tool": "export_records",
+      "arg": "filters",
+      "expected": { "$ref": "session.viewFilters" }
+    },
+    "variance": "consistent"
+  }
+}
