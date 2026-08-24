@@ -84,12 +84,56 @@ describe("when Amazoff simply cannot do it", () => {
   });
 });
 
+describe("the conversational tools", () => {
+  it("tracks the parcel without touching the date or status", () => {
+    const { orders, reply } = ask("where's my package", AMAZOFF_FIXED_CONFIG);
+    expect(reply.toolCalls[0]?.name).toBe("track_package");
+    expect(reply.text).toContain("1Z4417AMZ8821");
+    expect(orders.get("AMZ-4417")).toMatchObject({
+      status: "IN_TRANSIT",
+      deliveryDate: "2026-08-26",
+    });
+  });
+
+  it("stores a doorstep note the courier can see", () => {
+    const { orders, reply } = ask(
+      "please leave it at the door and don't ring the bell",
+      AMAZOFF_FIXED_CONFIG,
+    );
+    expect(reply.toolCalls[0]).toMatchObject({
+      name: "set_courier_note",
+      args: { orderId: "AMZ-4417", instructions: "leave at the door; do not ring the bell" },
+    });
+    expect(orders.get("AMZ-4417")?.instructions).toBe(
+      "leave at the door; do not ring the bell",
+    );
+  });
+
+  it("requests a human without changing the order", () => {
+    const { orders, reply } = ask("can I talk to a person", AMAZOFF_FIXED_CONFIG);
+    expect(reply.toolCalls[0]?.name).toBe("speak_to_human");
+    expect(reply.text).toMatch(/callback/i);
+    expect(orders.get("AMZ-4417")?.status).toBe("IN_TRANSIT");
+  });
+
+  it("names the live order on a greeting so the chat is already about something", () => {
+    const { reply } = ask("hi", AMAZOFF_FIXED_CONFIG);
+    expect(reply.toolCalls).toEqual([]);
+    expect(reply.text).toContain("AMZ-4417");
+    expect(reply.unsupported).toBe(false);
+  });
+});
+
 describe("dates the customer actually types", () => {
   it.each([
     ["move my delivery to tomorrow", "2026-08-24"],
     ["move my delivery to Friday", "2026-08-28"],
     ["move my delivery to 2026-09-01", "2026-09-01"],
-    ["push my delivery back a day", "2026-08-24"],
+    ["push my delivery back a day", "2026-08-27"],
+    ["reschedule to aug 24", "2026-08-24"],
+    ["reschedule to August 24th", "2026-08-24"],
+    ["reschedule to aug 28", "2026-08-28"],
+    ["I need this to arrive later", "2026-08-28"],
   ])("%s -> %s", (utterance, expected) => {
     const { reply } = ask(utterance, AMAZOFF_FIXED_CONFIG);
     expect(reply.toolCalls[0]?.args).toMatchObject({ deliveryDate: expected });

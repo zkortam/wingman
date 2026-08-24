@@ -47,8 +47,9 @@ export function renderPrompt(utterance: string, config: AgentConfig): string {
     // Without this a real model often reaches for a lookup first, which is sensible
     // behaviour but leaves the turn with nothing to judge. Amazoff wants one decisive
     // action per turn.
-    "Choose the single tool that carries out what the customer is asking for, and follow",
-    "the rules above. Do not choose a lookup tool unless the customer asked only for",
-    "information. Answer null when no tool fits.",
+    "Rules are binding policy and outrank tool descriptions. If a rule names an action,",
+    "take that action even when another tool looks like a better match. Choose the single",
+    "tool that follows the rules, then the request. Do not choose a lookup tool unless",
+    "the customer asked only for information. Answer null when no tool fits.",
   ].join("\n");
 }

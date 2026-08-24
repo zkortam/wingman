@@ -11,7 +11,8 @@ const RETRY_PHRASES = [
 export function retryRequestConfidence(text: string): number {
   const normalized = normalize(text);
   if (RETRY_PHRASES.some((phrase) => normalized.includes(phrase))) return 1;
-  if (/^(no|wrong|incorrect)\b/.test(normalized)) return 0.8;
+  if (/^(n+o+|wrong|incorrect)\b/.test(normalized)) return 0.8;
+  if (/\b(i said|not cancel)/.test(normalized)) return 0.8;
   return 0;
 }
 

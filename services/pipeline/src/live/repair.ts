@@ -1,6 +1,4 @@
-import type { AgentConfig, Expectation } from "@wingman/schema";
-
-import { expectationTool } from "@wingman/schema";
+import { expectationTool, type AgentConfig, type Expectation } from "@wingman/schema";
 
 /** Keeps a hotfix from growing without bound across a long conversation. */
 export const MAX_CORRECTIVE_RULES = 3;
@@ -14,9 +12,9 @@ export const MAX_CORRECTIVE_RULES = 3;
  * failure than adding one it has. The offending rule is still there; the batch pipeline
  * removes it later, once the variance gate has confirmed the diagnosis.
  *
- * Precedence comes from order, so the corrective rule goes first. It quotes the request
- * verbatim, which makes the trigger match paraphrases of the same ask and makes the diff
- * self-explanatory to whoever reviews it.
+ * Precedence comes from order, so the corrective rule goes first. It describes the
+ * situation, not the exact sentence: quoting the utterance verbatim would leave the
+ * next paraphrase ("make it Thursday", "sooner") still subject to the bad rule.
  */
 export function repairForExpectation(
   config: AgentConfig,
@@ -35,12 +33,19 @@ export function repairForExpectation(
   return { ...structuredClone(config), rules: [rule, ...config.rules] };
 }
 
-const PREFIX = "When a customer says";
+const MARKER = "Correction: ";
 
-export function correctiveRule(utterance: string, tool: string): string {
-  return `${PREFIX} "${utterance.trim()}", use ${tool}.`;
+export function correctiveRule(_utterance: string, tool: string): string {
+  return `${MARKER}${situation(tool)}`;
 }
 
 export function isCorrective(rule: string): boolean {
-  return rule.startsWith(PREFIX);
+  return rule.startsWith(MARKER);
+}
+
+function situation(tool: string): string {
+  if (tool === "reschedule_delivery") {
+    return "When a customer wants a different delivery date, or to change, move, or reschedule a delivery, use reschedule_delivery.";
+  }
+  return `When a customer asks about ${tool.replace(/_/g, " ")}, use ${tool}.`;
 }

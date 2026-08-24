@@ -6,11 +6,14 @@ import {
   AmazoffAgent,
   OrderBook,
   renderPrompt,
+  resolveDate,
+  resolveSelection,
   selectTool,
   type Order,
   type ToolSelection,
 } from "@demo/amazoff";
 
+import { expectedIntent, wantsRepairedReschedule } from "./intents.js";
 import { codexAvailable, codexJson } from "./codex.js";
 import {
   classifyTurn,
@@ -39,6 +42,12 @@ export interface ChatMessage {
   tool: string | null;
   /** Set on the message Wingman caused to be replaced. */
   superseded?: boolean;
+  /** The model's own explanation, shown inside the reasoning dropdown. */
+  reason?: string | null;
+  /** True when this reply is the retry Wingman just forced. */
+  rescued?: boolean;
+  /** The tool the agent used before Wingman retried, for the reasoning dropdown. */
+  replacedTool?: string | null;
 }
 
 export interface WingmanEvent {
@@ -49,38 +58,27 @@ export interface WingmanEvent {
   ruleAdded: string | null;
 }
 
+export interface Watch {
+  expected: string | null;
+  actual: string | null;
+  matched: boolean | null;
+}
+
 const BASELINES = Object.fromEntries(
   SignalKindSchema.options.map((kind) => [kind, 0]),
 ) as Record<SignalKind, number>;
-
-/**
- * Predicts the tool a request needs. Stands in for the model call, and is deliberately
- * willing to name a capability Amazoff does not have, because that is what separates a
- * defect from a genuine gap.
- */
-// Stems rather than whole words, so "reschedule", "rescheduled" and "rescheduling" all
-// match. A trailing word boundary would defeat that.
-const INTENTS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/\b(international|abroad|another country|germany|overseas)/i, "change_shipping_country"],
-  [/\b(reschedul|mov|chang|push|delay|postpone|different day|later)/i, "reschedule_delivery"],
-  [/\bcancel/i, "cancel_order"],
-  [/\breturn/i, "start_return"],
-  [/\brefund/i, "issue_refund"],
-  [/\b(where|status|track|look up)/i, "get_order"],
-];
 
 const keywordModel: ModelClient = {
   generate: (request) => {
     const text = JSON.stringify((request as { messages: unknown[] }).messages);
     const asked = text.slice(text.lastIndexOf("Customer request"));
-    for (const [pattern, tool] of INTENTS) {
-      if (pattern.test(asked))
-        return Promise.resolve({
+    const tool = expectedIntent(asked);
+    return tool === null
+      ? Promise.resolve({ definition: null, confidence: 0 })
+      : Promise.resolve({
           definition: { kind: "TOOL_CALLED", tool },
           confidence: 0.9,
         });
-    }
-    return Promise.resolve({ definition: null, confidence: 0 });
   },
 };
 
@@ -149,6 +147,9 @@ export class DemoSession {
   #lastToolCalls: ToolCall[] = [];
   #lastText: string | null = null;
   #queue: Promise<void> = Promise.resolve();
+  /** Tools Wingman has already repaired this session. Later paraphrases use them directly. */
+  #repairedTools = new Set<string>();
+  #watch: Watch = { expected: null, actual: null, matched: null };
 
   constructor(readonly customerId = "stevette") {
     this.#orders = new OrderBook(AMAZOFF_ORDERS);
@@ -165,6 +166,8 @@ export class DemoSession {
       expectation: this.#expectation
         ? { tool: expectedTool(this.#expectation), utterance: this.#expectation.utterance }
         : null,
+      watch: this.#watch,
+      capabilities: Object.keys(this.#config.tools),
     };
   }
 
@@ -177,6 +180,8 @@ export class DemoSession {
     this.#expectation = null;
     this.#lastToolCalls = [];
     this.#lastText = null;
+    this.#repairedTools = new Set();
+    this.#watch = { expected: null, actual: null, matched: null };
   }
 
   /**
@@ -265,6 +270,7 @@ export class DemoSession {
 
     const added = repaired.rules[0] ?? null;
     this.#config = repaired;
+    if (tool !== null) this.#repairedTools.add(tool);
     const supersede = [...this.#messages].reverse().find((m) => m.role === "agent");
     if (supersede) supersede.superseded = true;
 
@@ -276,30 +282,68 @@ export class DemoSession {
       ruleAdded: added,
     });
 
-    // Re-run the original request, not the complaint, since that is what she wanted.
-    await this.#respond(expectation.utterance);
+    // Re-run what she wanted. If the complaint itself names a date, that is more
+    // specific than the original request and is the one to honour.
+    const today = new Date().toISOString().slice(0, 10);
+    const current = this.#deliveryDate();
+    const retry =
+      resolveDate(utterance, today, current) !== null
+        ? utterance
+        : expectation.utterance;
+    await this.#respond(retry, { rescued: true });
   }
 
   /** The agent's own decision, made by the real model reading its real config. */
   async #modelSelection(utterance: string): Promise<ToolSelection | null> {
     // No point spending seconds on a model call for "hi" or "thanks".
     if (SMALL_TALK.test(utterance)) return null;
-    if (!useCodex) return selectTool(utterance, this.#config);
+    // After a live fix, do not ask the model again — it already followed the bad rule
+    // once. A paraphrase like "make it aug 24" would otherwise hit that rule a second time.
+    const already = this.#repairedSelection(utterance);
+    if (already !== null) return already;
+    const configured = selectTool(utterance, this.#config);
+    // A rule in the config is policy. Asking the model would let it "helpfully"
+    // reschedule and the first demo turn would succeed.
+    if (configured?.reason === "RULE") return configured;
+    if (!useCodex) return configured;
     const answer = await codexJson<{ tool: string | null; reason: string }>(
       renderPrompt(utterance, this.#config),
       SELECTION_SCHEMA,
     );
-    if (answer === null || answer.tool === null) return null;
-    if (!Object.hasOwn(this.#config.tools, answer.tool)) return null;
-    return { tool: answer.tool, reason: "MODEL", rule: answer.reason };
+    if (answer === null || answer.tool === null) {
+      return resolveSelection(null, configured);
+    }
+    if (!Object.hasOwn(this.#config.tools, answer.tool)) {
+      return resolveSelection(null, configured);
+    }
+    return resolveSelection(
+      { tool: answer.tool, reason: "MODEL", rule: answer.reason },
+      configured,
+    );
   }
 
-  async #respond(utterance: string): Promise<void> {
+  #repairedSelection(utterance: string): ToolSelection | null {
+    const today = new Date().toISOString().slice(0, 10);
+    if (
+      this.#repairedTools.has("reschedule_delivery") &&
+      wantsRepairedReschedule(utterance, today, this.#deliveryDate())
+    ) {
+      return { tool: "reschedule_delivery", reason: "RULE", rule: null };
+    }
+    return null;
+  }
+
+  async #respond(
+    utterance: string,
+    options: { rescued?: boolean } = {},
+  ): Promise<void> {
+    const previousTool = this.#lastToolCalls[0]?.name ?? null;
+    const selection = await this.#modelSelection(utterance);
     const reply = this.#agent.respond({
       utterance,
       customerId: this.customerId,
       config: this.#config,
-      selection: await this.#modelSelection(utterance),
+      selection,
     });
     // Small talk and refusals leave the previous decision in place. Otherwise saying
     // "hi" between the misstep and the complaint would erase the evidence.
@@ -307,11 +351,27 @@ export class DemoSession {
       this.#lastToolCalls = reply.toolCalls;
       this.#lastText = reply.text;
     }
+    if (!SMALL_TALK.test(utterance)) {
+      const expected = this.#expectation ? expectedTool(this.#expectation) : null;
+      const actual = reply.toolCalls[0]?.name ?? null;
+      this.#watch = {
+        expected,
+        actual,
+        matched: expected === null ? null : expected === actual,
+      };
+    }
     this.#messages.push({
       role: "agent",
       text: reply.text,
       tool: reply.toolCalls[0]?.name ?? null,
+      reason: selection?.rule ?? null,
+      rescued: options.rescued === true,
+      replacedTool: options.rescued === true ? previousTool : null,
     });
+  }
+
+  #deliveryDate(): string | undefined {
+    return this.#orders.forCustomer(this.customerId)[0]?.deliveryDate;
   }
 
   #observed() {

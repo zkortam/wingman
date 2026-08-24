@@ -6,7 +6,8 @@
   "description": "Runs Amazoff and Wingman in one process so the demo needs no infrastructure. Delete demo/ and the product still builds.",
   "scripts": {
     "start": "WINGMAN_MAX_EXPECTATION_MS=40000 WINGMAN_MAX_LIVE_TURN_MS=60000 tsx src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@demo/amazoff": "workspace:*",
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "tsx": "^4.23.12",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "4.1.9"
   }
 }

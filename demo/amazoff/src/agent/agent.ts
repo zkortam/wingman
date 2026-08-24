@@ -2,6 +2,7 @@ import type { AgentConfig, ToolCall } from "@wingman/schema";
 
 import { OrderError, type Order, type OrderBook } from "../store/orders.js";
 import { resolveDate } from "./dates.js";
+import { parseInstructions } from "./instructions.js";
 import { selectTool, type ToolSelection } from "./select.js";
 
 export interface AgentReply {
@@ -42,7 +43,7 @@ export class AmazoffAgent {
     // read as broken to the customer and raise a capability alert out of nothing.
     if (isSmallTalk(utterance)) {
       return {
-        text: "Hi! I can help with your Amazoff orders — deliveries, returns, refunds or cancellations. What do you need?",
+        text: greet(this.#targetOrder(customerId, null)),
         toolCalls: [],
         selection: null,
         unsupported: false,
@@ -52,14 +53,14 @@ export class AmazoffAgent {
     const selection = given ?? selectTool(utterance, config);
     if (selection === null) {
       return {
-        text: "I'm sorry, I can't do that from here. I can change a delivery date, cancel an order, start a return or issue a refund.",
+        text: "I'm sorry, I can't do that from here. I can track a package, add a delivery note, change a delivery date, cancel an order, start a return, issue a refund, or connect you to a person.",
         toolCalls: [],
         selection: null,
         unsupported: true,
       };
     }
 
-    const order = this.#targetOrder(customerId);
+    const order = this.#targetOrder(customerId, selection.tool);
     if (order === null) {
       return {
         text: "I couldn't find an active order on your account.",
@@ -110,6 +111,23 @@ export class AmazoffAgent {
           ? `Order ${order.id}: ${order.summary}, ${order.status.toLowerCase().replace("_", " ")}, arriving ${order.deliveryDate}.`
           : `I couldn't find order ${orderId}.`;
       }
+      case "track_package": {
+        const order = this.#orders.get(orderId);
+        if (!order) return `I couldn't find order ${orderId}.`;
+        const tracking = order.tracking ?? "not assigned yet";
+        const scan =
+          order.status === "IN_TRANSIT"
+            ? "out for delivery"
+            : order.status.toLowerCase().replace("_", " ");
+        return `Your ${order.summary} is with ${order.carrier ?? "the courier"}, tracking ${tracking}. Last scan: ${scan}, arriving ${order.deliveryDate}.`;
+      }
+      case "set_courier_note": {
+        const order = this.#orders.setInstructions(orderId, args.instructions ?? "");
+        return `Done — I've added this note for the courier on order ${order.id}: ${order.instructions}.`;
+      }
+      case "speak_to_human": {
+        return "I've requested a callback. An Amazoff associate will reach you at the number on this account.";
+      }
       case "start_return": {
         const order = this.#orders.startReturn(orderId);
         return `I've started a return for order ${order.id}.`;
@@ -124,16 +142,29 @@ export class AmazoffAgent {
   }
 
   #args(tool: string, utterance: string, order: Order): Record<string, string> {
+    if (tool === "set_courier_note") {
+      return { instructions: parseInstructions(utterance) };
+    }
     if (tool !== "reschedule_delivery") return {};
-    const date = resolveDate(utterance, this.#today());
+    const date = resolveDate(utterance, this.#today(), order.deliveryDate);
     return { deliveryDate: date ?? order.deliveryDate };
   }
 
   /** The demo has one active order per customer, so "my delivery" is unambiguous. */
-  #targetOrder(customerId: string): Order | null {
+  #targetOrder(customerId: string, tool: string | null): Order | null {
     const orders = this.#orders.forCustomer(customerId);
+    if (tool === "start_return" || tool === "issue_refund") {
+      return orders.find(({ status }) => status === "DELIVERED") ?? orders[0] ?? null;
+    }
     return orders.find(({ status }) => status !== "DELIVERED") ?? orders[0] ?? null;
   }
+}
+
+function greet(order: Order | null): string {
+  if (order === null) {
+    return "Hi! I can help with deliveries, tracking, returns or refunds. What do you need?";
+  }
+  return `Hi — I have ${order.summary} on the way (${order.id}), arriving ${order.deliveryDate}. I can move the date, add a delivery note, track the parcel, or help with a return.`;
 }
 
 const SMALL_TALK =

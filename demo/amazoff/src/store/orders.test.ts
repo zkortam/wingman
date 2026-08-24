@@ -85,4 +85,13 @@ describe("limits that keep the mock honest", () => {
     if (snapshot) snapshot.status = "DELIVERED";
     expect(orders.get("AMZ-4417")?.status).toBe("IN_TRANSIT");
   });
+
+  it("adds a delivery note only while the order is on the way", () => {
+    const orders = book();
+    expect(orders.setInstructions("AMZ-4417", "leave at the door")).toMatchObject({
+      instructions: "leave at the door",
+    });
+    orders.cancel("AMZ-4417");
+    expect(() => orders.setInstructions("AMZ-4417", "porch")).toThrow(OrderError);
+  });
 });

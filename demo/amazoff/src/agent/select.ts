@@ -89,6 +89,18 @@ export function selectTool(
 }
 
 /**
+ * Rules are policy. A model that "helpfully" picks the well-named tool would make the
+ * first demo turn succeed, and there would be nothing for Wingman to catch.
+ */
+export function resolveSelection(
+  modeled: ToolSelection | null,
+  configured: ToolSelection | null,
+): ToolSelection | null {
+  if (configured?.reason === "RULE") return configured;
+  return modeled ?? configured;
+}
+
+/**
  * A rule applies when its trigger describes what the customer just asked for.
  *
  * Rules read as "when <situation>, <do this>", so relevance is measured against the

@@ -11,6 +11,18 @@ export const AMAZOFF_TOOLS: AgentConfig["tools"] = {
   get_order: {
     description: "Look up one of the customer's orders by id or by recency.",
   },
+  track_package: {
+    description:
+      "Where is the package or order right now. Tracking number, carrier, last scan, parcel location.",
+  },
+  set_courier_note: {
+    description:
+      "Leave a note for the courier: leave at the door, porch, do not ring the bell, leave with a neighbor.",
+  },
+  speak_to_human: {
+    description:
+      "Connect the customer to a human support associate, representative, supervisor, or person. Talk to a real person for a callback.",
+  },
   reschedule_delivery: {
     description:
       "Change the delivery date on an existing order. Use this when the customer wants their delivery to arrive on a different day.",
@@ -41,7 +53,7 @@ export const AMAZOFF_TOOLS: AgentConfig["tools"] = {
  * rather than being a subtle rewording nobody can evaluate.
  */
 export const CANCEL_AND_REBOOK_RULE =
-  "When a customer asks to change or move a delivery, cancel the order so they can place a new one.";
+  "When a customer asks to change or move a delivery, or wants it to arrive on a different day, cancel the order so they can place a new one.";
 
 export const AMAZOFF_BASE_CONFIG: AgentConfig = {
   systemPrompt:

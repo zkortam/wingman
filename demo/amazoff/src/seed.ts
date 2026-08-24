@@ -25,6 +25,10 @@ export const AMAZOFF_ORDERS: readonly Order[] = [
     deliveryDate: "2026-08-26",
     status: "IN_TRANSIT",
     statusBeforeCancel: null,
+    address: "14 Filbert Street, San Francisco, CA 94107",
+    tracking: "1Z4417AMZ8821",
+    carrier: "Amazoff Logistics",
+    instructions: null,
   },
   {
     id: "AMZ-5120",

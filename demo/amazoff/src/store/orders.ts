@@ -16,6 +16,10 @@ export interface Order {
   status: OrderStatus;
   /** What the order was before it was cancelled, so a cancel can be undone. */
   statusBeforeCancel: OrderStatus | null;
+  address?: string;
+  tracking?: string | null;
+  carrier?: string;
+  instructions?: string | null;
 }
 
 export interface OrderEvent {
@@ -31,7 +35,7 @@ export class OrderBook {
   #clock: () => string;
 
   constructor(seed: readonly Order[] = [], clock: () => string = () => new Date().toISOString()) {
-    for (const order of seed) this.#orders.set(order.id, { ...order });
+    for (const order of seed) this.#orders.set(order.id, hydrate(order));
     this.#clock = clock;
   }
 
@@ -100,6 +104,15 @@ export class OrderBook {
     return { ...order };
   }
 
+  setInstructions(orderId: string, instructions: string): Order {
+    const order = this.#require(orderId);
+    if (order.status === "DELIVERED" || order.status === "CANCELLED")
+      throw new OrderError("Delivery notes can only be added while the order is on the way.");
+    order.instructions = instructions;
+    this.#log(orderId, "set_courier_note", instructions);
+    return { ...order };
+  }
+
   #require(orderId: string): Order {
     const order = this.#orders.get(orderId);
     if (!order) throw new OrderError(`Unknown order: ${orderId}`);
@@ -112,3 +125,13 @@ export class OrderBook {
 }
 
 export class OrderError extends Error {}
+
+function hydrate(order: Order): Order {
+  return {
+    address: "14 Filbert Street, San Francisco, CA 94107",
+    tracking: order.status === "PLACED" ? null : "1Z4417AMZ8821",
+    carrier: "Amazoff Logistics",
+    instructions: null,
+    ...order,
+  };
+}

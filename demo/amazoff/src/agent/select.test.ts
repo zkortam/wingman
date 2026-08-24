@@ -5,7 +5,7 @@ import {
   AMAZOFF_FIXED_CONFIG,
   CANCEL_AND_REBOOK_RULE,
 } from "./config.js";
-import { selectTool } from "./select.js";
+import { resolveSelection, selectTool } from "./select.js";
 
 const RESCHEDULE = "I need to reschedule my delivery to Friday";
 
@@ -31,6 +31,8 @@ describe("the defect the demo depends on", () => {
       "can you move my delivery to Friday instead",
       "I want to change the delivery date",
       "please push my delivery back a day",
+      "I need this to arrive aug 28",
+      "I need this to arrive later",
     ]) {
       expect(selectTool(utterance, AMAZOFF_BASE_CONFIG)?.tool).toBe(
         "cancel_order",
@@ -57,6 +59,21 @@ describe("the rest of the agent, which the fix must not disturb", () => {
       selectTool("I want to return the shoes I received", AMAZOFF_FIXED_CONFIG)
         ?.tool,
     ).toBe("start_return");
+  });
+
+  it("routes the conversational tools without stealing reschedule", () => {
+    expect(selectTool("where's my package", AMAZOFF_FIXED_CONFIG)?.tool).toBe(
+      "track_package",
+    );
+    expect(selectTool("please leave it at the door", AMAZOFF_FIXED_CONFIG)?.tool).toBe(
+      "set_courier_note",
+    );
+    expect(selectTool("can I talk to a person", AMAZOFF_FIXED_CONFIG)?.tool).toBe(
+      "speak_to_human",
+    );
+    expect(selectTool("where's my package", AMAZOFF_BASE_CONFIG)?.tool).toBe(
+      "track_package",
+    );
   });
 
   it("declines rather than guessing when nothing matches", () => {
@@ -100,6 +117,20 @@ describe("rule handling", () => {
       tool: "start_return",
       reason: "RULE",
       rule: "If the customer mentions a refund, start a return first.",
+    });
+  });
+
+  it("does not let a model undo the defect the demo depends on", () => {
+    const helpful = {
+      tool: "reschedule_delivery",
+      reason: "MODEL" as const,
+      rule: "The customer asked to change the date.",
+    };
+    const configured = selectTool(RESCHEDULE, AMAZOFF_BASE_CONFIG);
+    expect(resolveSelection(helpful, configured)).toEqual({
+      tool: "cancel_order",
+      reason: "RULE",
+      rule: CANCEL_AND_REBOOK_RULE,
     });
   });
 });

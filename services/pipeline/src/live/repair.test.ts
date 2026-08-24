@@ -30,7 +30,7 @@ describe("the live repair", () => {
   it("prepends a corrective rule so it wins on precedence", () => {
     const repaired = repairForExpectation(CONFIG, expectation());
     expect(repaired?.rules[0]).toBe(
-      'When a customer says "I need to reschedule my delivery to Friday", use reschedule_delivery.',
+      "Correction: When a customer wants a different delivery date, or to change, move, or reschedule a delivery, use reschedule_delivery.",
     );
   });
 
@@ -89,7 +89,7 @@ describe("what it refuses to repair", () => {
     const crowded: AgentConfig = {
       ...CONFIG,
       rules: Array.from({ length: MAX_CORRECTIVE_RULES }, (_, index) =>
-        correctiveRule(`ask number ${String(index)}`, "reschedule_delivery"),
+        `Correction: dummy ${String(index)} use reschedule_delivery.`,
       ),
     };
     expect(repairForExpectation(crowded, expectation())).toBeNull();
