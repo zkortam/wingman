@@ -1,0 +1,70 @@
+import { z } from "zod";
+
+import { SignalKindSchema } from "./enums.js";
+import { JsonObjectSchema, JsonValueSchema } from "./json.js";
+
+export const ToolCallSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    args: JsonObjectSchema,
+  })
+  .strict();
+export type ToolCall = z.infer<typeof ToolCallSchema>;
+
+export const TurnSchema = z
+  .object({
+    idx: z.number().int().nonnegative(),
+    role: z.enum(["user", "assistant", "tool"]),
+    textRedacted: z.string().nullable(),
+    toolCalls: z.array(ToolCallSchema),
+    createdAt: z.string().datetime(),
+  })
+  .strict();
+export type Turn = z.infer<typeof TurnSchema>;
+
+export const RedactionProofSchema = z
+  .object({
+    mode: z.literal("allowlist"),
+    fields: z.array(z.string().min(1)),
+    piiScrubbed: z.literal(true),
+    userIdHashed: z.literal(true),
+  })
+  .strict();
+export type RedactionProof = z.infer<typeof RedactionProofSchema>;
+
+export const SessionInputSchema = z
+  .object({
+    id: z.string().uuid(),
+    orgId: z.string().uuid(),
+    agentId: z.string().uuid(),
+    userHash: z.string().regex(/^[a-f0-9]{32}$/),
+    personaId: z.string().nullable().optional(),
+    configVersionId: z.string().uuid().nullable().optional(),
+    viewFilters: JsonValueSchema.optional(),
+    selectedIds: z.array(z.string()).optional(),
+    dateRange: JsonValueSchema.optional(),
+    lastQuery: z.string().optional(),
+    userRules: z.array(z.string()).optional(),
+    generationCancelled: z.boolean().optional(),
+    startedAt: z.string().datetime(),
+    endedAt: z.string().datetime().nullable().optional(),
+    turns: z.array(TurnSchema).min(1),
+    redaction: RedactionProofSchema,
+  })
+  .strict();
+export type SessionInput = z.infer<typeof SessionInputSchema>;
+
+export const SignalSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    sessionId: z.string().uuid(),
+    turnIdx: z.number().int().nonnegative(),
+    kind: SignalKindSchema,
+    confidence: z.number().min(0).max(1),
+    baseline: z.number().min(0).max(1).nullable(),
+    evidence: JsonObjectSchema,
+    detectedAt: z.string().datetime().optional(),
+  })
+  .strict();
+export type Signal = z.infer<typeof SignalSchema>;
