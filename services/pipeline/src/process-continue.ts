@@ -36,7 +36,6 @@ export type ContinueInput = {
 export async function continueFromClassified(
   input: ContinueInput,
 ): Promise<IncidentRecord> {
-  const base = await input.configStore.base(input.incident.agentId);
   if (input.incident.verdict === "VARIANCE") {
     return input.repository.updateIncident(input.incident.id, "CLASSIFIED", {
       state: "DISCARDED",
@@ -49,20 +48,27 @@ export async function continueFromClassified(
       stateReason: "UNSUPPORTED_CAPABILITY",
     });
   }
-  return assertAndVerify(input, base);
+  return assertAndVerify(input, await liveConfig(input));
 }
 
 export async function continueFromAsserted(
   input: ContinueInput,
 ): Promise<IncidentRecord> {
-  const base = await input.configStore.base(input.incident.agentId);
+  const live = await liveConfig(input);
   if (input.incident.assertionId === null) {
-    return assertAndVerify(input, base);
+    return assertAndVerify(input, live);
   }
   const assertion = await input.repository.getAssertion(
     input.incident.assertionId,
   );
-  return verifyAndFix(input, base, assertion);
+  return verifyAndFix(input, live, assertion);
+}
+
+async function liveConfig(input: ContinueInput): Promise<AgentConfig> {
+  return input.configStore.resolve(
+    input.incident.agentId,
+    input.session.userHash,
+  );
 }
 
 async function assertAndVerify(

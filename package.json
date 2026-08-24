@@ -25,6 +25,7 @@
     "test": "vitest run --config vitest.config.ts",
     "test:pipeline": "vitest run --config vitest.config.ts --project pipeline --project pipeline-fixtures",
     "package:check": "node scripts/check-sdk-package.ts",
+    "bootstrap-config": "pnpm --filter @wingman/schema build && node scripts/bootstrap-config.ts",
     "dev": "pnpm --filter @wingman/web dev",
     "demo:reset": "node fixtures/src/reset.ts",
     "demo:up": "node scripts/demo-up.ts",

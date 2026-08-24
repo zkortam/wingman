@@ -136,7 +136,8 @@ class DemoRuntime {
   confirm(id: string): void {
     this.#mutate((state) => {
       const incident = state.incidents[id]
-      if (!incident || incident.state !== 'APPLIED') throw new Error('Incident is not awaiting confirmation')
+      if (!incident) throw new Error('Incident not found')
+      if (incident.state !== 'APPLIED') throw new Error('Incident is not awaiting confirmation')
       incident.state = 'CONFIRMED'
       incident.confirmedAt = new Date().toISOString()
       incident.confirmation = { status: 'CONFIRMED', detail: 'Confirmed by the next matching task, just now' }

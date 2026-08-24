@@ -53,6 +53,57 @@ describe("applyVerifiedCandidate", () => {
     );
   });
 
+  it("applies globally without leaving the control user on the old config", async () => {
+    const { database, repository, configStore, events, ledger } = harness();
+    const ids = seedVerified(database, configStore);
+    const globalIncident = database.incidents.get(ids.incidentId);
+    if (!globalIncident) throw new Error("missing incident");
+    globalIncident.userHashes = [USER, "c".repeat(32)];
+    await applyVerifiedCandidate({
+      repository,
+      configStore,
+      events,
+      ledger,
+      incidentId: ids.incidentId,
+      scope: "GLOBAL",
+    });
+    expect((await configStore.resolve(AGENT, USER)).systemPrompt).toBe("FIXED");
+    expect((await configStore.resolve(AGENT, "c".repeat(32))).systemPrompt).toBe(
+      "FIXED",
+    );
+  });
+
+  it("applies a later candidate onto the live override, not the compiled base", async () => {
+    const { database, repository, configStore, events, ledger } = harness();
+    const first = seedVerified(database, configStore);
+    await applyVerifiedCandidate({
+      repository,
+      configStore,
+      events,
+      ledger,
+      incidentId: first.incidentId,
+      scope: "USER",
+    });
+    const second = seedVerified(database, configStore, {
+      before: "FIXED",
+      after: "FIXED-AGAIN",
+    });
+    await applyVerifiedCandidate({
+      repository,
+      configStore,
+      events,
+      ledger,
+      incidentId: second.incidentId,
+      scope: "USER",
+    });
+    expect((await configStore.resolve(AGENT, USER)).systemPrompt).toBe(
+      "FIXED-AGAIN",
+    );
+    expect((await configStore.resolve(AGENT, "c".repeat(32))).systemPrompt).toBe(
+      "BROKEN",
+    );
+  });
+
   it("is idempotent once an outcome exists", async () => {
     const { database, repository, configStore, events, ledger } = harness();
     const ids = seedVerified(database, configStore);
@@ -115,13 +166,16 @@ function seedOpen(database: ReplayDatabase, id: string): void {
 function seedVerified(
   database: ReplayDatabase,
   configStore: StubConfigStore,
+  change: { before: string; after: string } = { before: "BROKEN", after: "FIXED" },
 ): { incidentId: string } {
-  const baseVersionId = configStore.seed(AGENT, {
-    systemPrompt: "BROKEN",
-    tools: {},
-    retrieval: {},
-    rules: [],
-  });
+  const baseVersionId =
+    database.baseVersionIds.get(AGENT) ??
+    configStore.seed(AGENT, {
+      systemPrompt: "BROKEN",
+      tools: {},
+      retrieval: {},
+      rules: [],
+    });
   const assertionId = randomUUID();
   const incidentId = randomUUID();
   const candidateId = randomUUID();
@@ -170,7 +224,7 @@ function seedVerified(
     id: candidateId,
     incidentId,
     diff: {
-      changes: [{ path: "systemPrompt", before: "BROKEN", after: "FIXED" }],
+      changes: [{ path: "systemPrompt", before: change.before, after: change.after }],
     },
     diffBytes: 20,
     baseVersionId,

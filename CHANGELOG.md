@@ -8,6 +8,28 @@ and the public packages follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## 0.1.2 — 2026-08-24
+
+### Fixed
+
+- Published SDK JavaScript imports `@zkortam/wingman-schema` instead of the
+  workspace name `@wingman/schema`, so a clean `npm install` can resolve.
+
+## 0.1.1 — 2026-08-24
+
+### Fixed
+
+- npm packages export `dist` instead of missing `src`, so
+  `import { Wingman } from "@zkortam/wingman-sdk"` resolves.
+- HTTP is allowed on IPv6 loopback (`::1`) for local agent development.
+- Invalid MCP `tools/call` arguments fail the envelope instead of fail-opening.
+
+### Added
+
+- Undeclared tools escalate with `source: POLICY` before any network call.
+- `hashUserId` is re-exported from the SDK.
+- `orgId` and `defaultAgent` must be UUIDs.
+
 ## 0.1.0 — 2026-08-24
 
 First public release, published as `@zkortam/wingman-schema` and

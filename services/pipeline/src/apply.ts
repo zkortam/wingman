@@ -43,13 +43,16 @@ export async function applyVerifiedCandidate(input: {
     throw new Error("Incident does not have a verified candidate");
   }
   assertProof(snapshot);
-  const base = await input.configStore.base(snapshot.incident.agentId);
+  const appliedTo = await applyTargets(input.repository, snapshot, input.scope);
+  const live = await input.configStore.resolve(
+    snapshot.incident.agentId,
+    input.scope === "GLOBAL" ? "" : requiredHash(appliedTo),
+  );
   await input.configStore.assertWritable(
     snapshot.incident.agentId,
     snapshot.candidate.diff,
   );
-  const config = applyDiff(base, snapshot.candidate.diff);
-  const appliedTo = await applyTargets(input.repository, snapshot, input.scope);
+  const config = applyDiff(live, snapshot.candidate.diff);
   const version = snapshot.candidate.newVersionId
     ? {
         id: snapshot.candidate.newVersionId,
@@ -147,4 +150,10 @@ function assertProof(
   if (snapshot.positiveSuite.some(({ passCount, n }) => passCount !== n)) {
     throw new StageError("apply", "SUITE_REGRESSED", false);
   }
+}
+
+function requiredHash(appliedTo: string[]): string {
+  const hash = appliedTo[0];
+  if (hash === undefined) throw new Error("USER apply requires a target user");
+  return hash;
 }

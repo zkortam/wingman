@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createProductionPipelineControlPlane, createProductionPipelineFunctions } from './production'
+import { createProductionPipelineControlPlane, createProductionPipelineFunctions, createProductionPipelineMaintenance } from './production'
 
 describe('production pipeline control plane', () => {
   afterEach(() => vi.unstubAllEnvs())
@@ -20,5 +20,6 @@ describe('production pipeline control plane', () => {
     vi.stubEnv('WINGMAN_RUNNER_ENDPOINT', '')
     vi.stubEnv('WINGMAN_RUNNER_TOKEN', '')
     expect(() => createProductionPipelineFunctions()).toThrow('WINGMAN_RUNNER_ENDPOINT')
+    expect(() => createProductionPipelineMaintenance()).not.toThrow()
   })
 })

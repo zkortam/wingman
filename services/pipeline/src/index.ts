@@ -53,6 +53,7 @@ export { PIPELINE_MODELS, PIPELINE_POLICY } from "./policy.js";
 export {
   createProductionPipelineControlPlane,
   createProductionPipelineFunctions,
+  createProductionPipelineMaintenance,
 } from './production.js'
 export { createPipelineReader } from "./reader.js";
 export type { PipelineRepository } from "./repository.js";

@@ -43,9 +43,11 @@ export const isMcpToolsCallRequest = (value: unknown): value is McpToolsCallRequ
   if (request.jsonrpc !== '2.0') return false
   if (typeof request.id !== 'string' && typeof request.id !== 'number') return false
   if (request.method !== 'tools/call') return false
-  if (!request.params || typeof request.params !== 'object') return false
+  if (!request.params || typeof request.params !== 'object' || Array.isArray(request.params)) return false
   const params = request.params as Record<string, unknown>
-  return typeof params.name === 'string' && params.name.length > 0
+  if (typeof params.name !== 'string' || params.name.length === 0) return false
+  if (params.arguments === undefined) return true
+  return Boolean(params.arguments) && typeof params.arguments === 'object' && !Array.isArray(params.arguments)
 }
 
 export type LocalToolCallReviewer = (
@@ -63,6 +65,7 @@ interface ToolReviewClientOptions {
   apiKey: string;
   orgSalt: string;
   defaultAgent: string;
+  declaredTools: string[];
   scrubber: PiiScrubber;
   fetcher?: typeof fetch;
   review?: ToolReviewOptions;
@@ -90,6 +93,15 @@ export class ToolReviewClient {
   }
 
   async review(input: ReviewToolCallInput): Promise<ToolCallReviewDecision> {
+    if (!this.#options.declaredTools.includes(input.proposedCall.name)) {
+      return {
+        action: "ESCALATE",
+        reason: "The proposed tool is absent from the agent's declared configuration.",
+        instruction: "Do not execute this call until the tool is explicitly configured.",
+        confidence: 1,
+        source: "POLICY",
+      };
+    }
     try {
       const request = await this.#request(input);
       if (request === null) return this.#fallback("Review input was invalid.");
