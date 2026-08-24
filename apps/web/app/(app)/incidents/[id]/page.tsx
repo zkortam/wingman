@@ -21,10 +21,12 @@ export default async function IncidentPage({ params }: { params: Promise<{ id: s
   }
   if (!incident) notFound()
   const index = incidents.findIndex((item) => item.id === id)
-  return <IncidentProof
-    {...identity}
-    initialIncident={incident}
-    nextId={incidents[index + 1]?.id}
-    previousId={incidents[index - 1]?.id}
-  />
+  return (
+    <IncidentProof
+      {...identity}
+      initialIncident={incident}
+      nextId={incidents[index + 1]?.id}
+      previousId={incidents[index - 1]?.id}
+    />
+  )
 }

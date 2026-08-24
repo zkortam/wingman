@@ -1,17 +1,10 @@
-import { createHash } from "node:crypto";
-import { z } from "zod";
+import { createHash } from 'node:crypto'
+import { z } from 'zod'
 
-import { CapabilityStateSchema } from "./enums.js";
+import { CapabilityStateSchema } from './enums.js'
+import { IsoDateTimeSchema } from './time.js'
 
-/**
- * Demand for something the agent cannot do.
- *
- * This is the lane with no repair. The agent was never given the tool, so there is no
- * defect and no fix — inventing one would be worse than doing nothing. What is useful
- * is the count: one user asking for international shipping is an anecdote, forty are a
- * roadmap item, and the customer currently has no way to see the difference because
- * these requests die inside individual conversations.
- */
+/** Demand for something the agent cannot do. */
 export const CapabilityRequestSchema = z
   .object({
     id: z.string().uuid(),
@@ -27,38 +20,23 @@ export const CapabilityRequestSchema = z
     sessionIds: z.array(z.string().uuid()),
     evidenceExcerpts: z.array(z.string()),
     state: CapabilityStateSchema,
-    firstSeen: z.string().datetime(),
-    lastSeen: z.string().datetime(),
+    firstSeen: IsoDateTimeSchema,
+    lastSeen: IsoDateTimeSchema,
   })
-  .strict();
-export type CapabilityRequest = z.infer<typeof CapabilityRequestSchema>;
+  .strict()
+export type CapabilityRequest = z.infer<typeof CapabilityRequestSchema>
 
-/**
- * Distinct users, not distinct requests — one frustrated user asking six times is one
- * unit of demand, and counting attempts instead would let a single loop outrank a
- * genuinely popular gap.
- */
+/** Distinct users, not distinct requests — one frustrated user asking six times is one unit of. */
 export function capabilityDemand(request: CapabilityRequest): number {
-  return new Set(request.userHashes).size;
+  return new Set(request.userHashes).size
 }
 
-/**
- * Buckets a gap so the same missing capability collides across users.
- *
- * Keyed on the agent and the implied tool rather than on the user's wording, because
- * "ship to Malaysia", "can you post this to KL", and "international delivery?" are one
- * product gap and must not become three roadmap items. When no tool can be named the
- * normalized phrase is the fallback, which buckets less reliably but still beats
- * treating every utterance as unique.
- */
+/** Buckets a gap so the same missing capability collides across users. */
 export function capabilityKey(input: {
-  agentId: string;
-  impliedTool: string | null;
-  phrase: string;
+  agentId: string
+  impliedTool: string | null
+  phrase: string
 }): string {
-  const discriminator =
-    input.impliedTool ?? input.phrase.trim().toLowerCase().replace(/\s+/g, " ");
-  return createHash("sha256")
-    .update([input.agentId, discriminator].join("|"))
-    .digest("hex");
+  const discriminator = input.impliedTool ?? input.phrase.trim().toLowerCase().replace(/\s+/g, ' ')
+  return createHash('sha256').update([input.agentId, discriminator].join('|')).digest('hex')
 }

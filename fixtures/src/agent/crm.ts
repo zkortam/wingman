@@ -19,8 +19,23 @@ const accounts = [
   'Calder Medical',
 ]
 
-const owners = ['Amina Yusuf', 'Ben Carter', 'Clara Reyes', 'Dev Patel', 'Elena Park', 'Finn Lewis', 'Gia Chen', 'Hugo Silva']
-const stages: Opportunity['stage'][] = ['Discovery', 'Qualified', 'Negotiation', 'Closed Won', 'Closed Lost']
+const owners = [
+  'Amina Yusuf',
+  'Ben Carter',
+  'Clara Reyes',
+  'Dev Patel',
+  'Elena Park',
+  'Finn Lewis',
+  'Gia Chen',
+  'Hugo Silva',
+]
+const stages: Opportunity['stage'][] = [
+  'Discovery',
+  'Qualified',
+  'Negotiation',
+  'Closed Won',
+  'Closed Lost',
+]
 
 const seededOpportunities = (): Opportunity[] =>
   Array.from({ length: 50 }, (_, index) => ({
@@ -47,7 +62,9 @@ export class InMemoryCrm {
 
   search(filters: Record<string, unknown> = {}): Opportunity[] {
     return this.#opportunities.filter((opportunity) =>
-      Object.entries(filters).every(([field, value]) => opportunity[field as keyof Opportunity] === value),
+      Object.entries(filters).every(
+        ([field, value]) => opportunity[field as keyof Opportunity] === value,
+      ),
     )
   }
 

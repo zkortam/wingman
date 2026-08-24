@@ -1,15 +1,11 @@
-import { z } from "zod";
+import { z } from 'zod'
 
-import { AssertionDefinitionSchema } from "./assertion.js";
-import { AgentConfigSchema, ConfigDiffSchema } from "./config.js";
-import {
-  IncidentStateSchema,
-  OutcomeStatusSchema,
-  ScopeSchema,
-  VerdictSchema,
-} from "./enums.js";
-import { JsonObjectSchema } from "./json.js";
-import { ToolCallSchema } from "./session.js";
+import { AssertionDefinitionSchema } from './assertion.js'
+import { AgentConfigSchema, ConfigDiffSchema } from './config.js'
+import { IncidentStateSchema, OutcomeStatusSchema, ScopeSchema, VerdictSchema } from './enums.js'
+import { JsonObjectSchema } from './json.js'
+import { ToolCallSchema } from './session.js'
+import { IsoDateTimeSchema } from './time.js'
 
 export const ConfigVersionSchema = z
   .object({
@@ -19,11 +15,11 @@ export const ConfigVersionSchema = z
     config: AgentConfigSchema,
     incidentId: z.string().uuid().nullable(),
     signature: z.string().min(1),
-    createdBy: z.enum(["BASE", "PIPELINE", "HUMAN"]),
-    createdAt: z.string().datetime(),
+    createdBy: z.enum(['BASE', 'PIPELINE', 'HUMAN']),
+    createdAt: IsoDateTimeSchema,
   })
-  .strict();
-export type ConfigVersion = z.infer<typeof ConfigVersionSchema>;
+  .strict()
+export type ConfigVersion = z.infer<typeof ConfigVersionSchema>
 
 export const AssertionSchema = z
   .object({
@@ -33,11 +29,11 @@ export const AssertionSchema = z
     definition: AssertionDefinitionSchema,
     identity: z.string().length(64),
     sourceSessionId: z.string().uuid().nullable(),
-    polarity: z.enum(["positive", "negative"]),
-    createdAt: z.string().datetime(),
+    polarity: z.enum(['positive', 'negative']),
+    createdAt: IsoDateTimeSchema,
   })
-  .strict();
-export type Assertion = z.infer<typeof AssertionSchema>;
+  .strict()
+export type Assertion = z.infer<typeof AssertionSchema>
 
 export const RunResultSchema = z
   .object({
@@ -46,15 +42,15 @@ export const RunResultSchema = z
     text: z.string().nullable(),
     cassetteKey: z.string().min(1),
   })
-  .strict();
-export type RunResult = z.infer<typeof RunResultSchema>;
+  .strict()
+export type RunResult = z.infer<typeof RunResultSchema>
 
 export const RunSchema = z
   .object({
     id: z.string().uuid(),
     assertionId: z.string().uuid(),
     incidentId: z.string().uuid().nullable(),
-    phase: z.enum(["VERIFY_FAIL", "VERIFY_PASS", "POSITIVE_SUITE"]),
+    phase: z.enum(['VERIFY_FAIL', 'VERIFY_PASS', 'POSITIVE_SUITE']),
     attempt: z.number().int().positive(),
     configVersionId: z.string().uuid().nullable(),
     candidateId: z.string().uuid().nullable(),
@@ -62,10 +58,10 @@ export const RunSchema = z
     passCount: z.number().int().nonnegative(),
     results: z.array(RunResultSchema),
     toolExecutions: z.literal(0),
-    createdAt: z.string().datetime(),
+    createdAt: IsoDateTimeSchema,
   })
-  .strict();
-export type Run = z.infer<typeof RunSchema>;
+  .strict()
+export type Run = z.infer<typeof RunSchema>
 
 export const CandidateSchema = z
   .object({
@@ -77,12 +73,12 @@ export const CandidateSchema = z
     newVersionId: z.string().uuid().nullable(),
     attempt: z.number().int().positive(),
     iteration: z.number().int().min(1).max(3),
-    state: z.enum(["PROPOSED", "VERIFIED", "REJECTED", "APPLIED"]),
+    state: z.enum(['PROPOSED', 'VERIFIED', 'REJECTED', 'APPLIED']),
     rejectedReason: z.string().nullable(),
-    createdAt: z.string().datetime(),
+    createdAt: IsoDateTimeSchema,
   })
-  .strict();
-export type Candidate = z.infer<typeof CandidateSchema>;
+  .strict()
+export type Candidate = z.infer<typeof CandidateSchema>
 
 export const OutcomeSchema = z
   .object({
@@ -93,13 +89,13 @@ export const OutcomeSchema = z
     appliedTo: z.array(z.string()),
     appliedVersionId: z.string().uuid(),
     status: OutcomeStatusSchema,
-    windowEndsAt: z.string().datetime(),
-    confirmedAt: z.string().datetime().nullable(),
-    revertedAt: z.string().datetime().nullable(),
-    createdAt: z.string().datetime(),
+    windowEndsAt: IsoDateTimeSchema,
+    confirmedAt: IsoDateTimeSchema.nullable(),
+    revertedAt: IsoDateTimeSchema.nullable(),
+    createdAt: IsoDateTimeSchema,
   })
-  .strict();
-export type Outcome = z.infer<typeof OutcomeSchema>;
+  .strict()
+export type Outcome = z.infer<typeof OutcomeSchema>
 
 export const EvidenceExcerptSchema = z
   .object({
@@ -108,14 +104,10 @@ export const EvidenceExcerptSchema = z
     kind: z.string(),
     confidence: z.number().min(0).max(1),
     baseline: z.number().min(0).max(1).nullable(),
-    turns: z.array(
-      z
-        .object({ role: z.string(), textRedacted: z.string().nullable() })
-        .strict(),
-    ),
+    turns: z.array(z.object({ role: z.string(), textRedacted: z.string().nullable() }).strict()),
   })
-  .strict();
-export type EvidenceExcerpt = z.infer<typeof EvidenceExcerptSchema>;
+  .strict()
+export type EvidenceExcerpt = z.infer<typeof EvidenceExcerptSchema>
 
 export const IncidentSummarySchema = z
   .object({
@@ -123,14 +115,14 @@ export const IncidentSummarySchema = z
     title: z.string(),
     affectedUsers: z.number().int().nonnegative(),
     sessionCount: z.number().int().nonnegative(),
-    firstSeen: z.string().datetime(),
-    lastSeen: z.string().datetime(),
+    firstSeen: IsoDateTimeSchema,
+    lastSeen: IsoDateTimeSchema,
     state: IncidentStateSchema,
     stateReason: z.string().nullable(),
     verdict: VerdictSchema.nullable(),
   })
-  .strict();
-export type IncidentSummary = z.infer<typeof IncidentSummarySchema>;
+  .strict()
+export type IncidentSummary = z.infer<typeof IncidentSummarySchema>
 
 export const HandoffPayloadSchema = z
   .object({
@@ -148,8 +140,8 @@ export const HandoffPayloadSchema = z
       .object({ maxIterations: z.literal(5), requireTestPass: z.literal(true) })
       .strict(),
   })
-  .strict();
-export type HandoffPayload = z.infer<typeof HandoffPayloadSchema>;
+  .strict()
+export type HandoffPayload = z.infer<typeof HandoffPayloadSchema>
 
 export const IncidentDetailSchema = IncidentSummarySchema.extend({
   attempt: z.number().int().positive(),
@@ -163,5 +155,5 @@ export const IncidentDetailSchema = IncidentSummarySchema.extend({
   positiveSuite: z.array(RunSchema),
   outcome: OutcomeSchema.nullable(),
   handoff: HandoffPayloadSchema.nullable(),
-}).strict();
-export type IncidentDetail = z.infer<typeof IncidentDetailSchema>;
+}).strict()
+export type IncidentDetail = z.infer<typeof IncidentDetailSchema>

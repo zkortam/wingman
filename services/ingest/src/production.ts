@@ -1,10 +1,10 @@
-import { createServiceClient } from '@wingman/db'
+import { createDatabase } from '@wingman/db'
 import type { EventName, EventPublisher, EventSchedule, Events } from '@wingman/schema'
 import { Inngest } from 'inngest'
 
 import { createIngestService, type IngestService } from './service.js'
 import { OpenAIEmbeddingClient } from './openai.js'
-import { createSupabaseIngestStore } from './write.js'
+import { createPostgresIngestStore } from './write.js'
 
 export class InngestEventPublisher implements EventPublisher {
   readonly #client: Inngest
@@ -29,14 +29,16 @@ export class InngestEventPublisher implements EventPublisher {
   }
 }
 
-export const createProductionIngestService = (input: {
-  openAiApiKey?: string
-  inngestEventKey?: string
-} = {}): IngestService => {
+export const createProductionIngestService = (
+  input: {
+    openAiApiKey?: string
+    inngestEventKey?: string
+  } = {},
+): IngestService => {
   const openAiApiKey = input.openAiApiKey ?? process.env.OPENAI_API_KEY ?? ''
   const inngestEventKey = input.inngestEventKey ?? process.env.INNGEST_EVENT_KEY ?? ''
   return createIngestService({
-    store: createSupabaseIngestStore(createServiceClient()),
+    store: createPostgresIngestStore(createDatabase()),
     embeddings: new OpenAIEmbeddingClient({ apiKey: openAiApiKey }),
     events: new InngestEventPublisher(inngestEventKey),
   })

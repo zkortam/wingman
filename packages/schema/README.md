@@ -12,7 +12,7 @@ import {
   AgentConfigSchema,
   ToolCallReviewDecisionSchema,
   ToolCallReviewRequestSchema,
-} from "@zkortam/wingman-schema";
+} from '@zkortam/wingman-schema'
 ```
 
 Port implementations (control-plane services, not agent hosts) can import

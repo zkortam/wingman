@@ -1,8 +1,18 @@
-import type { AssertionDefinition, IncidentDetail, IncidentSummary, JsonValue } from '@wingman/schema'
+import type {
+  AssertionDefinition,
+  IncidentDetail,
+  IncidentSummary,
+  JsonValue,
+} from '@wingman/schema'
 
 import type { IncidentDetailView, IncidentSummaryView, SignalKind } from '../domain/incidents'
 
-const SIGNALS = new Set<SignalKind>(['RETRY_REQUEST', 'RESTATED_CONSTRAINT', 'ABANDON_RESTART', 'PREFERENCE_STATED'])
+const SIGNALS = new Set<SignalKind>([
+  'RETRY_REQUEST',
+  'RESTATED_CONSTRAINT',
+  'ABANDON_RESTART',
+  'PREFERENCE_STATED',
+])
 
 export const presentIncidentSummary = (incident: IncidentSummary): IncidentSummaryView => ({
   id: incident.id,
@@ -19,16 +29,25 @@ export const presentIncident = (incident: IncidentDetail): IncidentDetailView =>
     sessions: incident.sessionCount,
     evidence: incident.evidence.flatMap((item) => {
       if (!SIGNALS.has(item.kind as SignalKind)) return []
-      return [{
-        id: item.sessionId,
-        signal: item.kind as SignalKind,
-        confidence: item.confidence,
-        baseline: item.baseline ?? 0,
-        turns: item.turns.flatMap((turn) => {
-          if ((turn.role !== 'user' && turn.role !== 'assistant') || turn.textRedacted === null) return []
-          return [{ role: turn.role, text: turn.textRedacted, signaled: turn.role === 'user' && item.turnIdx > 0 }]
-        }),
-      }]
+      return [
+        {
+          id: item.sessionId,
+          signal: item.kind as SignalKind,
+          confidence: item.confidence,
+          baseline: item.baseline ?? 0,
+          turns: item.turns.flatMap((turn) => {
+            if ((turn.role !== 'user' && turn.role !== 'assistant') || turn.textRedacted === null)
+              return []
+            return [
+              {
+                role: turn.role,
+                text: turn.textRedacted,
+                signaled: turn.role === 'user' && item.turnIdx > 0,
+              },
+            ]
+          }),
+        },
+      ]
     }),
   }
   if (incident.stateReason !== null) view.stateReason = incident.stateReason
@@ -46,7 +65,8 @@ export const presentIncident = (incident: IncidentDetail): IncidentDetailView =>
       params: structuredClone(incident.assertion.definition),
     }
   }
-  if (incident.before !== null) view.before = { n: incident.before.n, passCount: incident.before.passCount }
+  if (incident.before !== null)
+    view.before = { n: incident.before.n, passCount: incident.before.passCount }
   if (incident.candidate !== null) {
     view.change = {
       path: incident.candidate.diff.changes.map(({ path }) => path).join(', '),
@@ -80,7 +100,8 @@ export const presentIncident = (incident: IncidentDetail): IncidentDetailView =>
 
 const assertionExpression = (assertion: AssertionDefinition): string => {
   if (assertion.kind === 'TOOL_CALLED') return `${assertion.tool} called`
-  if (assertion.kind === 'TOOL_ARG_EQUALS') return `${assertion.tool}.${assertion.arg} == ${JSON.stringify(assertion.expected)}`
+  if (assertion.kind === 'TOOL_ARG_EQUALS')
+    return `${assertion.tool}.${assertion.arg} == ${JSON.stringify(assertion.expected)}`
   return `output matches ${assertion.rule}`
 }
 
@@ -97,7 +118,8 @@ const collectStrings = (value: Record<string, JsonValue> | null): string[] => {
 }
 
 const confirmationDetail = (status: string, windowEndsAt: string): string => {
-  if (status === 'PENDING') return `Confirmation window ends ${new Date(windowEndsAt).toLocaleString()}`
+  if (status === 'PENDING')
+    return `Confirmation window ends ${new Date(windowEndsAt).toLocaleString()}`
   if (status === 'CONFIRMED') return 'Confirmed by a subsequent matching session'
   if (status === 'UNOBSERVED') return 'No matching session arrived during the confirmation window'
   if (status === 'REVERTED') return 'The configuration override was reverted'

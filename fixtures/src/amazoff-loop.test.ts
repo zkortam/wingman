@@ -7,17 +7,16 @@ import {
   formExpectation,
   repairForExpectation,
 } from '@wingman/pipeline'
-import { SignalKindSchema, type AgentConfig, type ModelClient, type SignalKind, type Turn } from '@wingman/schema'
+import {
+  SignalKindSchema,
+  type AgentConfig,
+  type ModelClient,
+  type SignalKind,
+  type Turn,
+} from '@wingman/schema'
 import { describe, expect, it } from 'vitest'
 
-/**
- * The demo, end to end, with nothing stubbed between Amazoff and Wingman except the
- * language model. Stevette asks to reschedule, the agent cancels, she pushes back, and
- * Wingman repairs the config in time for the retry to succeed in the same conversation.
- *
- * This exists to stop the demo from being theatre. Every claim it makes on stage is
- * asserted here against the real agent and the real live path.
- */
+/** The demo, end to end, with nothing stubbed between Amazoff and Wingman except the language. */
 const TODAY = '2026-08-23'
 const SESSION_ID = randomUUID()
 const AGENT_ID = randomUUID()
@@ -53,14 +52,11 @@ const turn = (idx: number, role: Turn['role'], text: string | null) => ({
   embedding: null,
 })
 
-/**
- * A fresh agent has seen nothing, so every signal starts from a zero baseline. Built
- * from the enum rather than written out, so adding a signal kind cannot leave a hole
- * here: a missing baseline makes the confidence NaN and silently drops the signal.
- */
-const baselines = Object.fromEntries(
-  SignalKindSchema.options.map((kind) => [kind, 0]),
-) as Record<SignalKind, number>
+/** A fresh agent has seen nothing, so every signal starts from a zero baseline. */
+const baselines = Object.fromEntries(SignalKindSchema.options.map((kind) => [kind, 0])) as Record<
+  SignalKind,
+  number
+>
 
 const session = (turns: ReturnType<typeof turn>[]) => ({
   id: SESSION_ID,
@@ -93,8 +89,7 @@ describe('Stevette asks to reschedule and the agent cancels', () => {
     expect(first.toolCalls[0]?.name).toBe('cancel_order')
     expect(orders.get('AMZ-4417')?.status).toBe('CANCELLED')
 
-    // Wingman is watching but says nothing yet. An unexpected route to a good answer is
-    // normal, and the customer has not complained.
+    // Wingman is watching but says nothing yet.
     const quiet = classifyTurn({
       agentId: AGENT_ID,
       signals: [],

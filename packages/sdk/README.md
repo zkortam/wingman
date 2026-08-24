@@ -8,7 +8,7 @@ configuration, and captures locally redacted session evidence. It never executes
 tool call. The host application keeps the tool boundary and remains authoritative.
 
 ```ts
-import { Wingman } from "@zkortam/wingman-sdk";
+import { Wingman } from '@zkortam/wingman-sdk'
 
 const wingman = Wingman.init({
   endpoint: process.env.WINGMAN_URL!,
@@ -18,9 +18,9 @@ const wingman = Wingman.init({
   signingKey: process.env.WINGMAN_SIGNING_KEY!,
   defaultAgent: process.env.WINGMAN_AGENT_ID!,
   baseConfig,
-  writable: ["rules", "tools.*.description"],
-  redact: { fields: ["turns", "lastQuery"] },
-});
+  writable: ['rules', 'tools.*.description'],
+  redact: { fields: ['turns', 'lastQuery'] },
+})
 
 const review = await wingman.reviewToolCall({
   sessionId,
@@ -35,14 +35,14 @@ const review = await wingman.reviewToolCall({
     createdAt: turn.createdAt,
   })),
   context: { lastQuery: userMessage },
-});
+})
 
-if (review.action === "ALLOW") {
-  await executeInYourHost(proposedCall);
-} else if (review.action === "RETHINK") {
-  await askAgentToReconsider(review.instruction);
+if (review.action === 'ALLOW') {
+  await executeInYourHost(proposedCall)
+} else if (review.action === 'RETHINK') {
+  await askAgentToReconsider(review.instruction)
 } else {
-  await requestHumanApproval(review.reason);
+  await requestHumanApproval(review.reason)
 }
 ```
 
@@ -66,9 +66,11 @@ wingman.observeSession({
   id: sessionId,
   userId,
   startedAt,
-  turns: [{ idx: 0, role: "user", text: userMessage, toolCalls: [], createdAt }],
-});
-await wingman.flush();
+  turns: [
+    { idx: 0, role: 'user', text: userMessage, toolCalls: [], createdAt },
+  ],
+})
+await wingman.flush()
 ```
 
 `orgId` and `defaultAgent` must be UUIDs. Compute operator hashes with
@@ -81,13 +83,13 @@ measured budget such as `config: { timeoutMs: 1000 }`; cached reads remain local
 For fail-before/pass-after verification, expose a private model-only replay route:
 
 ```ts
-import { createAgentReplayHandler } from "@zkortam/wingman-sdk";
+import { createAgentReplayHandler } from '@zkortam/wingman-sdk'
 
 export const POST = createAgentReplayHandler({
   token: process.env.WINGMAN_RUNNER_TOKEN!,
   run: ({ config, messages, context, sample }) =>
     runModelWithoutExecutingTools({ config, messages, context, sample }),
-});
+})
 ```
 
 The callback has no execution hook. It returns proposed tool calls, optional text, and

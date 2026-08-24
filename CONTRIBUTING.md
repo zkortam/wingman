@@ -23,6 +23,19 @@ pnpm --filter @wingman/pipeline test
 pnpm test:pipeline
 ```
 
+Formatting is enforced, so run it before opening a pull request:
+
+```bash
+pnpm format          # apply
+pnpm format:check    # what the gate runs
+```
+
+Coverage thresholds are enforced separately and may only move up:
+
+```bash
+pnpm coverage
+```
+
 Run one file:
 
 ```bash
@@ -54,8 +67,11 @@ Branch from `main`. Use the PR template. Explain:
 2. The failure mode when the model, database, or network is down
 3. The command you ran (`pnpm check` is the product gate)
 
-CI runs `pnpm audit --audit-level high` and `pnpm check` on every pull request
-and on `main`. `main` is protected: no force-push, no deletion, pull requests
+CI runs `pnpm check` on Linux, Windows, and macOS and on Node 22 and 24, plus a
+coverage gate and `pnpm audit --audit-level high`, on every pull request and on
+`main`. The gate is expected to pass on the machine you develop on: it is run on
+every supported platform precisely because two release scripts were once broken
+on Windows without CI noticing. `main` is protected: no force-push, no deletion, pull requests
 only, and the **Product gate** check must pass on a branch that is up to date
 with `main`.
 

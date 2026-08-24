@@ -30,18 +30,20 @@ describe('pipeline presentation adapter', () => {
     const detail: IncidentDetail = {
       ...summary,
       attempt: 1,
-      evidence: [{
-        sessionId: '75618c04-8c63-4b4f-bc67-0260150ae15b',
-        turnIdx: 2,
-        kind: 'RETRY_REQUEST',
-        confidence: 0.81,
-        baseline: 0.12,
-        turns: [
-          { role: 'user', textRedacted: 'Export these records.' },
-          { role: 'tool', textRedacted: null },
-          { role: 'assistant', textRedacted: 'Exported all records.' },
-        ],
-      }],
+      evidence: [
+        {
+          sessionId: '75618c04-8c63-4b4f-bc67-0260150ae15b',
+          turnIdx: 2,
+          kind: 'RETRY_REQUEST',
+          confidence: 0.81,
+          baseline: 0.12,
+          turns: [
+            { role: 'user', textRedacted: 'Export these records.' },
+            { role: 'tool', textRedacted: null },
+            { role: 'assistant', textRedacted: 'Exported all records.' },
+          ],
+        },
+      ],
       verdictConfidence: 0.86,
       verdictEvidence: { reasons: ['Filters were omitted.'] },
       assertion: null,
@@ -56,13 +58,15 @@ describe('pipeline presentation adapter', () => {
       users: 2,
       sessions: 3,
       verdict: { kind: 'CONFIG_DEFECT', confidence: 0.86, evidence: ['Filters were omitted.'] },
-      evidence: [{
-        signal: 'RETRY_REQUEST',
-        turns: [
-          { role: 'user', text: 'Export these records.' },
-          { role: 'assistant', text: 'Exported all records.' },
-        ],
-      }],
+      evidence: [
+        {
+          signal: 'RETRY_REQUEST',
+          turns: [
+            { role: 'user', text: 'Export these records.' },
+            { role: 'assistant', text: 'Exported all records.' },
+          ],
+        },
+      ],
     })
   })
 })

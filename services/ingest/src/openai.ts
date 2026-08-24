@@ -16,35 +16,49 @@ export class OpenAIEmbeddingClient implements EmbeddingClient {
   }
 
   async embed(input: { texts: string[]; dimensions: 1536 }): Promise<number[][]> {
-    if (input.texts.some((text) => text.length === 0)) throw new Error('Embedding inputs must be non-empty')
+    if (input.texts.some((text) => text.length === 0))
+      throw new Error('Embedding inputs must be non-empty')
     if (input.texts.length === 0) return []
     const timeoutMs = this.#options.timeoutMs ?? 10_000
-    const response = await withTimeout((this.#options.fetcher ?? fetch)('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.#options.apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: this.#options.model ?? 'text-embedding-3-small',
-        input: input.texts,
-        dimensions: input.dimensions,
-        encoding_format: 'float',
+    const response = await withTimeout(
+      (this.#options.fetcher ?? fetch)('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.#options.apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.#options.model ?? 'text-embedding-3-small',
+          input: input.texts,
+          dimensions: input.dimensions,
+          encoding_format: 'float',
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
       }),
-      signal: AbortSignal.timeout(timeoutMs),
-    }), timeoutMs)
+      timeoutMs,
+    )
     if (!response.ok) throw new Error(`Embedding transport returned ${String(response.status)}`)
     const payload = await response.json()
-    const data = payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)
-      ? (payload as { data: unknown[] }).data
-      : []
+    const data =
+      payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)
+        ? (payload as { data: unknown[] }).data
+        : []
     const ordered: number[][] = Array(input.texts.length)
     for (const item of data) {
       if (!item || typeof item !== 'object') throw new Error('Embedding response is invalid')
       const { index, embedding } = item as { index?: unknown; embedding?: unknown }
-      if (!Number.isInteger(index) || !Array.isArray(embedding) || embedding.length !== input.dimensions || embedding.some((value) => typeof value !== 'number' || !Number.isFinite(value))) {
+      if (
+        !Number.isInteger(index) ||
+        !Array.isArray(embedding) ||
+        embedding.length !== input.dimensions ||
+        embedding.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+      ) {
         throw new Error('Embedding response is invalid')
       }
       ordered[index as number] = embedding as number[]
     }
-    if (ordered.some((vector) => vector === undefined)) throw new Error('Embedding response is invalid')
+    if (ordered.some((vector) => vector === undefined))
+      throw new Error('Embedding response is invalid')
     return ordered
   }
 }

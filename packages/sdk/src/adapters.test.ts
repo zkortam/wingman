@@ -14,7 +14,10 @@ const config: AgentConfig = {
 describe('createToolMiddleware', () => {
   it('maps LangChain, Vercel AI, and OpenAI Agents shapes onto reviewToolCall', async () => {
     const reviewer = vi.fn(async (request) => {
-      expect(request.proposedCall).toEqual({ name: 'export_records', args: { filters: { stage: 'Negotiation' } } })
+      expect(request.proposedCall).toEqual({
+        name: 'export_records',
+        args: { filters: { stage: 'Negotiation' } },
+      })
       return {
         action: 'ALLOW' as const,
         reason: 'The call matches the request.',
@@ -42,21 +45,27 @@ describe('createToolMiddleware', () => {
       recentTurns: [],
       context: {},
     }
-    await expect(middleware.beforeLangChainTool({
-      ...base,
-      toolName: 'export_records',
-      toolInput: { filters: { stage: 'Negotiation' } },
-    })).resolves.toMatchObject({ action: 'ALLOW' })
-    await expect(middleware.beforeVercelTool({
-      ...base,
-      toolName: 'export_records',
-      args: { filters: { stage: 'Negotiation' } },
-    })).resolves.toMatchObject({ action: 'ALLOW' })
-    await expect(middleware.beforeOpenAIAgentTool({
-      ...base,
-      toolName: 'export_records',
-      arguments: '{"filters":{"stage":"Negotiation"}}',
-    })).resolves.toMatchObject({ action: 'ALLOW' })
+    await expect(
+      middleware.beforeLangChainTool({
+        ...base,
+        toolName: 'export_records',
+        toolInput: { filters: { stage: 'Negotiation' } },
+      }),
+    ).resolves.toMatchObject({ action: 'ALLOW' })
+    await expect(
+      middleware.beforeVercelTool({
+        ...base,
+        toolName: 'export_records',
+        args: { filters: { stage: 'Negotiation' } },
+      }),
+    ).resolves.toMatchObject({ action: 'ALLOW' })
+    await expect(
+      middleware.beforeOpenAIAgentTool({
+        ...base,
+        toolName: 'export_records',
+        arguments: '{"filters":{"stage":"Negotiation"}}',
+      }),
+    ).resolves.toMatchObject({ action: 'ALLOW' })
     expect(reviewer).toHaveBeenCalledTimes(3)
   })
 
@@ -80,16 +89,18 @@ describe('createToolMiddleware', () => {
       recentTurns: [],
       context: {},
     }
-    await middleware.beforeLangChainTool({ ...base, toolName: 'export_records', toolInput: undefined })
+    await middleware.beforeLangChainTool({
+      ...base,
+      toolName: 'export_records',
+      toolInput: undefined,
+    })
     await middleware.beforeVercelTool({ ...base, toolName: 'export_records', args: 'not-json' })
-    await middleware.beforeOpenAIAgentTool({ ...base, toolName: 'export_records', arguments: { filters: [1, 2] } })
+    await middleware.beforeOpenAIAgentTool({
+      ...base,
+      toolName: 'export_records',
+      arguments: { filters: [1, 2] },
+    })
     await middleware.review({ ...base, proposedCall: { name: 'export_records' } })
-    expect(seen).toEqual([
-      {},
-      { value: 'not-json' },
-      { filters: [1, 2] },
-      {},
-    ])
+    expect(seen).toEqual([{}, { value: 'not-json' }, { filters: [1, 2] }, {}])
   })
 })
-

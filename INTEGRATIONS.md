@@ -17,12 +17,12 @@ The agent itself does not receive database or pipeline credentials. Its host ins
 `@zkortam/wingman-sdk` (`npm install @zkortam/wingman-sdk`) and owns four explicit
 boundaries:
 
-| Host boundary | SDK operation | Wingman endpoint | Failure behavior |
-|---|---|---|---|
-| Before tool execution | `reviewToolCall` | `POST /v1/reviews/tool-calls` | Configurable open/closed fallback. Send `x-wingman-fail-mode: closed` when `review.failMode` is `"closed"`. |
-| After a completed session | `observeSession`, then `flush` | `POST /v1/events` | Queued and contained |
-| Before constructing an agent turn | `config` | `GET /v1/config/:agent/:userHash` | Signed local/base fallback |
-| Model-only verification replay | `createAgentReplayHandler` | Customer-hosted HTTPS route | Pipeline parks; no tool execution |
+| Host boundary                     | SDK operation                  | Wingman endpoint                  | Failure behavior                                                                                            |
+| --------------------------------- | ------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Before tool execution             | `reviewToolCall`               | `POST /v1/reviews/tool-calls`     | Configurable open/closed fallback. Send `x-wingman-fail-mode: closed` when `review.failMode` is `"closed"`. |
+| After a completed session         | `observeSession`, then `flush` | `POST /v1/events`                 | Queued and contained                                                                                        |
+| Before constructing an agent turn | `config`                       | `GET /v1/config/:agent/:userHash` | Signed local/base fallback                                                                                  |
+| Model-only verification replay    | `createAgentReplayHandler`     | Customer-hosted HTTPS route       | Pipeline parks; no tool execution                                                                           |
 
 `/v1/events` publishes `session.observed`. Inngest invokes `/api/inngest`, which runs
 detection, clustering, classification, fail-before verification, bounded repair,
@@ -42,15 +42,15 @@ const decision = await wingman.reviewMcpToolCall({
   recentTurns,
   context,
   request: mcpToolsCallRequest,
-});
+})
 
-if (decision.action === "ALLOW") {
-  return mcpClient.request(mcpToolsCallRequest);
+if (decision.action === 'ALLOW') {
+  return mcpClient.request(mcpToolsCallRequest)
 }
-if (decision.action === "RETHINK") {
-  return askAgentToReconsider(decision.instruction);
+if (decision.action === 'RETHINK') {
+  return askAgentToReconsider(decision.instruction)
 }
-return requestHumanApproval(decision.reason);
+return requestHumanApproval(decision.reason)
 ```
 
 Do not expose Wingman as a tool the model may choose to call. That placement can be
@@ -82,11 +82,11 @@ wingman.observeSession({
   startedAt,
   turns,
   telemetry: {
-    convention: "opentelemetry-genai",
+    convention: 'opentelemetry-genai',
     traceId: activeSpan.spanContext().traceId,
     spanId: activeSpan.spanContext().spanId,
   },
-});
+})
 ```
 
 For OpenInference, use `convention: "openinference"`. For a vendor trace whose ID is
@@ -130,14 +130,14 @@ arguments onto `reviewToolCall` without installing those frameworks.
 
 Framework-specific adapters should be thin translations into the public contracts:
 
-| Framework capability | Wingman translation |
-|---|---|
-| Tool middleware / before-tool hook | `reviewToolCall` |
-| MCP client `tools/call` hook | `reviewMcpToolCall` |
-| Conversation/task completion callback | `observeSession` |
-| Request-scoped config/provider middleware | `config` |
-| Model invocation without tool executor | `createAgentReplayHandler` |
-| Trace/span callback | Set `telemetry`; keep the existing exporter |
+| Framework capability                      | Wingman translation                         |
+| ----------------------------------------- | ------------------------------------------- |
+| Tool middleware / before-tool hook        | `reviewToolCall`                            |
+| MCP client `tools/call` hook              | `reviewMcpToolCall`                         |
+| Conversation/task completion callback     | `observeSession`                            |
+| Request-scoped config/provider middleware | `config`                                    |
+| Model invocation without tool executor    | `createAgentReplayHandler`                  |
+| Trace/span callback                       | Set `telemetry`; keep the existing exporter |
 
 An adapter must not monkey-patch a model SDK, install a global tracer, execute a tool,
 or send unredacted vendor traces. If a framework lacks a before-tool hook, Wingman can
@@ -146,27 +146,42 @@ observe it but cannot honestly claim to guard it.
 Copy-paste shapes. The host still owns the `switch` and the executor:
 
 ```ts
-const middleware = createToolMiddleware(wingman);
+const middleware = createToolMiddleware(wingman)
 
 // LangChain tool middleware / wrapTool
 const langchain = await middleware.beforeLangChainTool({
-  sessionId, userId, userMessage, recentTurns, context,
-  toolName, toolInput,
-});
+  sessionId,
+  userId,
+  userMessage,
+  recentTurns,
+  context,
+  toolName,
+  toolInput,
+})
 
 // Vercel AI SDK onToolCall / wrapTool
 const vercel = await middleware.beforeVercelTool({
-  sessionId, userId, userMessage, recentTurns, context,
-  toolName, args: toolCall.args,
-});
+  sessionId,
+  userId,
+  userMessage,
+  recentTurns,
+  context,
+  toolName,
+  args: toolCall.args,
+})
 
 // OpenAI Agents SDK
 const openai = await middleware.beforeOpenAIAgentTool({
-  sessionId, userId, userMessage, recentTurns, context,
-  toolName: item.name, arguments: item.arguments,
-});
+  sessionId,
+  userId,
+  userMessage,
+  recentTurns,
+  context,
+  toolName: item.name,
+  arguments: item.arguments,
+})
 
-if (langchain.action !== "ALLOW") {
+if (langchain.action !== 'ALLOW') {
   // Do not call the tool. RETHINK feeds instruction back; ESCALATE asks a human.
 }
 ```
@@ -181,7 +196,7 @@ if (langchain.action !== "ALLOW") {
   `127.0.0.1`, `::1`) is allowed only for local use.
 - Point the agent host at `WINGMAN_URL`. The control plane's own origin is
   `WINGMAN_API_URL`. On one machine they are the same URL.
-- Give SDK, operator, Inngest, replay, Supabase, OpenAI, and Codex boundaries distinct
+- Give SDK, operator, Inngest, replay, Postgres, OpenAI, and Codex boundaries distinct
   credentials. Never expose service-role or replay credentials to a browser.
 - Preserve a stable UUID for org, agent, session, config version, incident, and
   candidate identities. Keep user IDs inside the host; Wingman transports only HMACs.

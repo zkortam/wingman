@@ -31,13 +31,15 @@ describe('Wingman', () => {
       id: 'f561f9b9-2abf-4bb7-a5cd-3b6ad76002b6',
       userId: 'raw-user',
       startedAt: '2026-08-23T20:00:00.000Z',
-      turns: [{
-        idx: 0,
-        role: 'user',
-        text: 'safe',
-        toolCalls: [],
-        createdAt: '2026-08-23T20:00:00.000Z',
-      }],
+      turns: [
+        {
+          idx: 0,
+          role: 'user',
+          text: 'safe',
+          toolCalls: [],
+          createdAt: '2026-08-23T20:00:00.000Z',
+        },
+      ],
     })
     expect(client.observationStats()).toMatchObject({ queued: 1, sent: 0, failed: 0, dropped: 0 })
     await client.flush()

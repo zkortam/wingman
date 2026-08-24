@@ -6,5 +6,13 @@
     "plugins": [{ "name": "next" }],
     "types": ["node", "vitest/globals"]
   },
-  "include": ["next-env.d.ts", "*.ts", ".next/types/**/*.ts", "app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"]
+  "include": [
+    "next-env.d.ts",
+    "*.ts",
+    ".next/types/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ]
 }

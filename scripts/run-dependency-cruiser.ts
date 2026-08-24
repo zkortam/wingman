@@ -1,20 +1,28 @@
-import { access } from 'node:fs/promises'
-import { spawn } from 'node:child_process'
 import { resolve } from 'node:path'
 
-const binary = resolve(import.meta.dirname, '../node_modules/.bin/depcruise')
-const available = await access(binary).then(() => true, () => false)
+import { isPackageInstalled, runPackageBin } from './lib/process.ts'
 
-if (!available) {
-  process.stdout.write('dependency-cruiser is unavailable in the offline tool cache; structural boundary check completed.\n')
+const root = resolve(import.meta.dirname, '..')
+
+/** A boundary gate that quietly passes when its tool is missing is worse than no gate at all. */
+if (!isPackageInstalled('dependency-cruiser')) {
+  if (process.env.WINGMAN_SKIP_DEPENDENCY_CRUISER === '1') {
+    process.stdout.write(
+      'dependency-cruiser is unavailable and WINGMAN_SKIP_DEPENDENCY_CRUISER=1; import-boundary enforcement was SKIPPED.\n',
+    )
+  } else {
+    process.stderr.write(
+      'dependency-cruiser is not installed, so import boundaries were not enforced.\n' +
+        'Run `pnpm install`, or set WINGMAN_SKIP_DEPENDENCY_CRUISER=1 to accept an unenforced build.\n',
+    )
+    process.exit(1)
+  }
 } else {
-  const exitCode = await new Promise<number>((resolveCode, reject) => {
-    const child = spawn(binary, ['--config', '.dependency-cruiser.cjs', 'packages', 'services', 'apps', 'fixtures', 'demo'], {
-      cwd: resolve(import.meta.dirname, '..'),
-      stdio: 'inherit',
-    })
-    child.once('error', reject)
-    child.once('exit', (code) => resolveCode(code ?? 1))
-  })
-  if (exitCode !== 0) process.exit(exitCode)
+  const { code } = await runPackageBin(
+    'dependency-cruiser',
+    'depcruise',
+    ['--config', '.dependency-cruiser.cjs', 'packages', 'services', 'apps', 'fixtures', 'demo'],
+    { cwd: root, inherit: true },
+  )
+  if (code !== 0) process.exit(code)
 }

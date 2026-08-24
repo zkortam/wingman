@@ -31,8 +31,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@wingman/schema": "workspace:^",
-    "openredaction": "1.1.5"
+    "@wingman/schema": "workspace:^"
   },
   "devDependencies": {
     "vitest": "4.1.9"

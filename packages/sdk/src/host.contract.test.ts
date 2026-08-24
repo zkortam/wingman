@@ -2,11 +2,7 @@ import type { AgentConfig } from '@wingman/schema'
 import { describe, expect, it, vi } from 'vitest'
 
 import { createToolMiddleware } from './adapters.js'
-import {
-  Wingman,
-  createAgentReplayHandler,
-  isMcpToolsCallRequest,
-} from './index.js'
+import { Wingman, createAgentReplayHandler, isMcpToolsCallRequest } from './index.js'
 import * as publicApi from './index.js'
 
 const agentId = '4ee0d899-d63d-4bc2-b47a-25aa25c6078b'
@@ -41,7 +37,13 @@ const proposed = {
   userId: 'reporter@example.com',
   userMessage: 'Export the Negotiation-stage view.',
   proposedCall: { name: 'export_records', args: { filters: { stage: 'Negotiation' } } },
-  recentTurns: [] as { idx: number; role: 'user'; textRedacted: string | null; toolCalls: []; createdAt: string }[],
+  recentTurns: [] as {
+    idx: number
+    role: 'user'
+    textRedacted: string | null
+    toolCalls: []
+    createdAt: string
+  }[],
   context: { lastQuery: 'stage = Negotiation' },
 }
 
@@ -50,7 +52,10 @@ describe('host SDK contract', () => {
     const fetcher = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith('/v1/reviews/tool-calls')) {
-        const body = JSON.parse(String(init?.body)) as { userHash: string; proposedCall: { name: string } }
+        const body = JSON.parse(String(init?.body)) as {
+          userHash: string
+          proposedCall: { name: string }
+        }
         expect(body.userHash).toMatch(/^[a-f0-9]{32}$/)
         expect(body.proposedCall.name).toBe('export_records')
         expect(JSON.stringify(body)).not.toContain('reporter@example.com')
@@ -72,7 +77,9 @@ describe('host SDK contract', () => {
       action: 'ALLOW',
       source: 'REMOTE',
     })
-    await expect(wingman.config({ agent: agentId, userId: 'reporter@example.com' })).resolves.toEqual(baseConfig)
+    await expect(
+      wingman.config({ agent: agentId, userId: 'reporter@example.com' }),
+    ).resolves.toEqual(baseConfig)
     await expect(wingman.rules('reporter@example.com')).resolves.toEqual([])
 
     wingman.observe({
@@ -80,13 +87,15 @@ describe('host SDK contract', () => {
       userId: 'reporter@example.com',
       startedAt: '2026-08-23T20:00:00.000Z',
       lastQuery: 'stage = Negotiation',
-      turns: [{
-        idx: 0,
-        role: 'user',
-        text: 'Export the Negotiation-stage view.',
-        toolCalls: [],
-        createdAt: '2026-08-23T20:00:00.000Z',
-      }],
+      turns: [
+        {
+          idx: 0,
+          role: 'user',
+          text: 'Export the Negotiation-stage view.',
+          toolCalls: [],
+          createdAt: '2026-08-23T20:00:00.000Z',
+        },
+      ],
     })
     await wingman.flush()
     expect(wingman.observationStats()).toMatchObject({ queued: 0, sent: 1, failed: 0 })
@@ -94,7 +103,10 @@ describe('host SDK contract', () => {
 
   it('maps MCP, LangChain, Vercel AI, and OpenAI Agents calls onto the same decision', async () => {
     const reviewer = vi.fn(async (request: { proposedCall: { name: string; args: unknown } }) => {
-      expect(request.proposedCall).toEqual({ name: 'export_records', args: { filters: { stage: 'Negotiation' } } })
+      expect(request.proposedCall).toEqual({
+        name: 'export_records',
+        args: { filters: { stage: 'Negotiation' } },
+      })
       return {
         action: 'RETHINK' as const,
         reason: 'The current view is not an unfiltered export.',
@@ -129,16 +141,30 @@ describe('host SDK contract', () => {
       params: { name: 'export_records', arguments: { filters: { stage: 'Negotiation' } } },
     }
     expect(isMcpToolsCallRequest(mcp)).toBe(true)
-    await expect(wingman.reviewMcpToolCall({ ...base, request: mcp })).resolves.toMatchObject({ action: 'RETHINK' })
-    await expect(middleware.beforeLangChainTool({ ...base, toolName: 'export_records', toolInput: { filters: { stage: 'Negotiation' } } }))
-      .resolves.toMatchObject({ action: 'RETHINK' })
-    await expect(middleware.beforeVercelTool({ ...base, toolName: 'export_records', args: { filters: { stage: 'Negotiation' } } }))
-      .resolves.toMatchObject({ action: 'RETHINK' })
-    await expect(middleware.beforeOpenAIAgentTool({
-      ...base,
-      toolName: 'export_records',
-      arguments: '{"filters":{"stage":"Negotiation"}}',
-    })).resolves.toMatchObject({ action: 'RETHINK' })
+    await expect(wingman.reviewMcpToolCall({ ...base, request: mcp })).resolves.toMatchObject({
+      action: 'RETHINK',
+    })
+    await expect(
+      middleware.beforeLangChainTool({
+        ...base,
+        toolName: 'export_records',
+        toolInput: { filters: { stage: 'Negotiation' } },
+      }),
+    ).resolves.toMatchObject({ action: 'RETHINK' })
+    await expect(
+      middleware.beforeVercelTool({
+        ...base,
+        toolName: 'export_records',
+        args: { filters: { stage: 'Negotiation' } },
+      }),
+    ).resolves.toMatchObject({ action: 'RETHINK' })
+    await expect(
+      middleware.beforeOpenAIAgentTool({
+        ...base,
+        toolName: 'export_records',
+        arguments: '{"filters":{"stage":"Negotiation"}}',
+      }),
+    ).resolves.toMatchObject({ action: 'RETHINK' })
   })
 
   it('keeps the Outcome alias and a model-only replay handler for existing hosts', async () => {
@@ -147,21 +173,26 @@ describe('host SDK contract', () => {
       token: 'runner-token',
       run: async () => ({ toolCalls: [], text: 'no tools', cassetteKey: 'host:0' }),
     })
-    const ok = await handler(new Request('https://host/replay', {
-      method: 'POST',
-      headers: { authorization: 'Bearer runner-token' },
-      body: JSON.stringify({
-        config: baseConfig,
-        messages: [],
-        interceptToolCalls: true,
+    const ok = await handler(
+      new Request('https://host/replay', {
+        method: 'POST',
+        headers: { authorization: 'Bearer runner-token' },
+        body: JSON.stringify({
+          config: baseConfig,
+          messages: [],
+          interceptToolCalls: true,
+        }),
       }),
-    }))
+    )
     expect(ok.status).toBe(200)
     expect(await ok.json()).toMatchObject({ toolExecutions: 0 })
   })
 
   it('fails closed for a host that opted out of fail-open', async () => {
-    const wingman = init(vi.fn(async () => new Response('', { status: 503 })), { failMode: 'closed' })
+    const wingman = init(
+      vi.fn(async () => new Response('', { status: 503 })),
+      { failMode: 'closed' },
+    )
     await expect(wingman.reviewToolCall(proposed)).resolves.toMatchObject({
       action: 'ESCALATE',
       source: 'FAIL_CLOSED',

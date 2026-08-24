@@ -11,10 +11,15 @@ export const isSdkAuthorized = (request: Request): boolean => {
   return timingSafeEqual(digest(actual), digest(expected))
 }
 
+/** Reads a JSON object body. */
 export const readJsonObject = async (request: Request): Promise<Record<string, unknown> | null> => {
+  const contentType = request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
+  if (contentType !== 'application/json') return null
   try {
-    const value = await request.json() as unknown
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
+    const value = (await request.json()) as unknown
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null
   } catch {
     return null
   }

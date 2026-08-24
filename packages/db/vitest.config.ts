@@ -1,9 +1,9 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   root: import.meta.dirname,
   test: {
-    environment: "node",
-    name: "db",
+    environment: 'node',
+    name: 'db',
   },
-});
+})

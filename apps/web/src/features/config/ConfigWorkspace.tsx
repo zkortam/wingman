@@ -24,7 +24,13 @@ interface ConfigWorkspaceProps {
   client?: Pick<typeof apiClient, 'revert'>
 }
 
-export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, userHash, client = apiClient }: ConfigWorkspaceProps) => {
+export const ConfigWorkspace = ({
+  versions,
+  initialOverrideActive,
+  agentId,
+  userHash,
+  client = apiClient,
+}: ConfigWorkspaceProps) => {
   const [left, setLeft] = useState(versions[0]?.id ?? '')
   const [right, setRight] = useState(versions[1]?.id ?? versions[0]?.id ?? '')
   const [overrideActive, setOverrideActive] = useState(initialOverrideActive)
@@ -52,48 +58,113 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, user
       <div className="proof-block">
         <div className="proof-label">BASE</div>
         <details>
-          <summary><span className="mono">v1</span>, active global configuration</summary>
+          <summary>
+            <span className="mono">v1</span>, active global configuration
+          </summary>
           <pre className="diff">{baseYaml(versions[0]?.config)}</pre>
         </details>
       </div>
       <div className="proof-block">
         <div className="proof-label">VERSIONS</div>
         <table className="data-table config-table">
-          <thead><tr><th scope="col">VERSION</th><th scope="col">ORIGIN</th><th scope="col">STATUS</th></tr></thead>
-          <tbody>{versions.map((version) => (
-            <tr key={version.id}>
-              <td className="mono">v{version.version}</td>
-              <td>{version.incidentId ? <Link href={`/incidents/${version.incidentId}`} className="mono">{version.incidentId}</Link> : 'Base configuration'}</td>
-              <td>{version.incidentId ? 'User only' : 'Global'}</td>
+          <thead>
+            <tr>
+              <th scope="col">VERSION</th>
+              <th scope="col">ORIGIN</th>
+              <th scope="col">STATUS</th>
             </tr>
-          ))}</tbody>
+          </thead>
+          <tbody>
+            {versions.map((version) => (
+              <tr key={version.id}>
+                <td className="mono">v{version.version}</td>
+                <td>
+                  {version.incidentId ? (
+                    <Link href={`/incidents/${version.incidentId}`} className="mono">
+                      {version.incidentId}
+                    </Link>
+                  ) : (
+                    'Base configuration'
+                  )}
+                </td>
+                <td>{version.incidentId ? 'User only' : 'Global'}</td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
       <div className="proof-block">
         <div className="proof-label">COMPARE</div>
         <div className="compare-controls">
-          <label>From <select aria-label="Compare from" value={left} onChange={(event) => setLeft(event.target.value)}>{versions.map((version) => <option key={version.id} value={version.id}>v{version.version}</option>)}</select></label>
-          <label>To <select aria-label="Compare to" value={right} onChange={(event) => setRight(event.target.value)}>{versions.map((version) => <option key={version.id} value={version.id}>v{version.version}</option>)}</select></label>
+          <label>
+            From{' '}
+            <select
+              aria-label="Compare from"
+              value={left}
+              onChange={(event) => setLeft(event.target.value)}
+            >
+              {versions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  v{version.version}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            To{' '}
+            <select
+              aria-label="Compare to"
+              value={right}
+              onChange={(event) => setRight(event.target.value)}
+            >
+              {versions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  v{version.version}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        {left === right ? <p className="muted">Select two different versions to inspect a change.</p> : (
-          <Diff path={compare(versions, left, right).path} lines={compare(versions, left, right).lines} />
+        {left === right ? (
+          <p className="muted">Select two different versions to inspect a change.</p>
+        ) : (
+          <Diff
+            path={compare(versions, left, right).path}
+            lines={compare(versions, left, right).lines}
+          />
         )}
       </div>
       <div className="proof-block">
         <div className="proof-label">OVERRIDES</div>
         <div>
           <strong className="stat-value">{overrideActive ? 1 : 0}</strong>
-          <p className="muted">Overrides that prove out get promoted to global. A number that only grows means promotion is not happening.</p>
+          <p className="muted">
+            Overrides that prove out get promoted to global. A number that only grows means
+            promotion is not happening.
+          </p>
           {overrideActive ? (
             <div className="override-row">
               <span className="mono">{userHash} | v2</span>
               <span>Last resolved just now</span>
-              <button className="danger-button" onClick={() => setConfirming(true)} type="button">Revert</button>
+              <button className="danger-button" onClick={() => setConfirming(true)} type="button">
+                Revert
+              </button>
             </div>
-          ) : <p className="muted">No active per-user overrides.</p>}
+          ) : (
+            <p className="muted">No active per-user overrides.</p>
+          )}
         </div>
       </div>
-      {confirming ? <Confirm title="Revert this override?" body="This restores the global config for the affected user." destructive onCancel={() => setConfirming(false)} onConfirm={() => void revert()} pending={busy} /> : null}
+      {confirming ? (
+        <Confirm
+          title="Revert this override?"
+          body="This restores the global config for the affected user."
+          destructive
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => void revert()}
+          pending={busy}
+        />
+      ) : null}
       {toast ? <Toast message={toast} /> : null}
     </section>
   )

@@ -1,4 +1,4 @@
-import { SupabaseConfigStore } from '@wingman/config'
+import { PostgresConfigStore } from '@wingman/config'
 import {
   createProductionPipelineControlPlane,
   OpenAIModelClient,
@@ -24,7 +24,7 @@ const control = () => {
   return productionControl
 }
 
-let productionConfig: SupabaseConfigStore | undefined
+let productionConfig: PostgresConfigStore | undefined
 const compiledFallbacks = (): Map<string, AgentConfig> => {
   const raw = process.env.WINGMAN_BASE_CONFIG?.trim()
   if (!raw) return new Map()
@@ -35,20 +35,27 @@ const compiledFallbacks = (): Map<string, AgentConfig> => {
   }
 }
 
-const configRuntime = (): SupabaseConfigStore => {
-  productionConfig ??= new SupabaseConfigStore({ fallbackConfigs: compiledFallbacks(), canonicalize: canonicalJSON })
+const configRuntime = (): PostgresConfigStore => {
+  productionConfig ??= new PostgresConfigStore({
+    fallbackConfigs: compiledFallbacks(),
+    canonicalize: canonicalJSON,
+  })
   return productionConfig
 }
 
+/** Authorizes one operator command against one incident. */
 const inOrg = async (id: string): Promise<void> => {
-  const listed = await control().reader.listIncidents(operatorIdentity().orgId)
-  if (!listed.some((incident) => incident.id === id)) throw new Error('Incident not found')
+  const permitted = await control().reader.incidentInOrg(operatorIdentity().orgId, id)
+  if (!permitted) throw new Error('Incident not found')
 }
 
 export const reader = {
-  listIncidents: async () => process.env.WINGMAN_RUNTIME === 'demo'
-    ? demo().listIncidents()
-    : (await control().reader.listIncidents(operatorIdentity().orgId)).map(presentIncidentSummary),
+  listIncidents: async () =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? demo().listIncidents()
+      : (await control().reader.listIncidents(operatorIdentity().orgId)).map(
+          presentIncidentSummary,
+        ),
   getIncident: async (id: string) => {
     if (process.env.WINGMAN_RUNTIME === 'demo') return demo().incident(id)
     await inOrg(id)
@@ -62,12 +69,14 @@ export const reader = {
     )
     return details.map(presentIncident)
   },
-  silentFailureRate: () => process.env.WINGMAN_RUNTIME === 'demo'
-    ? Promise.resolve({ thisWeek: 4.2, lastWeek: 4.5 })
-    : control().reader.silentFailureRate(operatorIdentity().orgId),
-  gatePrecision: () => process.env.WINGMAN_RUNTIME === 'demo'
-    ? Promise.resolve({ precision: 1, n: 6 })
-    : control().reader.gatePrecision(operatorIdentity().orgId),
+  silentFailureRate: () =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? Promise.resolve({ thisWeek: 4.2, lastWeek: 4.5 })
+      : control().reader.silentFailureRate(operatorIdentity().orgId),
+  gatePrecision: () =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? Promise.resolve({ precision: 1, n: 6 })
+      : control().reader.gatePrecision(operatorIdentity().orgId),
 }
 
 export const commands = {
@@ -87,7 +96,8 @@ export const commands = {
     return control().commands.reopen(id)
   },
   handoff: async (id: string) => {
-    if (process.env.WINGMAN_RUNTIME === 'demo') return { payload: demo().incident(id)?.handoff ?? '' }
+    if (process.env.WINGMAN_RUNTIME === 'demo')
+      return { payload: demo().incident(id)?.handoff ?? '' }
     await inOrg(id)
     return { payload: JSON.stringify(await control().commands.handoff(id), null, 2) }
   },
@@ -104,15 +114,18 @@ export const commands = {
 }
 
 export const config = {
-  resolve: (agent: string, userHash: string) => process.env.WINGMAN_RUNTIME === 'demo'
-    ? Promise.resolve(demo().config(agent, userHash))
-    : configRuntime().resolveSigned(agent, userHash),
-  listVersions: (agent: string) => process.env.WINGMAN_RUNTIME === 'demo'
-    ? Promise.resolve(demo().versions())
-    : configRuntime().listVersions(agent),
-  revert: (agent: string, userHash: string) => process.env.WINGMAN_RUNTIME === 'demo'
-    ? Promise.resolve(demo().revert(userHash))
-    : configRuntime().revertOverride(agent, userHash),
+  resolve: (agent: string, userHash: string) =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? Promise.resolve(demo().config(agent, userHash))
+      : configRuntime().resolveSigned(agent, userHash),
+  listVersions: (agent: string) =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? Promise.resolve(demo().versions())
+      : configRuntime().listVersions(agent),
+  revert: (agent: string, userHash: string) =>
+    process.env.WINGMAN_RUNTIME === 'demo'
+      ? Promise.resolve(demo().revert(userHash))
+      : configRuntime().revertOverride(agent, userHash),
 }
 
 let productionModel: OpenAIModelClient | undefined
@@ -130,7 +143,13 @@ export const reviews = {
           source: 'POLICY' as const,
         }
       }
-      return { action: 'ALLOW' as const, reason: 'Demo review accepted the configured call.', instruction: null, confidence: 1, source: 'POLICY' as const }
+      return {
+        action: 'ALLOW' as const,
+        reason: 'Demo review accepted the configured call.',
+        instruction: null,
+        confidence: 1,
+        source: 'POLICY' as const,
+      }
     }
     productionModel ??= new OpenAIModelClient(process.env.OPENAI_API_KEY ?? '')
     const resolved = await configRuntime().resolve(request.agentId, request.userHash)

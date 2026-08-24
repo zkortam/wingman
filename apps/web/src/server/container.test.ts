@@ -21,8 +21,7 @@ describe('web composition root', () => {
 
   it('never falls back to demo data in production', async () => {
     vi.stubEnv('WINGMAN_RUNTIME', 'production')
-    vi.stubEnv('SUPABASE_URL', '')
-    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '')
-    await expect(reader.listIncidents()).rejects.toThrow('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
+    vi.stubEnv('DATABASE_URL', '')
+    await expect(reader.listIncidents()).rejects.toThrow('DATABASE_URL is required')
   })
 })

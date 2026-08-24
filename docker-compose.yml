@@ -1,0 +1,32 @@
+# Local Postgres for development and for the repository contract suite.
+# pgvector's image rather than the stock one: turns.embedding is a vector(1536) column.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: wingman-postgres
+    environment:
+      POSTGRES_USER: wingman
+      POSTGRES_PASSWORD: wingman
+      POSTGRES_DB: wingman
+      # The suite truncates between cases; durability buys nothing and costs time.
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - log_min_duration_statement=200
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wingman -d wingman']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
