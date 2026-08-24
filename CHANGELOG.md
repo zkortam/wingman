@@ -6,6 +6,10 @@ and the public packages follow [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## 0.1.0 — 2026-08-24
+
+First public release of `@wingman/schema` and `@wingman/sdk`.
+
 ### Added
 
 - Fail-closed review honors remote `FAIL_OPEN` decisions instead of executing.
@@ -19,8 +23,3 @@ and the public packages follow [Semantic Versioning](https://semver.org/).
 
 - Config `timeoutMs` now aborts the underlying fetch.
 - Apply uses one confirmation window timestamp and is idempotent after a partial write.
-
-## 0.1.0
-
-- Initial public SDK and schema contracts. Not yet published to npm; install from
-  this repository.
