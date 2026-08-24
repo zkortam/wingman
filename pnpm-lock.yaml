@@ -84,6 +84,9 @@ importers:
       '@wingman/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@wingman/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
     devDependencies:
       typescript:
         specifier: ^5.7.3

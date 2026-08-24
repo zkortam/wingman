@@ -28,6 +28,28 @@ describe("ingest embedding boundary", () => {
     expect(publish).not.toHaveBeenCalled();
   });
 
+  it("persists a valid session and publishes session.observed once", async () => {
+    const writeSession = vi.fn<IngestStore["writeSession"]>();
+    const publish = vi.fn<EventPublisher["publish"]>();
+    const payload = session();
+    const ingest = createIngestService({
+      store: { writeSession, writeSignals: vi.fn() },
+      embeddings: { embed: async ({ texts }) => texts.map(() => Array.from({ length: 1536 }, () => 0)) },
+      events: { publish },
+    });
+
+    await expect(ingest.ingestEvents(payload)).resolves.toEqual({
+      status: 202,
+      sessionId: payload.id,
+    });
+    expect(writeSession).toHaveBeenCalledOnce();
+    expect(publish).toHaveBeenCalledWith(
+      "session.observed",
+      { data: { sessionId: payload.id } },
+      payload.id,
+    );
+  });
+
   it("rejects invalid dimensions before persistence", async () => {
     const writeSession = vi.fn<IngestStore["writeSession"]>();
     const ingest = createIngestService({

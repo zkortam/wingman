@@ -36,6 +36,18 @@ describe("WingmanClient initialization", () => {
     expect(() =>
       new WingmanClient({ ...options(), config: { timeoutMs: 0 } }),
     ).toThrow();
+    expect(() => new WingmanClient({ ...options(), orgId: "not-a-uuid" })).toThrow("UUID");
+    expect(() => new WingmanClient({ ...options(), defaultAgent: "ops-copilot" })).toThrow("UUID");
+  });
+
+  it("allows HTTP only on loopback hosts used for local agent development", () => {
+    for (const endpoint of [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://[::1]:3000",
+    ]) {
+      expect(() => new WingmanClient({ ...options(), endpoint })).not.toThrow();
+    }
   });
 
   it("takes a defensive copy of the compiled base config", async () => {

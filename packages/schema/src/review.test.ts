@@ -35,4 +35,26 @@ describe("tool-call review contracts", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("forbids a retry instruction on ALLOW and requires one on ESCALATE", () => {
+    expect(
+      ToolCallReviewDecisionSchema.safeParse({
+        action: "ALLOW",
+        reason: "Matches the request.",
+        instruction: "Do not retry.",
+        confidence: 1,
+        source: "REMOTE",
+      }).success,
+    ).toBe(false);
+    expect(
+      ToolCallReviewDecisionSchema.parse({
+        action: "ESCALATE",
+        reason: "Destructive ambiguity.",
+        instruction: "Ask a human before executing.",
+        confidence: 0.8,
+        source: "POLICY",
+      }).action,
+    ).toBe("ESCALATE");
+  });
 });
+

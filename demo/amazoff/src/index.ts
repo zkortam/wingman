@@ -10,3 +10,9 @@ export { resolveSelection, selectTool, type ToolSelection } from "./agent/select
 export { OrderBook, OrderError, type Order, type OrderEvent, type OrderStatus } from "./store/orders.js";
 export { AMAZOFF_CUSTOMERS, AMAZOFF_ORDERS, type Customer } from "./seed.js";
 export { renderPrompt, selectToolViaModel, type ModelSelector } from "./agent/select-model.js";
+export {
+  reviewProposedHostToolCall,
+  type GuardedToolDecision,
+  type HostToolProposal,
+} from "./tool-boundary.js";
+

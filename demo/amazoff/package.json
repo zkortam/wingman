@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@wingman/schema": "workspace:*"
+    "@wingman/schema": "workspace:*",
+    "@wingman/sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

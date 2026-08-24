@@ -73,6 +73,7 @@ export class WingmanClient {
       apiKey: options.apiKey,
       orgSalt: options.orgSalt,
       defaultAgent: options.defaultAgent,
+      declaredTools: Object.keys(baseConfig.tools),
       scrubber: this.#scrubber,
       ...(options.fetcher ? { fetcher: options.fetcher } : {}),
       ...(options.review ? { review: options.review } : {}),
@@ -151,6 +152,11 @@ export { createToolMiddleware } from './adapters.js'
 export type { ToolReviewHost } from './adapters.js'
 export { isMcpToolsCallRequest } from './review.js'
 export type { ReplayDecision, ReplayInput } from './replay.js'
+export { hashUserId } from './hash.js'
+export { FileConfigStorage } from './storage.js'
+export { LocalPiiScrubber } from './openredaction.js'
+export type { PiiScrubber } from './openredaction.js'
+export type { AgentConfig, ToolCall, ToolCallReviewDecision } from '@wingman/schema'
 export type {
   ConfigStorage,
   ObservationQueueStats,
@@ -160,13 +166,17 @@ export type {
   ToolReviewOptions,
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+
 const normalizeEndpoint = (value: string): string => {
   const url = new URL(value)
-  if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+  if (url.protocol !== 'https:' && !LOCAL_HOSTS.has(url.hostname)) {
     throw new Error('Wingman endpoint must use HTTPS')
   }
   return url.toString().replace(/\/$/, '')
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const validateOptions = (options: InitOptions): void => {
   for (const [name, value] of [
@@ -178,6 +188,8 @@ const validateOptions = (options: InitOptions): void => {
   ] as const) {
     if (value.trim().length === 0) throw new Error(`${name} is required`)
   }
+  if (!UUID.test(options.orgId)) throw new Error('orgId must be a UUID')
+  if (!UUID.test(options.defaultAgent)) throw new Error('defaultAgent must be a UUID')
   for (const [name, value] of [
     ['maxDiffBytes', options.maxDiffBytes],
     ['review.timeoutMs', options.review?.timeoutMs],

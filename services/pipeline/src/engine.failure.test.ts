@@ -38,10 +38,9 @@ describe("pipeline failure containment", () => {
       events,
     });
 
-    await expect(engine.observeSession(crypto.randomUUID())).resolves.toEqual({
-      incidentId: null,
-      state: "PARKED",
-    });
+    await expect(engine.observeSession(crypto.randomUUID())).rejects.toThrow(
+      "database offline",
+    );
   });
 
   it("persists PARKED on the incident when a post-join stage throws", async () => {

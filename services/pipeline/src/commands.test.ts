@@ -64,5 +64,11 @@ describe("pipeline commands", () => {
     const reopened = await repository.getIncident(id);
     expect(reopened.state).toBe("CLUSTERED");
     expect(reopened.attempt).toBe(2);
+    const reverted = database.incidents.get(id);
+    if (!reverted) throw new Error("missing incident");
+    reverted.state = "REVERTED";
+    await commands.reopen(id);
+    expect((await repository.getIncident(id)).state).toBe("CLUSTERED");
+    expect((await repository.getIncident(id)).attempt).toBe(3);
   });
 });

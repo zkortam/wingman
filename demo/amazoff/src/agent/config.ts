@@ -4,8 +4,8 @@ import type { AgentConfig } from "@wingman/schema";
  * Amazoff's support agent, as its own engineers configured it.
  *
  * Everything in this folder is mock. It exists so Wingman has a real customer agent to
- * attach to, and it imports nothing from Wingman except the SDK — deleting `demo/`
- * leaves a working product behind.
+ * attach to, and it reaches Wingman only through `@wingman/sdk` and `@wingman/schema` —
+ * deleting `demo/` leaves a working product behind.
  */
 export const AMAZOFF_TOOLS: AgentConfig["tools"] = {
   get_order: {
