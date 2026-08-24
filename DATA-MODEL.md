@@ -392,7 +392,7 @@ Falls back to the cosine centroid of the session's user-turn embeddings when the
 sha256([agentId, signalKind, taskFingerprint].join('|'))
 ```
 
-**The idempotency key for the entire pipeline.** Every stage upserts on it. Inngest redelivery is therefore free.
+**The idempotency key for the entire pipeline.** Every stage upserts on it. A redelivery that reproduces the same result is therefore free; one whose sampled result differs parks the incident rather than overwriting the evidence.
 
 ### `assertionIdentity(kind, params)`
 
