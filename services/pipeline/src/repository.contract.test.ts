@@ -1,8 +1,8 @@
-import { createDatabase, type Database } from '@wingman/db'
 import { afterAll, describe, it } from 'vitest'
 
 import { describePipelineRepository, type RepositoryFixture } from './repository.contract.js'
 import { createPostgresPipelineRepository } from './store/index.js'
+import { startTestDatabase } from './store/testing/database.js'
 import {
   AGENT,
   EMPTY_ORG,
@@ -87,28 +87,29 @@ describePipelineRepository('Replay', async (): Promise<RepositoryFixture> => {
   }
 })
 
-// The same contract against the database production actually runs. Without a
-// DATABASE_URL the suite says so rather than passing quietly.
-if (process.env.DATABASE_URL) {
-  let sql: Database | undefined
-  afterAll(async () => {
-    await sql?.end({ timeout: 5 })
-  })
+// The same contract against the database production runs. Uses DATABASE_URL when
+// set, otherwise a throwaway container, so this covers CI without the workflow
+// having to declare a service. Resolved at collection time so the suite can skip.
+const database = await startTestDatabase()
 
+afterAll(async () => {
+  await database?.stop()
+}, 60_000)
+
+if (database === null) {
+  describe.skip('Postgres PipelineRepository contract', () => {
+    it('needs DATABASE_URL or a running Docker daemon', () => undefined)
+  })
+} else {
   describePipelineRepository('Postgres', async (): Promise<RepositoryFixture> => {
-    sql ??= createDatabase({ max: 4 })
-    await seedFixture(sql)
+    await seedFixture(database.sql)
     return {
-      repository: createPostgresPipelineRepository(sql),
+      repository: createPostgresPipelineRepository(database.sql),
       orgId: ORG,
       agentId: AGENT,
       incidentId: INCIDENT,
       sessionId: SESSION,
       emptyOrgId: EMPTY_ORG,
     }
-  })
-} else {
-  describe.skip('Postgres PipelineRepository contract', () => {
-    it('needs DATABASE_URL: run `pnpm db:up && pnpm db:migrate`', () => undefined)
   })
 }

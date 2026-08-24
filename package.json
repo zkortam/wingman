@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",
+    "@testcontainers/postgresql": "11.7.1",
     "@types/node": "20.19.30",
     "@vitest/coverage-v8": "4.1.9",
     "dependency-cruiser": "18.2.0",
