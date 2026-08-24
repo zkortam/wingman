@@ -22,9 +22,13 @@ Built by **Zakaria Kortam** and **Ali Alani**.
 </div>
 
 > [!IMPORTANT]
-> Wingman is pre-1.0. The SDK and schema packages are release-ready and verified as
-> packed, clean-consumer installations, but they are not yet published to npm. The
-> repository workspace is currently the supported installation source.
+> Wingman is pre-1.0. Install the public packages from npm:
+>
+> ```bash
+> npm install @wingman/sdk
+> ```
+>
+> The control plane (operator UI, ingest, pipeline) still runs from this repository.
 
 ## Who this is for
 
@@ -96,19 +100,14 @@ The synchronous control plane and asynchronous evidence plane are deliberately
 separate. Observability is valuable evidence, but it is not a reliable pre-execution
 guard.
 
-## Install from this repository
-
-The SDK is not on npm yet. From a clone:
+## Install
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm --filter @wingman/schema build
-pnpm --filter @wingman/sdk build
-pnpm package:check
+npm install @wingman/sdk
 ```
 
-Point a consumer at the packed tarballs `pnpm pack` writes, or depend on the
-workspace packages in this monorepo. Do not deep-import `services/*`.
+That pulls `@wingman/schema` with it. From a clone of this monorepo, `pnpm install`
+links the workspace packages instead.
 
 ## Repository quick start
 
