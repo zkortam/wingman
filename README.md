@@ -9,6 +9,7 @@ execution, learns from user friction, and applies only configuration changes tha
 demonstrably fail before the change and pass afterward.
 
 [![CI](https://github.com/zkortam/wingman/actions/workflows/ci.yml/badge.svg)](https://github.com/zkortam/wingman/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@zkortam/wingman-sdk.svg)](https://www.npmjs.com/package/@zkortam/wingman-sdk)
 [![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)](package.json)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
@@ -23,9 +24,10 @@ Built by **Zakaria Kortam** and **Ali Alani**.
 
 > [!IMPORTANT]
 > Wingman is pre-1.0. Release [`v0.1.0`](https://github.com/zkortam/wingman/releases/tag/v0.1.0)
-> is tagged. `@wingman/sdk` will install from npm once the `@wingman` scope is
-> published (add an `NPM_TOKEN` repository secret and re-run **Publish npm**).
-> Until then, use this repository as the workspace install.
+> is on npm as [`@zkortam/wingman-sdk`](https://www.npmjs.com/package/@zkortam/wingman-sdk).
+> The `@wingman` npm organization is already taken, so the published names live
+> under `@zkortam`. In this repository the workspace packages remain
+> `@wingman/sdk` and `@wingman/schema`.
 
 ## Who this is for
 
@@ -100,17 +102,28 @@ guard.
 ## Install
 
 ```bash
-npm install @wingman/sdk
+npm install @zkortam/wingman-sdk
 ```
 
-That pulls `@wingman/schema` with it. If the scope is not on the registry yet,
-clone this repository and use the workspace packages:
+That pulls [`@zkortam/wingman-schema`](https://www.npmjs.com/package/@zkortam/wingman-schema)
+with it. Do not deep-import `services/*`.
 
-```bash
-git clone https://github.com/zkortam/wingman.git
-cd wingman
-pnpm install --frozen-lockfile
-```
+### Agent-host environment
+
+Set these in the process that runs your agent, not in the browser:
+
+| Variable | Used by |
+|---|---|
+| `WINGMAN_URL` | SDK `endpoint`. HTTPS required except loopback. |
+| `WINGMAN_API_KEY` | Bearer token for review, observe, and config. |
+| `WINGMAN_ORG_ID` | Organization UUID stamped on observed sessions. |
+| `WINGMAN_ORG_SALT` | HMAC salt; raw user IDs never leave the host. |
+| `WINGMAN_SIGNING_KEY` | Verifies signed config from the control plane. |
+| `WINGMAN_AGENT_ID` | Default agent UUID for review and config. |
+| `WINGMAN_RUNNER_TOKEN` | Bearer token for the host's model-only replay route. |
+
+The control plane uses `WINGMAN_API_URL` for its own origin (demo reset, local
+links). An agent on the same machine sets `WINGMAN_URL` to that same origin.
 
 ## Repository quick start
 
@@ -135,11 +148,12 @@ requests to `/demo` return 404. See [DEMO.md](DEMO.md).
 
 ## Integrate an agent host
 
-The primary integration is `@wingman/sdk`. It belongs inside the host, immediately
-before the host's tool executor—not as a tool the model may choose to call.
+The primary integration is `@zkortam/wingman-sdk`. It belongs inside the host,
+immediately before the host's tool executor—not as a tool the model may choose to
+call.
 
 ```ts
-import { Wingman } from "@wingman/sdk";
+import { Wingman } from "@zkortam/wingman-sdk";
 
 const wingman = Wingman.init({
   endpoint: process.env.WINGMAN_URL!,
@@ -234,7 +248,7 @@ base config. Reads are cached and concurrent cold starts are coalesced. Configur
 ### 4. Expose model-only replay
 
 ```ts
-import { createAgentReplayHandler } from "@wingman/sdk";
+import { createAgentReplayHandler } from "@zkortam/wingman-sdk";
 
 export const POST = createAgentReplayHandler({
   token: process.env.WINGMAN_RUNNER_TOKEN!,
@@ -263,9 +277,11 @@ observability contract.
 
 ## Production deployment
 
-1. Apply `supabase/migrations` in filename order. Migrations are append-only.
-2. Seed the organization, agent, and base configuration described in
-   [DATA-MODEL.md](DATA-MODEL.md).
+1. Apply `supabase/migrations` in filename order (`supabase db push` or `psql`).
+   Migrations are append-only.
+2. Seed one org, agent, and BASE config. `pnpm bootstrap-config` prints the
+   INSERT statements and the matching agent-host env. Details:
+   [DATA-MODEL.md](DATA-MODEL.md) §11.
 3. Configure the variables in [.env.example](.env.example) with distinct credentials
    for SDK traffic, operators, Inngest, replay, Supabase, model providers, and handoff.
 4. Deploy `apps/web`; it serves the operator UI, authenticated SDK endpoints, and
