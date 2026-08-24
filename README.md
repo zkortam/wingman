@@ -10,8 +10,8 @@ demonstrably fail before the change and pass afterward.
 
 [![CI](https://github.com/zkortam/wingman/actions/workflows/ci.yml/badge.svg)](https://github.com/zkortam/wingman/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@zkortam/wingman-sdk.svg)](https://www.npmjs.com/package/@zkortam/wingman-sdk)
-[![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white)](package.json)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Node.js 22.18+](https://img.shields.io/badge/Node.js-22.18%2B-339933?logo=nodedotjs&logoColor=white)](package.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.base.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111111.svg)](LICENSE)
 
 [Architecture](ARCHITECTURE.md) · [Integration guide](INTEGRATIONS.md) ·
@@ -61,9 +61,12 @@ evidence pipeline after the session.
 - Nothing is applied without fail-before and pass-after evidence.
 - Replays are model-only. The callback is not given an executor, and a nonzero
   `toolExecutions` count is rejected.
-- Configuration is signed, schema-validated, writable-path constrained, and byte-capped.
+- Configuration is signed, schema-validated, writable-path constrained, and
+  byte-capped, and a stale signed payload cannot reinstate a superseded policy.
 - Configuration outages resolve through last-known-good and compiled-base fallbacks.
-- Pipeline stages are bounded and idempotent; exhausted work parks instead of looping.
+- Pipeline stages are bounded, and repeating a write with the same result is a no-op.
+  A replay whose sampled result differs parks the incident rather than overwriting
+  evidence, and exhausted work parks instead of looping.
 - Production operator and machine endpoints use separate credentials and fail closed.
 - Demo and fixture code are dependency leaves and cannot enter production packages.
 
@@ -126,7 +129,8 @@ links). An agent on the same machine sets `WINGMAN_URL` to that same origin.
 
 ## Repository quick start
 
-Requirements: Node.js 22 or newer, pnpm 10, and Docker for the database.
+Requirements: Node.js 22.18 or newer and pnpm 10. Docker is optional; it is what
+lets the persistence tests run against a real Postgres.
 
 ```bash
 git clone https://github.com/zkortam/wingman.git
@@ -308,6 +312,12 @@ observability contract.
 
 ## Production deployment
 
+Wingman stores everything in Postgres and connects with a driver, not a hosted
+platform SDK. Any Postgres 14 or newer works - managed, self-hosted, or Supabase -
+provided the `pgcrypto` and `vector` extensions are available. Set
+`DATABASE_URL`; on a serverless platform run one connection per invocation behind
+a pooler such as pgBouncer, RDS Proxy, or Neon.
+
 1. Apply `db/migrations` with `pnpm db:migrate` (it records what it has run and
    is safe to repeat). Migrations are append-only.
 2. Seed one org, agent, and BASE config. `pnpm bootstrap-config` prints the
@@ -364,7 +374,8 @@ The release gate runs:
 - strict workspace typechecking and linting;
 - dependency and import-boundary enforcement;
 - UI contrast and design-policy validation;
-- colocated unit and integration suites;
+- colocated unit and integration suites, including the repository contract run
+  against a real Postgres whenever Docker or `DATABASE_URL` is available;
 - deterministic pipeline fixtures;
 - public package and production application builds;
 - inspection of the tarballs as they are actually published; and
