@@ -123,6 +123,10 @@ events and Wingman evidence therefore remain independently consented and retaine
 
 ## Framework adapters
 
+`createToolMiddleware(wingman)` is the dependency-free helper for those translations.
+It maps LangChain tool input, Vercel AI SDK tool args, and OpenAI Agents tool
+arguments onto `reviewToolCall` without installing those frameworks.
+
 Framework-specific adapters should be thin translations into the public contracts:
 
 | Framework capability | Wingman translation |

@@ -1,5 +1,6 @@
 'use client'
 
+import type { AgentConfig } from '@wingman/schema'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -12,6 +13,7 @@ interface ConfigVersionView {
   id: string
   version: number
   incidentId: string | null
+  config?: AgentConfig
 }
 
 interface ConfigWorkspaceProps {
@@ -51,7 +53,7 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, user
         <div className="proof-label">BASE</div>
         <details>
           <summary><span className="mono">v1</span>, active global configuration</summary>
-          <pre className="diff">{`tools:\n  export_records:\n    description: Exports records from the current object.\nrules: []`}</pre>
+          <pre className="diff">{baseYaml(versions[0]?.config)}</pre>
         </details>
       </div>
       <div className="proof-block">
@@ -74,10 +76,7 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, user
           <label>To <select aria-label="Compare to" value={right} onChange={(event) => setRight(event.target.value)}>{versions.map((version) => <option key={version.id} value={version.id}>v{version.version}</option>)}</select></label>
         </div>
         {left === right ? <p className="muted">Select two different versions to inspect a change.</p> : (
-          <Diff path="tools[export_records].description" lines={[
-            { kind: 'remove', text: 'Exports records from the current object.' },
-            { kind: 'add', text: "Exports records. Pass the caller's active view filters in filters." },
-          ]} />
+          <Diff path={compare(versions, left, right).path} lines={compare(versions, left, right).lines} />
         )}
       </div>
       <div className="proof-block">
@@ -98,4 +97,41 @@ export const ConfigWorkspace = ({ versions, initialOverrideActive, agentId, user
       {toast ? <Toast message={toast} /> : null}
     </section>
   )
+}
+
+const baseYaml = (config: AgentConfig | undefined): string => {
+  if (!config) {
+    return 'tools:\n  export_records:\n    description: Exports records from the current object.\nrules: []'
+  }
+  const tools = Object.entries(config.tools)
+    .map(([name, tool]) => `  ${name}:\n    description: ${tool.description}`)
+    .join('\n')
+  return `tools:\n${tools}\nrules: ${JSON.stringify(config.rules)}`
+}
+
+const compare = (
+  versions: ConfigVersionView[],
+  leftId: string,
+  rightId: string,
+): { path: string; lines: Array<{ kind: 'context' | 'add' | 'remove'; text: string }> } => {
+  const left = versions.find((version) => version.id === leftId)?.config
+  const right = versions.find((version) => version.id === rightId)?.config
+  const leftTool = left?.tools.export_records?.description ?? left?.systemPrompt ?? 'previous'
+  const rightTool = right?.tools.export_records?.description ?? right?.systemPrompt ?? 'next'
+  if (leftTool === rightTool) {
+    return {
+      path: 'rules',
+      lines: [
+        { kind: 'remove', text: JSON.stringify(left?.rules ?? []) },
+        { kind: 'add', text: JSON.stringify(right?.rules ?? []) },
+      ],
+    }
+  }
+  return {
+    path: 'tools[export_records].description',
+    lines: [
+      { kind: 'remove', text: leftTool },
+      { kind: 'add', text: rightTool },
+    ],
+  }
 }

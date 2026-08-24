@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { ConfigVersionSchema, type AgentConfig, type ConfigDiff, type ConfigStore, type ConfigVersion, type Scope } from '@wingman/schema'
+import { ConfigVersionSchema, diffConfigs, type AgentConfig, type ConfigDiff, type ConfigStore, type ConfigVersion, type Scope } from '@wingman/schema'
 
 import { assertWritable } from './allowlist'
 import { ResolutionCache } from './cache'
@@ -90,6 +90,8 @@ export class WingmanConfigStore implements ConfigStore {
   async writeVersion(agentId: string, config: AgentConfig, incidentId: string): Promise<ConfigVersion> {
     const agent = await this.#repository.agent(agentId)
     if (!agent) throw new Error(`Unknown agent: ${agentId}`)
+    const diff = diffConfigs(agent.baseConfig, config)
+    if (diff) assertWritable(diff, agent.writablePaths, agent.maxDiffBytes)
     const versions = await this.#repository.versions(agentId)
     const existing = versions.find((version) => version.incidentId === incidentId && this.#canonicalize(version.config) === this.#canonicalize(config))
     if (existing) return existing
@@ -140,8 +142,8 @@ export class WingmanConfigStore implements ConfigStore {
   }
 
   #fallback(agentId: string): AgentConfig {
-    const config = this.#fallbackConfigs.get(agentId)
-    if (!config) throw new Error(`Missing BASE_CONFIG for agent: ${agentId}`)
-    return structuredClone(config)
+    const config = this.#fallbackConfigs.get(agentId) ?? this.#fallbackConfigs.get('*')
+    if (config) return structuredClone(config)
+    throw new Error(`Missing BASE_CONFIG for agent: ${agentId}`)
   }
 }

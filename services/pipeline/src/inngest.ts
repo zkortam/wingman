@@ -22,6 +22,14 @@ const observed = pipelineInngest.createFunction(
   },
 )
 
+const clustered = pipelineInngest.createFunction(
+  { id: 'resume-clustered-incident', retries: 3, triggers: [{ event: 'incident.clustered' }] },
+  async ({ event, step }) => {
+    const parsed = IncidentEventSchema.parse(event)
+    return step.run('resume-incident', () => functions().onIncidentClustered(parsed))
+  },
+)
+
 const confirmation = pipelineInngest.createFunction(
   { id: 'evaluate-confirmation', retries: 3, triggers: [{ event: 'confirmation.due' }] },
   async ({ event, step }) => {
@@ -40,4 +48,4 @@ const retention = pipelineInngest.createFunction(
   ({ step }) => step.run('delete-expired-events', () => functions().retentionSweep()),
 )
 
-export const pipelineInngestFunctions = [observed, confirmation, expiry, retention]
+export const pipelineInngestFunctions = [observed, clustered, confirmation, expiry, retention]

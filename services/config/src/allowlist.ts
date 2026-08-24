@@ -1,3 +1,9 @@
+import {
+  ConfigDiffSchema,
+  configDiffBytes,
+  isConfigPathWritable,
+} from '@wingman/schema'
+
 export type ConfigMutationReason = 'PATH_NOT_WRITABLE' | 'DIFF_TOO_LARGE'
 
 export class ConfigMutationError extends Error {
@@ -14,8 +20,3 @@ export const assertWritable = (diff: unknown, writablePaths: string[], maxDiffBy
     throw new ConfigMutationError('PATH_NOT_WRITABLE')
   }
 }
-import {
-  ConfigDiffSchema,
-  configDiffBytes,
-  isConfigPathWritable,
-} from '@wingman/schema'

@@ -14,10 +14,15 @@ export interface Events {
 
 export type EventName = keyof Events;
 
+export interface EventSchedule {
+  runAt: string;
+}
+
 export interface EventPublisher {
   publish<Name extends EventName>(
     name: Name,
     event: Events[Name],
     idempotencyKey: string,
+    schedule?: EventSchedule,
   ): Promise<void>;
 }

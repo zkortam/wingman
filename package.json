@@ -1,8 +1,16 @@
 {
   "name": "wingman",
   "private": true,
+  "description": "Decision review and outcome verification for tool-using AI agents.",
   "type": "module",
   "packageManager": "pnpm@10.30.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zkortam/wingman.git"
+  },
+  "homepage": "https://github.com/zkortam/wingman#readme",
+  "bugs": "https://github.com/zkortam/wingman/issues",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },

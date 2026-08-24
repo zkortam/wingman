@@ -20,7 +20,16 @@ export default async function ConfigPage() {
   return (
     <>
       <PageHeader title="Config" meta="Immutable versions and per-user overrides" />
-      <ConfigWorkspace {...identity} initialOverrideActive={reporter.version > 1} versions={versions} />
+      <ConfigWorkspace
+        {...identity}
+        initialOverrideActive={reporter.version > 1}
+        versions={versions.map((version) => ({
+          id: version.id,
+          version: version.version,
+          incidentId: version.incidentId,
+          ...('config' in version ? { config: version.config } : {}),
+        }))}
+      />
     </>
   )
 }

@@ -89,6 +89,53 @@ export function configDiffBytes(diff: ConfigDiff): number {
     .byteLength;
 }
 
+/** Lowest-path diff used by writeVersion to enforce the writable allowlist. */
+export function diffConfigs(
+  before: AgentConfig,
+  after: AgentConfig,
+): ConfigDiff | null {
+  const changes: Array<z.infer<typeof ConfigChangeSchema>> = [];
+  if (before.systemPrompt !== after.systemPrompt) {
+    changes.push({
+      path: "systemPrompt",
+      before: before.systemPrompt,
+      after: after.systemPrompt,
+    });
+  }
+  if (!jsonEqual(before.rules, after.rules)) {
+    changes.push({ path: "rules", before: before.rules, after: after.rules });
+  }
+  if (!jsonEqual(before.retrieval, after.retrieval)) {
+    changes.push({
+      path: "retrieval",
+      before: before.retrieval,
+      after: after.retrieval,
+    });
+  }
+  for (const name of new Set([
+    ...Object.keys(before.tools),
+    ...Object.keys(after.tools),
+  ])) {
+    const left = before.tools[name];
+    const right = after.tools[name];
+    if ((left?.description ?? null) !== (right?.description ?? null)) {
+      changes.push({
+        path: `tools.${name}.description`,
+        before: left?.description ?? null,
+        after: right?.description ?? null,
+      });
+    }
+    if (!jsonEqual(left?.parameters ?? null, right?.parameters ?? null)) {
+      changes.push({
+        path: `tools.${name}.parameters`,
+        before: left?.parameters ?? null,
+        after: right?.parameters ?? null,
+      });
+    }
+  }
+  return changes.length === 0 ? null : ConfigDiffSchema.parse({ changes });
+}
+
 /** Matches customer writable-path declarations without granting sibling fields. */
 export function isConfigPathWritable(path: string, allowed: string): boolean {
   const pathParts = parsePath(path);

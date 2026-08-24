@@ -14,6 +14,10 @@ const incidentJoinMigration = readFileSync(
   new URL("../../../supabase/migrations/0003_atomic_incident_join.sql", import.meta.url),
   "utf8",
 );
+const hardeningMigration = readFileSync(
+  new URL("../../../supabase/migrations/0004_pipeline_hardening.sql", import.meta.url),
+  "utf8",
+);
 
 describe("initial migration invariants", () => {
   it("preserves attempts and corrected uniqueness", () => {
@@ -39,5 +43,12 @@ describe("initial migration invariants", () => {
     expect(incidentJoinMigration).toContain('incidents.session_ids || excluded.session_ids')
     expect(incidentJoinMigration).toContain('from public')
     expect(incidentJoinMigration).toContain('to service_role')
+  })
+
+  it('aligns signal and verdict checks and persists the ledger', () => {
+    expect(hardeningMigration).toContain('PREFERENCE_STATED')
+    expect(hardeningMigration).toContain('UNSUPPORTED')
+    expect(hardeningMigration).toContain('create table pipeline_ledger')
+    expect(hardeningMigration).toContain("incidents.state in ('OPEN', 'CLUSTERED')")
   })
 });

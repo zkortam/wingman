@@ -3,8 +3,10 @@ import { randomUUID } from "node:crypto";
 import {
   AssertionSchema,
   CandidateSchema,
+  canonicalJSON,
   OutcomeSchema,
   RunSchema,
+  StageError,
 } from "@wingman/schema";
 
 import type { IncidentRecord } from "../domain.js";
@@ -74,6 +76,9 @@ export function createReplayWriteRepository(
         return structuredClone(incident);
       }
       const stored = required(database.incidents, existing.id, "Incident");
+      if (!["OPEN", "CLUSTERED"].includes(stored.state)) {
+        return structuredClone(stored);
+      }
       stored.userHashes = unique([
         ...stored.userHashes,
         input.session.userHash,
@@ -120,8 +125,12 @@ export function createReplayWriteRepository(
         ({ agentId, identity }) =>
           agentId === input.incident.agentId && identity === input.identity,
       );
-      if (existing !== undefined)
+      if (existing !== undefined) {
+        if (canonicalJSON(existing.definition) !== canonicalJSON(input.definition)) {
+          throw new StageError("assertion", "STALE_IDEMPOTENT_ROW", false);
+        }
         return Promise.resolve(structuredClone(existing));
+      }
       const assertion = AssertionSchema.parse({
         id: randomUUID(),
         incidentId: input.incident.id,
@@ -138,8 +147,15 @@ export function createReplayWriteRepository(
     saveRun(input) {
       const key = `${input.assertionId}:${input.phase}:${input.attempt}:${input.candidateId ?? "base"}`;
       const existing = database.runs.get(key);
-      if (existing !== undefined)
+      if (existing !== undefined) {
+        if (
+          canonicalJSON({ n: existing.n, passCount: existing.passCount, results: existing.results }) !==
+          canonicalJSON({ n: input.n, passCount: input.passCount, results: input.results })
+        ) {
+          throw new StageError("runner", "STALE_IDEMPOTENT_ROW", false);
+        }
         return Promise.resolve(structuredClone(existing));
+      }
       const run = RunSchema.parse({
         ...input,
         id: randomUUID(),
@@ -155,8 +171,12 @@ export function createReplayWriteRepository(
           attempt === input.attempt &&
           iteration === input.iteration,
       );
-      if (existing !== undefined)
+      if (existing !== undefined) {
+        if (canonicalJSON(existing.diff) !== canonicalJSON(input.diff)) {
+          throw new StageError("fix", "STALE_IDEMPOTENT_ROW", false);
+        }
         return Promise.resolve(structuredClone(existing));
+      }
       const candidate = CandidateSchema.parse({
         id: randomUUID(),
         ...input,

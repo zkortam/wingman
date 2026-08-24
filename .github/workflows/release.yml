@@ -1,0 +1,34 @@
+name: Release artifacts
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  pack:
+    name: Pack public packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wingman/schema build
+      - run: pnpm --filter @wingman/sdk build
+      - run: pnpm package:check
+      - run: |
+          mkdir -p artifacts
+          pnpm --filter @wingman/schema pack --pack-destination artifacts
+          pnpm --filter @wingman/sdk pack --pack-destination artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wingman-packages
+          path: artifacts/*.tgz

@@ -3,6 +3,7 @@ import { AgentConfigSchema, canonicalJSON, type AgentConfig } from '@wingman/sch
 
 import { CONFIG_CACHE_TTL_MS, CONFIG_TIMEOUT_MS, STORAGE_PREFIX } from './constants.js'
 import { configChangeBytes, hasOnlyWritableChanges } from './permissions.js'
+import { withTimeout } from './timeout.js'
 
 interface StoredConfig {
   config: AgentConfig
@@ -77,12 +78,14 @@ export class ConfigResolver {
   async #remote(agent: string, userHash: string): Promise<StoredConfig | null> {
     try {
       const fetcher = this.#options.fetcher ?? fetch
+      const timeoutMs = this.#options.timeoutMs ?? CONFIG_TIMEOUT_MS
       const response = await withTimeout(
         fetcher(`${this.#options.endpoint}/v1/config/${encodeURIComponent(agent)}/${encodeURIComponent(userHash)}`, {
           headers: { authorization: `Bearer ${this.#options.apiKey}` },
-          signal: AbortSignal.timeout(CONFIG_TIMEOUT_MS),
+          signal: AbortSignal.timeout(timeoutMs),
         }),
-        this.#options.timeoutMs ?? CONFIG_TIMEOUT_MS,
+        timeoutMs,
+        'Config resolution timed out',
       )
       if (!response.ok) return null
       const payload = this.#valid(agent, await response.json())
@@ -137,19 +140,5 @@ export class ConfigResolver {
     } catch {
       return
     }
-  }
-}
-
-async function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      work,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('Config resolution timed out')), timeoutMs)
-      }),
-    ])
-  } finally {
-    if (timer !== undefined) clearTimeout(timer)
   }
 }

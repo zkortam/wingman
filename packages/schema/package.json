@@ -1,7 +1,13 @@
 {
   "name": "@wingman/schema",
   "version": "0.1.0",
-  "description": "Runtime-validated contracts for Wingman agent integrations.",
+  "description": "Runtime-validated contracts and frozen ports for Wingman agent integrations.",
+  "keywords": [
+    "ai-agents",
+    "zod",
+    "tool-calling",
+    "contracts"
+  ],
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -35,6 +41,9 @@
       "optional": true
     }
   },
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
     "dist",
     "README.md",
@@ -43,6 +52,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",

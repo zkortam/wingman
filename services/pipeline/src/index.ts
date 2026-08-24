@@ -46,6 +46,7 @@ export {
   NoopLedger,
   type MemoryAdapter,
 } from "./ledger/index.js";
+export { SupabaseLedger } from "./ledger/supabase.js";
 export { runExpirySweep, runRetentionSweep } from "./operations.js";
 export { pipelineInngest, pipelineInngestFunctions } from './inngest.js'
 export { PIPELINE_MODELS, PIPELINE_POLICY } from "./policy.js";

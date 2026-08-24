@@ -20,7 +20,13 @@ export default async function OutcomesPage() {
   } catch {
     return <ServiceUnavailable resource="Outcomes" />
   }
-  const confirmed = outcomes.filter((outcome) => outcome.state === 'CONFIRMED')
+  const now = new Date()
+  const confirmed = outcomes.filter((outcome) => {
+    if (outcome.state !== 'CONFIRMED') return false
+    if (!outcome.confirmedAt) return false
+    const confirmedAt = new Date(outcome.confirmedAt)
+    return confirmedAt.getUTCFullYear() === now.getUTCFullYear() && confirmedAt.getUTCMonth() === now.getUTCMonth()
+  })
   const confirmationRate = outcomes.length > 0 ? Math.round((confirmed.length / outcomes.length) * 100) : 0
   const durations = confirmed.flatMap((outcome) => outcome.appliedAt && outcome.confirmedAt
     ? [new Date(outcome.confirmedAt).getTime() - new Date(outcome.appliedAt).getTime()]

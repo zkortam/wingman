@@ -19,7 +19,7 @@ export function createMaintenanceStore(
         .from("incidents")
         .update({ state: "EXPIRED", state_reason: "NO_RECURRENCE_14D" })
         .lt("expires_at", now.toISOString())
-        .not("state", "in", "(CONFIRMED,DISCARDED,EXPIRED)")
+        .not("state", "in", "(CONFIRMED,DISCARDED,EXPIRED,APPLIED,REVERTED)")
         .select("id");
       if (result.error) throw result.error;
       return result.data?.length ?? 0;

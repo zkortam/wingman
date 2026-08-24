@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyDiff,
   ConfigDiffSchema,
+  diffConfigs,
   isConfigPathWritable,
 } from "./config.js";
 
@@ -14,6 +15,15 @@ const base = {
   retrieval: { topK: 5 },
   rules: ["one"],
 };
+
+describe("diffConfigs", () => {
+  it("returns null when configs are identical and a bounded path list otherwise", () => {
+    expect(diffConfigs(base, structuredClone(base))).toBeNull();
+    expect(diffConfigs(base, { ...base, rules: ["two"] })).toEqual({
+      changes: [{ path: "rules", before: ["one"], after: ["two"] }],
+    });
+  });
+});
 
 describe("ConfigDiff", () => {
   it("applies awkward JSON values without mutating the base", () => {

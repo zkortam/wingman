@@ -22,20 +22,40 @@ export class RedactionVerificationError extends Error {
   }
 }
 
+const OPTIONAL_FIELDS = new Set([
+  "personaId",
+  "viewFilters",
+  "selectedIds",
+  "dateRange",
+  "lastQuery",
+  "userRules",
+]);
+
 export function verifyRedaction(input: unknown): SessionInput {
   const session = SessionInputSchema.parse(input);
+  const allowed = new Set(session.redaction.fields);
+  for (const field of OPTIONAL_FIELDS) {
+    if (session[field as keyof SessionInput] !== undefined && !allowed.has(field)) {
+      throw new RedactionVerificationError(field);
+    }
+  }
   for (const turn of session.turns) {
+    inspectValue(turn.textRedacted, `turns.${turn.idx}.textRedacted`);
     for (const call of turn.toolCalls)
-      inspectObject(call.args, `turns.${turn.idx}.toolCalls.${call.id}.args`);
+      inspectObject(call.args, `turns.${turn.idx}.toolCalls.${call.id ?? "anon"}.args`);
   }
   inspectValue(session.viewFilters, "viewFilters");
   inspectValue(session.dateRange, "dateRange");
+  inspectValue(session.lastQuery, "lastQuery");
+  inspectValue(session.selectedIds, "selectedIds");
+  inspectValue(session.userRules, "userRules");
   return session;
 }
 
-function inspectValue(value: JsonValue | undefined, path: string): void {
-  if (value === undefined || value === null || typeof value !== "object")
-    return;
+function inspectValue(value: JsonValue | string | undefined, path: string): void {
+  if (value === undefined || value === null) return;
+  if (typeof value === "string") return;
+  if (typeof value !== "object") return;
   if (Array.isArray(value)) {
     value.forEach((entry, index) => inspectValue(entry, `${path}.${index}`));
     return;

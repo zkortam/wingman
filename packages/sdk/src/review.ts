@@ -7,6 +7,8 @@ import {
 
 import { hashUserId } from "./hash.js";
 import type { PiiScrubber } from "./openredaction.js";
+import { scrubValue } from "./scrub.js";
+import { withTimeout } from "./timeout.js";
 
 export type ReviewToolCallInput = Omit<
   ToolCallReviewRequest,
@@ -22,15 +24,28 @@ export type ReviewMcpToolCallInput = Omit<
   ReviewToolCallInput,
   'proposedCall'
 > & {
-  request: {
-    jsonrpc: '2.0'
-    id: string | number
-    method: 'tools/call'
-    params: {
-      name: string
-      arguments?: ToolCallReviewRequest['proposedCall']['args']
-    }
+  request: McpToolsCallRequest
+}
+
+export interface McpToolsCallRequest {
+  jsonrpc: '2.0'
+  id: string | number
+  method: 'tools/call'
+  params: {
+    name: string
+    arguments?: ToolCallReviewRequest['proposedCall']['args']
   }
+}
+
+export const isMcpToolsCallRequest = (value: unknown): value is McpToolsCallRequest => {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Record<string, unknown>
+  if (request.jsonrpc !== '2.0') return false
+  if (typeof request.id !== 'string' && typeof request.id !== 'number') return false
+  if (request.method !== 'tools/call') return false
+  if (!request.params || typeof request.params !== 'object') return false
+  const params = request.params as Record<string, unknown>
+  return typeof params.name === 'string' && params.name.length > 0
 }
 
 export type LocalToolCallReviewer = (
@@ -60,6 +75,20 @@ export class ToolReviewClient {
     this.#options = options;
   }
 
+  reviewMcp(input: ReviewMcpToolCallInput): Promise<ToolCallReviewDecision> {
+    if (!isMcpToolsCallRequest(input.request)) {
+      return Promise.resolve(this.#fallback("MCP tools/call envelope was invalid."));
+    }
+    const { request, ...review } = input;
+    return this.review({
+      ...review,
+      proposedCall: {
+        name: request.params.name,
+        args: request.params.arguments ?? {},
+      },
+    });
+  }
+
   async review(input: ReviewToolCallInput): Promise<ToolCallReviewDecision> {
     try {
       const request = await this.#request(input);
@@ -67,14 +96,7 @@ export class ToolReviewClient {
       const raw = this.#options.review?.reviewer
         ? await this.#local(request)
         : await this.#remote(request);
-      const source = this.#options.review?.reviewer ? "LOCAL" : "REMOTE";
-      const parsed = ToolCallReviewDecisionSchema.safeParse({
-        ...(raw && typeof raw === "object" ? raw : {}),
-        source,
-      });
-      return parsed.success
-        ? parsed.data
-        : this.#fallback("Review returned an invalid decision.");
+      return this.#decision(raw);
     } catch {
       return this.#fallback("Review was unavailable.");
     }
@@ -122,6 +144,7 @@ export class ToolReviewClient {
     return withTimeout(
       reviewer(request),
       this.#options.review?.timeoutMs ?? 1_000,
+      "Review timed out",
     );
   }
 
@@ -134,15 +157,41 @@ export class ToolReviewClient {
           headers: {
             authorization: `Bearer ${this.#options.apiKey}`,
             "content-type": "application/json",
+            ...(this.#options.review?.failMode === "closed"
+              ? { "x-wingman-fail-mode": "closed" }
+              : {}),
           },
           body: JSON.stringify(request),
           signal: AbortSignal.timeout(timeoutMs),
         },
       ),
       timeoutMs,
+      "Review timed out",
     );
     if (!response.ok) return null;
     return response.json();
+  }
+
+  #decision(raw: unknown): ToolCallReviewDecision {
+    if (!raw || typeof raw !== "object") {
+      return this.#fallback("Review returned an invalid decision.");
+    }
+    const value = raw as Record<string, unknown>;
+    if (value.source === "FAIL_OPEN" && this.#options.review?.failMode === "closed") {
+      return this.#fallback("Remote review was unavailable.");
+    }
+    const source =
+      value.source === "FAIL_OPEN" ||
+      value.source === "FAIL_CLOSED" ||
+      value.source === "POLICY"
+        ? value.source
+        : this.#options.review?.reviewer
+          ? "LOCAL"
+          : "REMOTE";
+    const parsed = ToolCallReviewDecisionSchema.safeParse({ ...value, source });
+    return parsed.success
+      ? parsed.data
+      : this.#fallback("Review returned an invalid decision.");
   }
 
   #fallback(reason: string): ToolCallReviewDecision {
@@ -162,37 +211,5 @@ export class ToolReviewClient {
       confidence: 0,
       source: "FAIL_OPEN",
     };
-  }
-}
-
-async function scrubValue(
-  value: unknown,
-  scrub: (value: string) => Promise<string>,
-): Promise<unknown> {
-  if (typeof value === "string") return scrub(value);
-  if (Array.isArray(value))
-    return Promise.all(value.map((entry) => scrubValue(entry, scrub)));
-  if (value && typeof value === "object") {
-    const entries = await Promise.all(
-      Object.entries(value).map(
-        async ([key, entry]) => [key, await scrubValue(entry, scrub)] as const,
-      ),
-    );
-    return Object.fromEntries(entries);
-  }
-  return value;
-}
-
-async function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      work,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("Review timed out")), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
   }
 }

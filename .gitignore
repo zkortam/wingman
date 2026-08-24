@@ -1,6 +1,10 @@
-# --- planning docs (local only) ---
+# --- planning / generated agent files ---
 MASTERPLAN*.md
+ITERATIONS.md
 /docs/
+CLAUDE.md
+apps/web/CLAUDE.md
+apps/web/AGENTS.md
 
 # --- local integration worktree ---
 .pathb/

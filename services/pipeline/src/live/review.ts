@@ -30,6 +30,7 @@ export async function reviewProposedToolCall(input: {
   config: AgentConfig;
   request: ToolCallReviewRequest;
   timeoutMs?: number;
+  failMode?: "open" | "closed";
 }): Promise<ToolCallReviewDecision> {
   if (!Object.hasOwn(input.config.tools, input.request.proposedCall.name)) {
     return {
@@ -42,14 +43,14 @@ export async function reviewProposedToolCall(input: {
   }
 
   const raw = await boundedGenerate(input);
-  if (raw === null) return unavailableDecision();
+  if (raw === null) return unavailableDecision(input.failMode);
   const parsed = ModelDecisionSchema.safeParse(coerce(raw));
-  if (!parsed.success) return unavailableDecision();
+  if (!parsed.success) return unavailableDecision(input.failMode);
   const decision = ToolCallReviewDecisionSchema.safeParse({
     ...parsed.data,
     source: "REMOTE",
   });
-  return decision.success ? decision.data : unavailableDecision();
+  return decision.success ? decision.data : unavailableDecision(input.failMode);
 }
 
 async function boundedGenerate(input: {
@@ -119,7 +120,18 @@ function coerce(value: unknown): unknown {
   }
 }
 
-function unavailableDecision(): ToolCallReviewDecision {
+function unavailableDecision(
+  failMode: "open" | "closed" = "open",
+): ToolCallReviewDecision {
+  if (failMode === "closed") {
+    return {
+      action: "ESCALATE",
+      reason: "Review was unavailable.",
+      instruction: "Do not execute this call until the host can review it.",
+      confidence: 0,
+      source: "FAIL_CLOSED",
+    };
+  }
   return {
     action: "ALLOW",
     reason: "Review was unavailable; the host's existing tool policy remains authoritative.",

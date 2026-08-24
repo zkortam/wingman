@@ -28,7 +28,7 @@ interface IncidentProofProps {
   nextId?: string | undefined
   agentId?: string | undefined
   userHash?: string | undefined
-  client?: Pick<typeof apiClient, 'apply' | 'dismiss' | 'handoff' | 'reopen' | 'revert'> | undefined
+  client?: Pick<typeof apiClient, 'apply' | 'dismiss' | 'handoff' | 'reopen' | 'revert' | 'getIncident'> | undefined
 }
 
 export const IncidentProof = ({ initialIncident, previousId, nextId, agentId, userHash, client = apiClient }: IncidentProofProps) => {
@@ -94,11 +94,8 @@ export const IncidentProof = ({ initialIncident, previousId, nextId, agentId, us
     setBusy(true)
     try {
       await client.reopen(incident.id)
-      setIncident((value) => {
-        const reopened = { ...value }
-        delete reopened.stateReason
-        return { ...reopened, state: 'CANDIDATE' }
-      })
+      const next = await client.getIncident(incident.id)
+      setIncident(next)
       setToast('Incident reopened')
     } catch {
       setToast('Reopen failed. Nothing changed.')
@@ -108,12 +105,9 @@ export const IncidentProof = ({ initialIncident, previousId, nextId, agentId, us
   }
 
   const completeConfirmation = (): void => {
-    setIncident((value) => ({
-      ...value,
-      state: 'CONFIRMED',
-      confirmedAt: new Date().toISOString(),
-      confirmation: { status: 'CONFIRMED', detail: 'Confirmed by the next matching task, just now' },
-    }))
+    void client.getIncident(incident.id).then((next) => {
+      if (next.state === 'CONFIRMED' || next.confirmation?.status === 'CONFIRMED') setIncident(next)
+    }).catch(() => undefined)
   }
 
   useEffect(() => {

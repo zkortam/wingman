@@ -53,4 +53,10 @@ describe("verifyRedaction", () => {
     ];
     expect(() => verifyRedaction(nested)).toThrow(RedactionVerificationError);
   });
+
+  it("rejects optional fields that were not allowlisted", () => {
+    expect(() =>
+      verifyRedaction({ ...payload(), lastQuery: "secret search" }),
+    ).toThrow(RedactionVerificationError);
+  });
 });
