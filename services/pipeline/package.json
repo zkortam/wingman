@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openai/codex-sdk": "^0.149.0",
+    "@openai/codex-sdk": "^0.150.1",
     "@wingman/config": "workspace:*",
     "@wingman/db": "workspace:*",
     "@wingman/ingest": "workspace:*",
