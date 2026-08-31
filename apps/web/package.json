@@ -21,7 +21,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
-    "axe-core": "4.12.1",
+    "axe-core": "4.13.0",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.3",
     "@types/react": "19.2.10",
