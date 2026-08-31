@@ -18,7 +18,7 @@
     "@wingman/schema": "workspace:*",
     "inngest": "^4.18.1",
     "ws": "^8.18.0",
-    "zod": "^3.24.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/ws": "^8.18.0",
