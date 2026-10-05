@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@wingman/schema": "workspace:*",
-    "postgres": "3.4.7"
+    "postgres": "3.4.9"
   },
   "devDependencies": {
     "vitest": "4.1.9"

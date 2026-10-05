@@ -11,17 +11,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@openai/codex-sdk": "^0.149.0",
+    "@openai/codex-sdk": "^0.160.0",
     "@wingman/config": "workspace:*",
     "@wingman/db": "workspace:*",
     "@wingman/ingest": "workspace:*",
     "@wingman/schema": "workspace:*",
-    "inngest": "^4.18.1",
-    "ws": "^8.18.0",
+    "inngest": "^4.21.1",
+    "ws": "^8.22.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.0",
+    "@types/ws": "^8.18.2",
     "vitest": "4.1.9"
   }
 }
